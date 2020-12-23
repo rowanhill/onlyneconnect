@@ -2,7 +2,8 @@ import React from 'react';
 import { useAuth } from './hooks/useAuth';
 import { Redirect, Route, Switch, useHistory } from 'react-router-dom';
 import { Home } from './Home';
-import { Lobby } from './Lobby';
+import { QuizLobby } from './QuizLobby';
+import { TeamLobby } from './TeamLobby';
 
 export function LoggedInApp() {
     const { initialising, user } = useAuth();
@@ -19,9 +20,12 @@ export function LoggedInApp() {
 
     return (
         <Switch>
-            <Route path="/lobby/:id" render={(match) => 
-                <Lobby quizId={match.match.params.id} />
+            <Route path="/quiz/:id/lobby" render={(match) => 
+                <QuizLobby quizId={match.match.params.id} />
             } />
+            <Route path="/team/:id/lobby">{(match) => (
+                <TeamLobby teamId={match.match?.params.id} />
+            )}</Route>
             <Route path="/quiz/:id">
                 {(match) => <p>Quiz ID: {match.match?.params.id}</p>}
             </Route>

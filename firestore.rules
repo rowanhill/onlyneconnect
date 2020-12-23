@@ -24,6 +24,11 @@ service cloud.firestore {
         get(/databases/$(database)/documents/quizzes/$(quiz)/playerTeams/$(request.auth.uid)).data.team == team;
     }
 
+    function teamCaptain(quiz, team, uid) {
+      let teamData = get(/databases/$(database)/documents/teams/$(team)).data;
+      return uid == teamData.captainId && quiz == teamData.quizId;
+    }
+
     match /quizTemplates/{template} {
       allow create: if request.auth != null;
       allow read, update, delete: if templateAuthor(template);
@@ -60,7 +65,7 @@ service cloud.firestore {
         // New answers may not have points.
         // New answers must be created with the current (server) timestamp.
         allow create: if request.auth != null &&
-          request.auth.uid == get(/databases/$(database)/documents/quizzes/$(quiz)/teams/$(request.resource.data.team)).data.captainId &&
+          teamCaptain(quiz, request.resource.data.team, request.auth.uid) &&
           get(/databases/$(database)/documents/quizzes/$(quiz)/questions/$(request.resource.data.question)).isRevealed == true &&
           !('points' in request.resource.data) &&
           request.resource.data.timestamp == request.time;
@@ -69,29 +74,30 @@ service cloud.firestore {
         // The quiz owner can update the answer's awarded points
         allow update: if quizOwner(quiz) && request.resource.data.keys().hasOnly(['points']);
       }
+    }
 
-      match /playerTeams/{player} {
-        // Creating adds you to a team. You need the TEAM passcode to do this.
-        allow create: if request.auth != null &&
-          request.auth.uid == player &&
-          request.resource.data.teamPasscode == get(/databases/$(database)/documents/quizzes/$(quiz)/teams/$(request.resource.data.team)).data.passcode;
+    match /teams/{team} {
+      // You need the QUIZ passcode to create a team for this quiz
+      allow create: if request.auth != null &&
+        request.resource.data.quizPasscode == get(/databases/$(database)/documents/quizzes/$(request.resource.data.quizId)).data.passcode;
 
-        // You can remove your own player
-        allow delete: if request.auth != null && request.auth.uid == player;
+      // You need to be the captain to update or delete a team
+      allow update, delete: if request.auth != null && request.auth.id == resource.data.captainId;
 
-        // Nobody can read player team assignments, they're just for access control
-      }
+      // Anyone can read team info
+      allow read: if request.auth != null;
+    }
 
-      match /teams/{team} {
-        // You need the QUIZ passcode to create a team for this quiz
-        allow create: if request.auth != null && request.resource.data.quizPasscode == get(/databases/$(database)/documents/quizzes/$(quiz)).data.passcode;
+    match /playerTeams/{player} {
+      // Creating adds you to a team. You need the TEAM passcode to do this.
+      allow create: if request.auth != null &&
+        request.auth.uid == player &&
+        request.resource.data.teamPasscode == get(/databases/$(database)/documents/teams/$(request.resource.data.team)).data.passcode;
 
-        // You need to be the captain to update or delete a team
-        allow update, delete: if request.auth != null && request.auth.id == resource.data.captainId;
+      // You can remove your own player
+      allow delete: if request.auth != null && request.auth.uid == player;
 
-        // Anyone can read team info
-        allow read: if request.auth != null;
-      }
+      // Nobody can read player team assignments, they're just for access control
     }
   }
 }

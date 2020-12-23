@@ -7,7 +7,7 @@ export interface LobbyProps {
     quizId: string;
 }
 
-export const Lobby = ({ quizId }: LobbyProps) => {
+export const QuizLobby = ({ quizId }: LobbyProps) => {
     return (
         <>
         <h1>Join a team</h1>
@@ -16,9 +16,8 @@ export const Lobby = ({ quizId }: LobbyProps) => {
         <p>To create a new team, enter the ID passcode for the quiz you're joining. You can get these from your quizmaster.</p>
         <CreateTeamForm quizId={quizId} />
 
-        <h2>Joining an existing team?</h2>
-        <p>If you're captain has made a team, enter your team's passcode. You can get this from your captain.</p>
-        <JoinTeamForm quizId={quizId} />
+        <h2>Want to join an existing team?</h2>
+        <p>Your team captain needs to create a team then give you a joining link.</p>
         </>
     );
 };
@@ -46,8 +45,9 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
         setDisabled(true);
 
         const db = firebase.firestore();
-        db.collection("quizzes").doc(quizId).collection('teams').add({
+        db.collection('teams').add({
             captainId: user!.uid,
+            quizId: quizId,
             quizPasscode: passcode,
             passcode: teamPasscode,
             name: teamName,
@@ -68,46 +68,6 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
                 <input type="text" placeholder="Quiz passcode" value={passcode} onChange={onPasscodeChange} />
                 <input type="text" placeholder="Team name" value={teamName} onChange={onTeamNameChange} />
                 <button>Create a team</button>
-            </fieldset>
-        </form>
-    );
-};
-
-const JoinTeamForm = ({ quizId }: { quizId: string }) => {
-    const [teamId, setTeamId] = useState('');
-    const onTeamIdChange = createChangeHandler(setTeamId);
-    const [passcode, setPasscode] = useState('');
-    const onPasscodeChange = createChangeHandler(setPasscode);
-    const [disabled, setDisabled] = useState(false);
-    const { user } = useAuth();
-
-    const history = useHistory();
-
-    const submit = (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setDisabled(true);
-
-        const db = firebase.firestore();
-        db.collection("quizzes").doc(quizId).collection('playerTeams').doc(user!.uid).set({
-            team: teamId,
-            teamPasscode: passcode,
-        })
-        .then(() => {
-            window.localStorage.setItem('teamId', teamId);
-            window.localStorage.setItem('isCaptain', 'false');
-            history.push(`/quiz/${quizId}`);
-        })
-        .catch((error) => {
-            console.error("Could not join team", error);
-        });
-    };
-
-    return (
-        <form onSubmit={submit}>
-            <fieldset disabled={disabled}>
-                <input type="text" placeholder="Team ID" value={teamId} onChange={onTeamIdChange} />
-                <input type="text" placeholder="Team passcode" value={passcode} onChange={onPasscodeChange} />
-                <button>Join a team</button>
             </fieldset>
         </form>
     );
