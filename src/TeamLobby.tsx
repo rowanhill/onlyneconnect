@@ -56,9 +56,6 @@ export interface LobbyProps {
 
 export const TeamLobby = ({ teamId }: LobbyProps) => {
     const teamResult = useTeam(teamId);
-    if (!teamResult.loading) {
-        console.log(teamResult);
-    }
     return (
         <>
         <h1>Join a team</h1>
