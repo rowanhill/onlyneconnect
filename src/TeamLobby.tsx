@@ -56,19 +56,34 @@ export interface LobbyProps {
 
 export const TeamLobby = ({ teamId }: LobbyProps) => {
     const teamResult = useTeam(teamId);
+
+    if (teamResult.error) {
+        console.error(teamResult.error);
+        return <p>There was an error trying to load the team. Please try again.</p>;
+    }
+    if (teamResult.loading || !(teamResult as any).team) {
+        return <p>Loading your team lobby...</p>;
+    }
+    const teamData = teamResult.team.data();
+    if (!teamData) {
+        console.error('Team data is undefined for id ' + teamId);
+        return <p>There was an error loading the quiz! Please try again.</p>;
+    }
+    const storedTeamId = window.localStorage.getItem('teamId');
+
     return (
         <>
-        <h1>Join a team</h1>
-        <h2>Joining an existing team?</h2>
+        <h1>Join {teamData.name}</h1>
+        {storedTeamId && (
+            storedTeamId === teamId ?
+                <p>You're already a member of this team. Would you like to <Link to={`/quiz/${teamData.quizId}`}>go to your quiz</Link>?</p> :
+                <p>Careful! You're already a member of a different team. You can only be a member in one team at once.</p>
+        )}
         <p>If you're captain has made a team, enter your team's passcode. You can get this from your captain.</p>
-        {!teamResult.loading && teamResult.error === null && teamResult.team &&
-            <>
-            <JoinTeamForm teamId={teamId} quizId={teamResult.team.data()!.quizId} />
-            
-            <h2>Want to start your own team?</h2>
-            <p>If you'd rather start your own team (as captain), you can <Link to={`/quiz/${teamResult.team.data()!.quizId}/lobby`}>click here</Link>.</p>
-            </>
-        }
+        <JoinTeamForm teamId={teamId} quizId={teamData.quizId} />
+        
+        <h2>Want to start your own team?</h2>
+        <p>If you'd rather start your own team (as captain), you can <Link to={`/quiz/${teamData.quizId}/lobby`}>click here</Link>.</p>
         </>
     );
 };
