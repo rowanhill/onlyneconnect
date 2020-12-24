@@ -1,70 +1,24 @@
-import React, { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import React, { ChangeEvent, FormEvent, useState } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
-
-type UseTeamResult = {
-    error: firebase.firestore.FirestoreError,
-    loading: false,
-    team: null,
-} | {
-    loading: true,
-    error: null,
-    team: null,
-} | {
-    loading: false,
-    error: null,
-    team: firebase.firestore.DocumentSnapshot<firebase.firestore.DocumentData>,
-};
-function useTeam(id: string): UseTeamResult {
-    // initialize our default state
-    const [error, setError] = React.useState<firebase.firestore.FirestoreError|null>(null);
-    const [loading, setLoading] = React.useState(true);
-    const [team, setTeam] = React.useState<firebase.firestore.DocumentSnapshot<firebase.firestore.DocumentData>|null>(null);
-
-    // when the id attribute changes (including mount)
-    // subscribe to the recipe document and update
-    // our state when it changes.
-    useEffect(() => {
-        const unsubscribe = firebase.firestore()
-            .collection('teams')
-            .doc(id)
-            .onSnapshot((doc) => {
-                setTeam(doc);
-                setLoading(false);
-            },
-            (err) => {
-                setLoading(false);
-                setError(err);
-            });
-        // returning the unsubscribe function will ensure that
-        // we unsubscribe from document changes when our id
-        // changes to a different value.
-        return () => unsubscribe()
-    }, [id]);
-  
-    return {
-        error,
-        loading,
-        team,
-    } as UseTeamResult;
-}
+import { useDocumentData } from 'react-firebase-hooks/firestore';
+import { Team } from './models';
 
 interface JoinTeamPageProps {
     teamId: string;
 }
 
 export const JoinTeamPage = ({ teamId }: JoinTeamPageProps) => {
-    const teamResult = useTeam(teamId);
+    const [teamData, loading, error] = useDocumentData<Team>(firebase.firestore().collection('teams').doc(teamId));
 
-    if (teamResult.error) {
-        console.error(teamResult.error);
+    if (error) {
+        console.error(error);
         return <p>There was an error trying to load the team. Please try again.</p>;
     }
-    if (teamResult.loading || !(teamResult as any).team) {
+    if (loading) {
         return <p>Loading your team lobby...</p>;
     }
-    const teamData = teamResult.team.data();
     if (!teamData) {
         console.error('Team data is undefined for id ' + teamId);
         return <p>There was an error loading the quiz! Please try again.</p>;

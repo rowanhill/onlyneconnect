@@ -1,69 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useDocumentData } from 'react-firebase-hooks/firestore';
 import { Link } from 'react-router-dom';
 import firebase from './firebase';
-
-type UseQuizResult = {
-    error: firebase.firestore.FirestoreError,
-    loading: false,
-    quiz: null,
-} | {
-    loading: true,
-    error: null,
-    quiz: null,
-} | {
-    loading: false,
-    error: null,
-    quiz: firebase.firestore.DocumentSnapshot<firebase.firestore.DocumentData>,
-};
-function useQuiz(id: string): UseQuizResult {
-    // initialize our default state
-    const [error, setError] = useState<firebase.firestore.FirestoreError|null>(null);
-    const [loading, setLoading] = useState(true);
-    const [quiz, setQuiz] = useState<firebase.firestore.DocumentSnapshot<firebase.firestore.DocumentData>|null>(null);
-
-    // when the id attribute changes (including mount)
-    // subscribe to the recipe document and update
-    // our state when it changes.
-    useEffect(() => {
-        const unsubscribe = firebase.firestore()
-            .collection('quizzes')
-            .doc(id)
-            .onSnapshot((doc) => {
-                console.log(doc);
-                setQuiz(doc);
-                setLoading(false);
-            },
-            (err) => {
-                setLoading(false);
-                setError(err);
-            });
-        // returning the unsubscribe function will ensure that
-        // we unsubscribe from document changes when our id
-        // changes to a different value.
-        return () => unsubscribe()
-    }, [id]);
-  
-    return {
-        error,
-        loading,
-        quiz,
-    } as UseQuizResult;
-}
+import { Quiz } from './models';
 
 interface QuizPageProps {
     quizId: string;
 }
 
 export const QuizPage = ({ quizId }: QuizPageProps) => {
-    const quizResult = useQuiz(quizId);
-    if (quizResult.error) {
-        console.error(quizResult.error);
+    const [quizData, loading, error] = useDocumentData<Quiz>(firebase.firestore().collection('quizzes').doc(quizId));
+    if (error) {
+        console.error(error);
         return <p>There was an error loading the quiz! Please try again.</p>;
     }
-    if (quizResult.loading || !(quizResult as any).quiz) {
+    if (loading) {
         return <p>Loading your quiz...</p>;
     }
-    const quizData = quizResult.quiz.data();
     if (!quizData) {
         console.error('Quiz data is undefined for id ' + quizId);
         return <p>There was an error loading the quiz! Please try again.</p>;
