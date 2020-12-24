@@ -20,15 +20,15 @@ export function LoggedInApp() {
 
     return (
         <Switch>
-            <Route path="/quiz/:id/lobby" render={(match) => 
-                <QuizLobby quizId={match.match.params.id} />
+            <Route path="/quiz/:id/lobby" render={(props) => 
+                <QuizLobby quizId={props.match.params.id} />
             } />
-            <Route path="/team/:id/lobby">{(match) => (
-                <TeamLobby teamId={match.match?.params.id} />
-            )}</Route>
-            <Route path="/quiz/:id">
-                {(match) => <p>Quiz ID: {match.match?.params.id}</p>}
-            </Route>
+            <Route path="/team/:id/lobby" render={(props) => (
+                <TeamLobby teamId={props.match.params.id} />
+            )} />
+            <Route path="/quiz/:id" render={(props) => (
+                <p>Quiz ID: {props.match.params.id}</p>
+            )} />
             <Route path="/">
                 <Home />
             </Route>
