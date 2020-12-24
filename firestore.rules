@@ -55,7 +55,7 @@ service cloud.firestore {
 
     match /quizzes/{quiz} {
       allow create, update, delete: if quizOwner(quiz);
-      allow read: if quizPlayer(quiz);
+      allow read: if request.auth != null;
 
       match /questions/{question} {
         // Quiz owner can update in order to set isRevealed to true
