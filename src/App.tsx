@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from './hooks/useAuth';
 import { UserContext } from './contexts/user';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
-import { SignInCard } from './SignInCard';
+import { SignInPage } from './SignInPage';
 import { LoggedInApp } from './LoggedInApp';
 
 function App() {
@@ -13,7 +13,7 @@ function App() {
     <Router>
         <Switch>
             <Route exact path="/sign-in">
-                <SignInCard />
+                <SignInPage />
             </Route>
             <Route path="/">
                 <LoggedInApp />

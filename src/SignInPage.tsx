@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Redirect } from 'react-router-dom';
 import firebase from './firebase';
 
-export const SignInCard = () => {
+export const SignInPage = () => {
     const [email, setEmail] = useState('');
     const [disabled, setDisabled] = useState(false);
     const [emailSent, setEmailSent] = useState(false);
