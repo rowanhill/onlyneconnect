@@ -3,11 +3,11 @@ import { useHistory } from 'react-router-dom';
 import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
 
-export interface LobbyProps {
+interface CreateTeamPageProps {
     quizId: string;
 }
 
-export const QuizLobby = ({ quizId }: LobbyProps) => {
+export const CreateTeamPage = ({ quizId }: CreateTeamPageProps) => {
     return (
         <>
         <h1>Join a team</h1>

@@ -2,8 +2,8 @@ import React from 'react';
 import { useAuth } from './hooks/useAuth';
 import { Redirect, Route, Switch, useHistory } from 'react-router-dom';
 import { Home } from './Home';
-import { QuizLobby } from './QuizLobby';
-import { TeamLobby } from './TeamLobby';
+import { CreateTeamPage } from './CreateTeamPage';
+import { JoinTeamPage } from './JoinTeamPage';
 import { QuizPage } from './QuizPage';
 
 export function LoggedInApp() {
@@ -21,11 +21,11 @@ export function LoggedInApp() {
 
     return (
         <Switch>
-            <Route path="/quiz/:id/lobby" render={(props) => 
-                <QuizLobby quizId={props.match.params.id} />
+            <Route path="/quiz/:id/create-team" render={(props) => 
+                <CreateTeamPage quizId={props.match.params.id} />
             } />
-            <Route path="/team/:id/lobby" render={(props) => (
-                <TeamLobby teamId={props.match.params.id} />
+            <Route path="/team/:id/join-team" render={(props) => (
+                <JoinTeamPage teamId={props.match.params.id} />
             )} />
             <Route path="/quiz/:id" render={(props) => (
                 <QuizPage quizId={props.match.params.id} />

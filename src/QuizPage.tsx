@@ -70,9 +70,9 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
     }
     const teamId = window.localStorage.getItem('teamId');
     if (!teamId) {
-        return <p>You're not part of a team. Do you need to <Link to={`/quiz/${quizId}/lobby`}>create a new team</Link>?</p>
+        return <p>You're not part of a team. Do you need to <Link to={`/quiz/${quizId}/create-team`}>create a new team</Link>?</p>
     }
-    const joinUrl = new URL(`/team/${teamId}/lobby`, window.location.href);
+    const joinUrl = new URL(`/team/${teamId}/join-team`, window.location.href);
     return (
         <>
         <h1>{quizData.name}</h1>

@@ -50,11 +50,11 @@ function useTeam(id: string): UseTeamResult {
     } as UseTeamResult;
 }
 
-export interface LobbyProps {
+interface JoinTeamPageProps {
     teamId: string;
 }
 
-export const TeamLobby = ({ teamId }: LobbyProps) => {
+export const JoinTeamPage = ({ teamId }: JoinTeamPageProps) => {
     const teamResult = useTeam(teamId);
 
     if (teamResult.error) {
@@ -83,7 +83,7 @@ export const TeamLobby = ({ teamId }: LobbyProps) => {
         <JoinTeamForm teamId={teamId} quizId={teamData.quizId} />
         
         <h2>Want to start your own team?</h2>
-        <p>If you'd rather start your own team (as captain), you can <Link to={`/quiz/${teamData.quizId}/lobby`}>click here</Link>.</p>
+        <p>If you'd rather start your own team (as captain), you can <Link to={`/quiz/${teamData.quizId}/create-team`}>click here</Link>.</p>
         </>
     );
 };
