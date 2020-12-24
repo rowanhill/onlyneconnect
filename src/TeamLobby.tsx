@@ -94,7 +94,7 @@ const JoinTeamForm = ({ teamId, quizId }: { teamId: string; quizId: string; }) =
 
         const db = firebase.firestore();
         db.collection('playerTeams').doc(user!.uid).set({
-            team: teamId,
+            teamId,
             teamPasscode: passcode,
         })
         .then(() => {

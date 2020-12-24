@@ -45,21 +45,36 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
         setDisabled(true);
 
         const db = firebase.firestore();
-        db.collection('teams').add({
-            captainId: user!.uid,
-            quizId: quizId,
+        const batch = db.batch();
+        // Create the secret doc for the team, to prove the quiz passcode is correct
+        const newTeamSecretRef = db.collection('teamSecrets').doc();
+        batch.set(newTeamSecretRef, {
+            quizId,
             quizPasscode: passcode,
             passcode: teamPasscode,
-            name: teamName,
-        })
-        .then((docRef) => {
-            window.localStorage.setItem('teamId', docRef.id);
-            window.localStorage.setItem('isCaptain', 'true');
-            history.push(`/quiz/${quizId}`);
-        })
-        .catch((error) => {
-            console.error("Could not create new team", error);
         });
+        // Create the public record of the team
+        const newTeamRef = db.collection('teams').doc(newTeamSecretRef.id);
+        batch.set(newTeamRef, {
+            quizId,
+            captainId: user!.uid,
+            name: teamName,
+        });
+        // Add the captain as a player on the team
+        const playerTeamRef = db.collection('playerTeams').doc(user!.uid);
+        batch.set(playerTeamRef, {
+            teamId: newTeamRef.id,
+            teamPasscode,
+        });
+        batch.commit()
+            .then(() => {
+                window.localStorage.setItem('teamId', newTeamRef.id);
+                window.localStorage.setItem('isCaptain', 'true');
+                history.push(`/quiz/${quizId}`);
+            })
+            .catch((error) => {
+                console.error("Could not create new team", error);
+            });
     };
 
     return (
