@@ -1,23 +1,35 @@
 import React, { ChangeEvent, FormEvent, useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useCollection, useDocumentData } from 'react-firebase-hooks/firestore';
+import { Link, useHistory } from 'react-router-dom';
 import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
+import { Quiz, Team } from './models';
 
 interface CreateTeamPageProps {
     quizId: string;
 }
 
 export const CreateTeamPage = ({ quizId }: CreateTeamPageProps) => {
+    const [quiz, quizLoading, quizError] = useDocumentData<Quiz>(firebase.firestore().collection('quizzes').doc(quizId));
+    if (quizError) {
+        console.error(quizError);
+        return <p>There was an error loading the quiz. Try again later.</p>
+    }
+    if (quizLoading) {
+        return <p>Loading your quiz lobby...</p>
+    }
+    if (!quiz) {
+        console.error(`No doc data found for quiz id ${quizId}`);
+        return <p>There was an error loading the quiz. Try again later.</p>
+    }
     return (
         <>
-        <h1>Join a team</h1>
+        <h1>Join a team in {quiz.name}</h1>
         <h2>Starting a new team?</h2>
         <p>Team captains must start the team. Only team captains can submit answers.</p>
         <p>To create a new team, enter the ID passcode for the quiz you're joining. You can get these from your quizmaster.</p>
         <CreateTeamForm quizId={quizId} />
-
-        <h2>Want to join an existing team?</h2>
-        <p>Your team captain needs to create a team then give you a joining link.</p>
+        <TeamsList quizId={quizId} />
         </>
     );
 };
@@ -85,5 +97,30 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
                 <button>Create a team</button>
             </fieldset>
         </form>
+    );
+};
+
+const TeamsList = ({ quizId }: { quizId: string }) => {
+    const [teamsSnapshot, teamsLoading, teamsError] = useCollection(
+        firebase.firestore().collection('teams').where('quizId', '==', quizId));
+    if (teamsError) {
+        console.error('Error loading teams list', teamsError);
+        return null;
+    }
+    if (teamsLoading || !teamsSnapshot) {
+        return null;
+    }
+    return (
+        <>
+        <h2>Want to join an existing team?</h2>
+        <p>Pick one of the below. You'll need the team passcode to join.</p>
+        <ul>
+            {teamsSnapshot.docs.map((teamDoc: any) => {
+                const team: Team = teamDoc.data();
+                console.log(team);
+                return <li key={teamDoc.id}><Link to={`/team/${teamDoc.id}/join-team`}>{team.name}</Link></li>;
+            })}
+        </ul>
+        </>
     );
 };
