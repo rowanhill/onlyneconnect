@@ -4,6 +4,7 @@ import { Redirect, Route, Switch, useHistory } from 'react-router-dom';
 import { Home } from './Home';
 import { QuizLobby } from './QuizLobby';
 import { TeamLobby } from './TeamLobby';
+import { QuizPage } from './QuizPage';
 
 export function LoggedInApp() {
     const { initialising, user } = useAuth();
@@ -27,7 +28,7 @@ export function LoggedInApp() {
                 <TeamLobby teamId={props.match.params.id} />
             )} />
             <Route path="/quiz/:id" render={(props) => (
-                <p>Quiz ID: {props.match.params.id}</p>
+                <QuizPage quizId={props.match.params.id} />
             )} />
             <Route path="/">
                 <Home />
