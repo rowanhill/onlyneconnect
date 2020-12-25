@@ -93,7 +93,7 @@ service cloud.firestore {
         // New answers must be created with the current (server) timestamp.
         allow create: if request.auth != null &&
           teamCaptain(quiz, request.resource.data.teamId, request.auth.uid) &&
-          get(/databases/$(database)/documents/quizzes/$(quiz)/questions/$(request.resource.data.question)).isRevealed == true &&
+          parentQuestionVisibleToPlayer(quiz, request.resource.data.questionId) &&
           !('points' in request.resource.data) &&
           request.resource.data.timestamp == request.time;
         // The quiz owner and anyone on the team can read their answers
