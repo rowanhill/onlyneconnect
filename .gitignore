@@ -26,3 +26,7 @@ yarn-error.log*
 *-debug.log
 .firebase
 .env
+
+#firebase emulator exported data
+saved-data
+
