@@ -16,7 +16,7 @@
     flex-grow: 1;
 }
 
-.answersPanel {
+.rightPanel {
     display: flex;
     flex-direction: column;
 }

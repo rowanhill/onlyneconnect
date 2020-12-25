@@ -3,6 +3,7 @@ import firebase from 'firebase';
 export interface Team {
     name: string;
     quizId: string;
+    points: number;
 }
 
 export interface Quiz {

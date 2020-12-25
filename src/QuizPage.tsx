@@ -2,7 +2,7 @@ import React, { ChangeEvent, FormEvent, useState } from 'react';
 import { useCollection, useCollectionData, useDocumentData } from 'react-firebase-hooks/firestore';
 import { Link } from 'react-router-dom';
 import firebase from './firebase';
-import { Answer, Clue, Question, Quiz } from './models';
+import { Answer, Clue, Question, Quiz, Team } from './models';
 import styles from './QuizPage.module.css';
 
 interface QuizPageProps {
@@ -66,7 +66,7 @@ const QuestionAndAnswers = ({ quizId, currentQuestionIndex, teamId }: { quizId: 
     return (
         <div className={styles.questionAndAnswers}>
             <QuestionCluesOrError quizId={quizId} questionAndId={questionAndId} />
-            <AnswersPanel quizId={quizId} teamId={teamId} questionAndId={questionAndId} />
+            <RightPanel quizId={quizId} teamId={teamId} questionAndId={questionAndId} />
         </div>
     );
 };
@@ -110,6 +110,36 @@ const QuestionClues = ({ quizId, questionAndId }: { quizId: string; questionAndI
     );
 };
 
+const Scoreboard = ({ quizId, }: { quizId: string; }) => {
+    const query = firebase.firestore()
+        .collection('teams')
+        .where('quizId', '==', quizId)
+        .orderBy('points', 'desc');
+    const [teamsSnapshot, loading, error] = useCollection(query);
+    if (error) {
+        console.error(error);
+        return <div><strong>There was an error loading the scoreboard! Please try again</strong></div>;
+    }
+    if (loading) {
+        return <div></div>;
+    }
+    if (!teamsSnapshot) {
+        console.error(`Teams snapshot is undefined for quiz ${quizId}`);
+        return <div><strong>There was an error loading the scoreboard! Please try again</strong></div>;
+    }
+    const teams = teamsSnapshot.docs.map((teamDoc: any) => ({ id: teamDoc.id, data: teamDoc.data() }));
+    return (
+        <div>
+            <h2>Scoreboard:</h2>
+            <ul>
+                {teams.map((team: { id: string; data: Team; }) => (
+                    <li key={team.id}>{team.data.name}: {team.data.points}</li>
+                ))}
+            </ul>
+        </div>
+    );
+};
+
 const AnswersHistory = ({ quizId, teamId }: { quizId: string; teamId: string; }) => {
     const query = firebase.firestore()
         .collection('quizzes').doc(quizId).collection('answers')
@@ -127,10 +157,7 @@ const AnswersHistory = ({ quizId, teamId }: { quizId: string; teamId: string; })
         console.error(`Answers data is undefined for quiz ${quizId} for team ${teamId}`);
         return <div className={styles.answersHistory}><strong>There was an error loading the answers! Please try again</strong></div>;
     }
-    if (answersSnapshot.docs.length === 0) {
-        return <div className={styles.answersHistory}></div>;
-    }
-    const answers = answersSnapshot.docs.map((answerDoc: any) => ({ id: answerDoc.id, data: answerDoc.data()}));
+    const answers = answersSnapshot.docs.map((answerDoc: any) => ({ id: answerDoc.id, data: answerDoc.data() }));
     return (
         <div className={styles.answersHistory}>
             {answers.map((answer: { id: string; data: Answer; }) => (
@@ -176,10 +203,11 @@ const AnswerSubmitBox = ({ quizId, teamId, questionAndId }: { quizId: string; te
     );
 };
 
-const AnswersPanel = ({ quizId, teamId, questionAndId }: { quizId: string; teamId: string; questionAndId: {id: string; data: Question; }|undefined|null; }) => {
+const RightPanel = ({ quizId, teamId, questionAndId }: { quizId: string; teamId: string; questionAndId: {id: string; data: Question; }|undefined|null; }) => {
     const isCaptain = window.localStorage.getItem('isCaptain') === 'true';
     return (
-        <div className={styles.answersPanel}>
+        <div className={styles.rightPanel}>
+            <Scoreboard quizId={quizId} />
             <AnswersHistory quizId={quizId} teamId={teamId} />
             {isCaptain && <AnswerSubmitBox quizId={quizId} teamId={teamId} questionAndId={questionAndId} />}
         </div>

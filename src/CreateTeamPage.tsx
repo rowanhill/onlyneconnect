@@ -71,6 +71,7 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
             quizId,
             captainId: user!.uid,
             name: teamName,
+            points: 0,
         });
         // Add the captain as a player on the team
         const playerTeamRef = db.collection('playerTeams').doc(user!.uid);
