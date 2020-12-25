@@ -177,10 +177,11 @@ const AnswerSubmitBox = ({ quizId, teamId, questionAndId }: { quizId: string; te
 };
 
 const AnswersPanel = ({ quizId, teamId, questionAndId }: { quizId: string; teamId: string; questionAndId: {id: string; data: Question; }|undefined|null; }) => {
+    const isCaptain = window.localStorage.getItem('isCaptain') === 'true';
     return (
         <div className={styles.answersPanel}>
             <AnswersHistory quizId={quizId} teamId={teamId} />
-            <AnswerSubmitBox quizId={quizId} teamId={teamId} questionAndId={questionAndId} />
+            {isCaptain && <AnswerSubmitBox quizId={quizId} teamId={teamId} questionAndId={questionAndId} />}
         </div>
     );
 };
