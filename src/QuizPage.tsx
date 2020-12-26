@@ -21,7 +21,7 @@ function useCollectionResult<T>(query: firebase.firestore.Query|null): Collectio
     const data = snapshot ?
         snapshot.docs.map((doc) => ({ id: doc.id, data: doc.data() })) :
         undefined;
-    return { data, loading, error };
+    return { data, loading: loading || query === null, error };
 }
 
 interface QuizPageProps {
@@ -55,33 +55,43 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
         }
     }
     const questionsResult = useCollectionResult<Question>(questionsQuery);
+    if (questionsResult.error) {
+        console.error(questionsResult.error);
+    }
+    const currentQuestionItem = questionsResult.data
+        ?.find((questionData) => questionData.data.questionIndex === quizData?.currentQuestionIndex);
 
     // Fetch clues
     let cluesQuery: firebase.firestore.Query|null = null;
     if (questionsResult.data) {
-        const currentQuestionData = questionsResult.data
-            .find((questionData) => questionData.data.questionIndex === quizData?.currentQuestionIndex);
-        if (currentQuestionData) {
+        if (currentQuestionItem) {
             // Get all question's clues
             if (isQuizOwner) {
-                cluesQuery = db.collection('quizzes').doc(quizId).collection('questions').doc(currentQuestionData.id).collection('clues')
+                cluesQuery = db.collection('quizzes').doc(quizId).collection('questions').doc(currentQuestionItem.id).collection('clues')
                     .orderBy('clueIndex', 'asc');
             } else {
-                cluesQuery = db.collection('quizzes').doc(quizId).collection('questions').doc(currentQuestionData.id).collection('clues')
-                    .where('clueIndex', '<=', currentQuestionData.data.currentClueIndex)
+                cluesQuery = db.collection('quizzes').doc(quizId).collection('questions').doc(currentQuestionItem.id).collection('clues')
+                    .where('clueIndex', '<=', currentQuestionItem.data.currentClueIndex)
                     .orderBy('clueIndex', 'asc');
             }
         }
     }
     const cluesResult = useCollectionResult<Clue>(cluesQuery);
+    if (cluesResult.error) {
+        console.error(cluesResult.error);
+    }
 
     // Fetch teams
     let teamsQuery: firebase.firestore.Query = db.collection('teams')
         .where('quizId', '==', quizId)
         .orderBy('points', 'desc');
     let teamsResult = useCollectionResult<Team>(teamsQuery);
+    if (teamsResult.error) {
+        console.error(teamsResult.error);
+    }
 
     const teamId = window.localStorage.getItem('teamId');
+    const isCaptain = !isQuizOwner && window.localStorage.getItem('isCaptain') === 'true';
 
     // Fetch answers
     let answerQuery: firebase.firestore.Query|null = null;
@@ -96,77 +106,79 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
             .orderBy('timestamp', 'asc');
     }
     const answersResult = useCollectionResult<Answer>(answerQuery);
+    if (answersResult.error) {
+        console.error(answersResult.error);
+    }
 
     // Render
-    if (quizError) {
-        console.error(quizError);
-        return <p>There was an error loading the quiz! Please try again.</p>;
+    function inner() {
+        if (quizError) {
+            console.error(quizError);
+            return <p>There was an error loading the quiz! Please try again.</p>;
+        }
+        if (quizLoading) {
+            return <p>Loading your quiz...</p>;
+        }
+        if (!quizData) {
+            console.error('Quiz data is undefined for id ' + quizId);
+            return <p>There was an error loading the quiz! Please try again.</p>;
+        }
+        if (!teamId && !isQuizOwner) {
+            return <p>You're not part of a team. Do you need to <Link to={`/quiz/${quizId}/create-team`}>create a new team</Link>?</p>
+        }
+        const joinUrl = (teamId && !isQuizOwner) ? new URL(`/team/${teamId}/join-team`, window.location.href) : undefined;
+        return (
+            <>
+                <div className={styles.leftPanel}>
+                    <div>
+                        <h1>{quizData.name}</h1>
+                        {joinUrl && <p>Invite others to your team with this link: {joinUrl.href}</p>}
+                    </div>
+                    {isQuizOwner ?
+                        <>
+                            <CurrentQuestion
+                                currentQuestionItem={currentQuestionItem}
+                                questionsError={questionsResult.error}
+                                quizId={quizId}
+                                cluesResult={cluesResult}
+                            />
+                            <QuizControls
+                                questionsData={questionsResult.data}
+                                currentQuestionItem={currentQuestionItem}
+                                cluesResult={cluesResult}
+                                quizId={quizId}
+                            />
+                        </> :
+                        <>
+                            <CurrentQuestion
+                                currentQuestionItem={currentQuestionItem}
+                                questionsError={questionsResult.error}
+                                quizId={quizId}
+                                cluesResult={cluesResult}
+                            />
+                        </> 
+                    }
+                </div>
+                <div className={styles.rightPanel}>
+                    <Scoreboard quizId={quizId} teamsResult={teamsResult} />
+                    <AnswersHistory quizId={quizId} teamId={teamId} answersResult={answersResult} />
+                    {isCaptain && <AnswerSubmitBox quizId={quizId} teamId={teamId!} questionAndId={currentQuestionItem} />}
+                </div>
+            </>
+        );
     }
-    if (quizLoading) {
-        return <p>Loading your quiz...</p>;
-    }
-    if (!quizData) {
-        console.error('Quiz data is undefined for id ' + quizId);
-        return <p>There was an error loading the quiz! Please try again.</p>;
-    }
-    if (!teamId && !isQuizOwner) {
-        return <p>You're not part of a team. Do you need to <Link to={`/quiz/${quizId}/create-team`}>create a new team</Link>?</p>
-    }
-    const joinUrl = (teamId && !isQuizOwner) ? new URL(`/team/${teamId}/join-team`, window.location.href) : undefined;
-    return (
-        <div className={styles.quizPage}>
-            <div>
-                <h1>{quizData.name}</h1>
-                {joinUrl && <p>Invite others to your team with this link: {joinUrl.href}</p>}
-            </div>
-            {!isQuizOwner ?
-                <QuestionAndAnswers
-                    quizId={quizId}
-                    currentQuestionIndex={quizData.currentQuestionIndex}
-                    questionsResult={questionsResult}
-                    cluesResult={cluesResult}
-                    teamsResult={teamsResult}
-                    answersResult={answersResult}
-                    teamId={teamId!}
-                /> :
-                <QuizOwnerQuestionAndAnswers
-                    quizId={quizId}
-                    currentQuestionIndex={quizData.currentQuestionIndex}
-                    questionsResult={questionsResult}
-                    cluesResult={cluesResult}
-                />
-            }
-        </div>
-    );
+    return <div className={styles.quizPage}>{inner()}</div>;
 };
 
-const QuizOwnerQuestionAndAnswers = ({ quizId, currentQuestionIndex, questionsResult, cluesResult }: { quizId: string; currentQuestionIndex: number; questionsResult: CollectionQueryResult<Question>; cluesResult: CollectionQueryResult<Clue>; }) => {
-    let questionAndId = undefined;
-    if (questionsResult.error) {
-        console.error(questionsResult.error);
-        questionAndId = null;
+const QuizControls = ({ questionsData, currentQuestionItem, quizId, cluesResult }: { questionsData?: CollectionQueryData<Question>; currentQuestionItem?: CollectionQueryItem<Question>; quizId: string; cluesResult: CollectionQueryResult<Clue>; }) => {
+    if (!questionsData) {
+        return null;
     }
-    if (!questionsResult.loading) {
-        if (!questionsResult.data) {
-            console.error(`Questions data is undefined for quiz ${quizId} @ ${currentQuestionIndex}`);
-            questionAndId = null;
-        } else {
-            questionAndId = questionsResult.data.find((questionItem) => questionItem.data.questionIndex === currentQuestionIndex);
-        }
+    if (currentQuestionItem) {
+        return <RevelationControls quizId={quizId} questionsData={questionsData} currentQuestionItem={currentQuestionItem} cluesResult={cluesResult} />;
+    } else {
+        return <StartQuizButton quizId={quizId} questionsData={questionsData} />;
     }
-    return (
-        <div className={styles.questionAndAnswers}>
-            <div className={styles.questionPanel}>
-                <QuestionCluesOrError quizId={quizId} questionAndId={questionAndId} cluesResult={cluesResult} />
-                {questionsResult.data && (
-                    questionAndId ?
-                    <RevelationControls quizId={quizId} questionsData={questionsResult.data} currentQuestionItem={questionAndId} cluesResult={cluesResult} /> :
-                    <StartQuizButton quizId={quizId} questionsData={questionsResult.data} />
-                )}
-            </div>
-            {/*TODO <RightPanel quizId={quizId} teamId={teamId} questionAndId={questionAndId} /> */}
-        </div>
-    );
 };
 
 const StartQuizButton = ({ quizId, questionsData }: { quizId: string; questionsData: CollectionQueryData<Question>; }) => {
@@ -195,15 +207,10 @@ const RevelationControls = ({ quizId, questionsData, currentQuestionItem, cluesR
     const { data: clues, loading, error } = cluesResult;
     const [disabled, setDisabled] = useState(false);
     if (error) {
-        console.error(error);
-        return <div className={styles.questionPanel}><strong>There was an error loading the clues! Please try again</strong></div>;
+        return <div><strong>There was an error loading the clues! Please try again</strong></div>;
     }
-    if (loading) {
-        return <div className={styles.questionPanel}>Loading clues</div>;
-    }
-    if (!clues) {
-        console.error(`Clues data is undefined for quiz ${quizId} / question ${currentQuestionItem.id}`);
-        return <div className={styles.questionPanel}><strong>There was an error loading the clues! Please try again</strong></div>;
+    if (loading || !clues) {
+        return <div>Loading clues</div>;
     }
     const totalClues = clues.length;
     const currentClueNumber = clues.findIndex((clue) => clue.data.clueIndex === currentQuestionItem.data.currentClueIndex) + 1;
@@ -259,62 +266,38 @@ const RevelationControls = ({ quizId, questionsData, currentQuestionItem, cluesR
     );
 };
 
-const QuestionAndAnswers = ({ quizId, currentQuestionIndex, teamId, questionsResult, cluesResult, teamsResult, answersResult }: { quizId: string; currentQuestionIndex: number; teamId: string; questionsResult: CollectionQueryResult<Question>; cluesResult: CollectionQueryResult<Clue>; teamsResult: CollectionQueryResult<Team>; answersResult: CollectionQueryResult<Answer>; }) => {
-    let questionAndId = undefined;
-    if (questionsResult.error) {
-        console.error(questionsResult.error);
-        questionAndId = null;
-    }
-    if (!questionsResult.loading) {
-        if (!questionsResult.data) {
-            console.error(`Questions data is undefined for quiz ${quizId} @ ${currentQuestionIndex}`);
-            questionAndId = null;
-        } else if (questionsResult.data.length === 1) {
-            questionAndId = questionsResult.data[0];
+const CurrentQuestion = ({ currentQuestionItem, questionsError, quizId, cluesResult }: { currentQuestionItem?: CollectionQueryItem<Question>; questionsError?: Error; quizId: string; cluesResult: CollectionQueryResult<Clue>; }) => {
+    function inner() {
+        if (currentQuestionItem === undefined) {
+            return <>Waiting for quiz to start...</>;
         }
+        if (questionsError) {
+            return <strong>There was an error loading the question! Please try again.</strong>;
+        }
+        return <QuestionClues quizId={quizId} currentQuestionItem={currentQuestionItem} cluesResult={cluesResult} />;
     }
-    return (
-        <div className={styles.questionAndAnswers}>
-            <QuestionCluesOrError quizId={quizId} questionAndId={questionAndId} cluesResult={cluesResult} />
-            <RightPanel quizId={quizId} teamId={teamId} questionAndId={questionAndId} teamsResult={teamsResult} answersResult={answersResult} />
-        </div>
-    );
+    return <div className={styles.questionPanel}>{inner()}</div>;
 };
 
-const QuestionCluesOrError = ({ quizId, questionAndId, cluesResult }: { quizId: string; questionAndId: {id: string; data: Question; }|undefined|null; cluesResult: CollectionQueryResult<Clue>; }) => {
-    if (questionAndId === undefined) {
-        return null;
-    }
-    if (questionAndId === null) {
-        return <div className={styles.questionPanel}><strong>There was an error loading the question! Please try again.</strong></div>;
-    }
-    return <QuestionClues quizId={quizId} questionAndId={questionAndId} cluesResult={cluesResult} />
-};
-
-const QuestionClues = ({ quizId, questionAndId, cluesResult }: { quizId: string; questionAndId: {id: string; data: Question; }; cluesResult: CollectionQueryResult<Clue>; }) => {
+const QuestionClues = ({ quizId, currentQuestionItem, cluesResult }: { quizId: string; currentQuestionItem: CollectionQueryItem<Question>; cluesResult: CollectionQueryResult<Clue>; }) => {
     const { data: clues, loading, error } = cluesResult;
     if (error) {
-        console.error(error);
-        return <div className={styles.questionPanel}><strong>There was an error loading the clues! Please try again</strong></div>;
+        return <strong>There was an error loading the clues! Please try again</strong>;
     }
     if (loading) {
-        return <div className={styles.questionPanel}>Loading clues</div>;
+        return <>Loading clues</>;
     }
-    if (!clues) {
-        console.error(`Clues data is undefined for quiz ${quizId} / question ${questionAndId.id} @ clue ${questionAndId.data.currentClueIndex}`);
-        return <div className={styles.questionPanel}><strong>There was an error loading the clues! Please try again</strong></div>;
-    }
-    if (clues.length === 0) {
-        return <div className={styles.questionPanel}>Waiting for first clue...</div>;
+    if (!clues || clues.length === 0) {
+        return <>Waiting for first clue...</>;
     }
     return (
-        <div className={styles.questionPanel}>
+        <>
         {clues.map((clue) => (
             <div key={clue.data.clueIndex}>
-                {clue.data.clueIndex <= questionAndId.data.currentClueIndex ? clue.data.text : `(${clue.data.text})`}
+                {clue.data.clueIndex <= currentQuestionItem.data.currentClueIndex ? clue.data.text : `(${clue.data.text})`}
             </div>
         ))}
-        </div>
+        </>
     );
 };
 
@@ -343,7 +326,7 @@ const Scoreboard = ({ quizId, teamsResult }: { quizId: string; teamsResult: Coll
     );
 };
 
-const AnswersHistory = ({ quizId, teamId, answersResult }: { quizId: string; teamId: string; answersResult: CollectionQueryResult<Answer> }) => {
+const AnswersHistory = ({ quizId, teamId, answersResult }: { quizId: string; teamId: string|null; answersResult: CollectionQueryResult<Answer> }) => {
     const {data: answersData, loading, error} = answersResult;
     if (error) {
         console.error(error);
@@ -359,7 +342,9 @@ const AnswersHistory = ({ quizId, teamId, answersResult }: { quizId: string; tea
     return (
         <div className={styles.answersHistory}>
             {answersData.map((answer) => (
-                <div key={answer.id}>{answer.data.text} ({answer.data.points !== undefined ? answer.data.points : 'unscored'})</div>
+                <div key={answer.id}>
+                    {answer.data.text} ({answer.data.points !== undefined ? answer.data.points : 'unscored'})
+                </div>
             ))}
         </div>
     );
@@ -398,16 +383,5 @@ const AnswerSubmitBox = ({ quizId, teamId, questionAndId }: { quizId: string; te
                 <button>Submit</button>
             </fieldset>
         </form>
-    );
-};
-
-const RightPanel = ({ quizId, teamId, questionAndId, teamsResult, answersResult }: { quizId: string; teamId: string; questionAndId: {id: string; data: Question; }|undefined|null; teamsResult: CollectionQueryResult<Team>; answersResult: CollectionQueryResult<Answer>; }) => {
-    const isCaptain = window.localStorage.getItem('isCaptain') === 'true';
-    return (
-        <div className={styles.rightPanel}>
-            <Scoreboard quizId={quizId} teamsResult={teamsResult} />
-            <AnswersHistory quizId={quizId} teamId={teamId} answersResult={answersResult} />
-            {isCaptain && <AnswerSubmitBox quizId={quizId} teamId={teamId} questionAndId={questionAndId} />}
-        </div>
     );
 };

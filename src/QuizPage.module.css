@@ -1,15 +1,15 @@
 .quizPage {
     min-height: 100vh;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     box-sizing: border-box;
     padding: 2em;
 }
 
-.questionAndAnswers {
+.leftPanel {
     flex-grow: 1;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
 }
 
 .questionPanel {
