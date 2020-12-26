@@ -146,7 +146,6 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                             <CurrentQuestion
                                 currentQuestionItem={currentQuestionItem}
                                 questionsError={questionsResult.error}
-                                quizId={quizId}
                                 cluesResult={cluesResult}
                             />
                             <QuizControls
@@ -160,7 +159,6 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                             <CurrentQuestion
                                 currentQuestionItem={currentQuestionItem}
                                 questionsError={questionsResult.error}
-                                quizId={quizId}
                                 cluesResult={cluesResult}
                             />
                         </> 
@@ -273,7 +271,7 @@ const RevelationControls = ({ quizId, questionsData, currentQuestionItem, cluesR
     );
 };
 
-const CurrentQuestion = ({ currentQuestionItem, questionsError, quizId, cluesResult }: { currentQuestionItem?: CollectionQueryItem<Question>; questionsError?: Error; quizId: string; cluesResult: CollectionQueryResult<Clue>; }) => {
+const CurrentQuestion = ({ currentQuestionItem, questionsError, cluesResult }: { currentQuestionItem?: CollectionQueryItem<Question>; questionsError?: Error; cluesResult: CollectionQueryResult<Clue>; }) => {
     function inner() {
         if (currentQuestionItem === undefined) {
             return <>Waiting for quiz to start...</>;
@@ -281,12 +279,12 @@ const CurrentQuestion = ({ currentQuestionItem, questionsError, quizId, cluesRes
         if (questionsError) {
             return <strong>There was an error loading the question! Please try again.</strong>;
         }
-        return <QuestionClues quizId={quizId} currentQuestionItem={currentQuestionItem} cluesResult={cluesResult} />;
+        return <QuestionClues currentQuestionItem={currentQuestionItem} cluesResult={cluesResult} />;
     }
     return <div className={styles.questionPanel}>{inner()}</div>;
 };
 
-const QuestionClues = ({ quizId, currentQuestionItem, cluesResult }: { quizId: string; currentQuestionItem: CollectionQueryItem<Question>; cluesResult: CollectionQueryResult<Clue>; }) => {
+const QuestionClues = ({ currentQuestionItem, cluesResult }: { currentQuestionItem: CollectionQueryItem<Question>; cluesResult: CollectionQueryResult<Clue>; }) => {
     const { data: clues, loading, error } = cluesResult;
     if (error) {
         return <strong>There was an error loading the clues! Please try again</strong>;
