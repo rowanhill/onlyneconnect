@@ -132,7 +132,7 @@ service cloud.firestore {
 
     match /playerTeams/{player} {
       // Creating adds you to a team. You need the TEAM passcode to do this.
-      allow create: if request.auth != null &&
+      allow create, update: if request.auth != null &&
         request.auth.uid == player &&
         // Need to use getAfter because playerTeam and team may be created in the same transaction
         request.resource.data.teamPasscode == getAfter(/databases/$(database)/documents/teamSecrets/$(request.resource.data.teamId)).data.passcode;
