@@ -180,9 +180,17 @@ const QuizControls = ({ questionsData, currentQuestionItem, quizId, cluesResult 
         return null;
     }
     if (currentQuestionItem) {
-        return <RevelationControls quizId={quizId} questionsData={questionsData} currentQuestionItem={currentQuestionItem} cluesResult={cluesResult} />;
+        return (
+            <div>
+                <RevelationControls quizId={quizId} questionsData={questionsData} currentQuestionItem={currentQuestionItem} cluesResult={cluesResult} />
+            </div>
+        );
     } else {
-        return <StartQuizButton quizId={quizId} questionsData={questionsData} />;
+        return (
+            <div>
+                <StartQuizButton quizId={quizId} questionsData={questionsData} />
+            </div>
+        );
     }
 };
 
@@ -262,12 +270,12 @@ const RevelationControls = ({ quizId, questionsData, currentQuestionItem, cluesR
     }
 
     return (
-        <div>
+        <>
             <p>This is question {currentQuestionNumber} of {totalQuestions}. For this question, it is clue {currentClueNumber} of {totalClues}.</p>
             {nextClue && <button disabled={disabled} onClick={goToNextClue}>Next clue</button>}
             {!nextClue && nextQuestion && <button disabled={disabled} onClick={goToNextQuestion}>Next question</button>}
             {!nextClue && !nextQuestion && <p>You've reached the end of the quiz.</p>}
-        </div>
+        </>
     );
 };
 
