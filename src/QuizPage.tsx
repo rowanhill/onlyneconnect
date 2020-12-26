@@ -97,7 +97,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
     if (playerTeamError) {
         console.error(playerTeamError);
     }
-    const isCaptain = teamsResult.data && playerTeamData &&
+    const isCaptain = !isQuizOwner && teamsResult.data && playerTeamData &&
         teamsResult.data.find((teamItem) => teamItem.id === playerTeamData.teamId) !== null;
 
     // Fetch answers
