@@ -1,4 +1,4 @@
-import React, { ChangeEvent, FormEvent, useState } from 'react';
+import React, { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { useCollection, useCollectionData, useDocumentData } from 'react-firebase-hooks/firestore';
 import { Link } from 'react-router-dom';
 import firebase from './firebase';
@@ -83,16 +83,18 @@ const QuizOwnerQuestionAndAnswers = ({ quizId, currentQuestionIndex}: { quizId: 
 
 const StartQuizButton = ({ quizId, questionsAndIds }: { quizId: string; questionsAndIds: Array<{ id: string; data: Question; }>; }) => {
     const [disabled, setDisabled] = useState(false);
+    const unmounted = useRef(false);
+    useEffect(() => () => { unmounted.current = true; }, []);
     const startQuiz = () => {
         firebase.firestore()
             .collection('quizzes').doc(quizId)
             .update({
                 currentQuestionIndex: questionsAndIds[0].data.questionIndex,
             })
-            .then(() => setDisabled(false))
+            .then(() => !unmounted.current && setDisabled(false))
             .catch((error) => {
                 console.error(`Could not start quiz ${quizId}`, error);
-                setDisabled(false);
+                !unmounted.current && setDisabled(false);
             });
         setDisabled(true);
     };
