@@ -118,7 +118,6 @@ const TeamsList = ({ quizId }: { quizId: string }) => {
         <ul>
             {teamsSnapshot.docs.map((teamDoc: any) => {
                 const team: Team = teamDoc.data();
-                console.log(team);
                 return <li key={teamDoc.id}><Link to={`/team/${teamDoc.id}/join-team`}>{team.name}</Link></li>;
             })}
         </ul>
