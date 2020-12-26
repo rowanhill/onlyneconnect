@@ -7,6 +7,11 @@ export interface Team {
     captainId: string;
 }
 
+export interface PlayerTeam {
+    teamId: string;
+    teamPasscode: string;
+}
+
 export interface Quiz {
     name: string;
     currentQuestionIndex: number;

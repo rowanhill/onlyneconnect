@@ -81,8 +81,6 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
         });
         batch.commit()
             .then(() => {
-                window.localStorage.setItem('teamId', newTeamRef.id);
-                window.localStorage.setItem('isCaptain', 'true');
                 history.push(`/quiz/${quizId}`);
             })
             .catch((error) => {

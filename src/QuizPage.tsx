@@ -3,7 +3,7 @@ import { useCollection, useDocumentData } from 'react-firebase-hooks/firestore';
 import { Link } from 'react-router-dom';
 import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
-import { Answer, Clue, Question, Quiz, Team } from './models';
+import { Answer, Clue, PlayerTeam, Question, Quiz, Team } from './models';
 import styles from './QuizPage.module.css';
 
 interface CollectionQueryItem<T> {
@@ -90,8 +90,15 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
         console.error(teamsResult.error);
     }
 
-    const teamId = window.localStorage.getItem('teamId');
-    const isCaptain = !isQuizOwner && window.localStorage.getItem('isCaptain') === 'true';
+    // Fetch team assignment
+    const [playerTeamData, /*loading*/, playerTeamError] = useDocumentData<PlayerTeam>(
+        user ? db.collection('playerTeams').doc(user.uid) : null
+    );
+    if (playerTeamError) {
+        console.error(playerTeamError);
+    }
+    const isCaptain = teamsResult.data && playerTeamData &&
+        teamsResult.data.find((teamItem) => teamItem.id === playerTeamData.teamId) !== null;
 
     // Fetch answers
     let answerQuery: firebase.firestore.Query|null = null;
@@ -99,10 +106,10 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
         answerQuery = firebase.firestore()
             .collection('quizzes').doc(quizId).collection('answers')
             .orderBy('timestamp', 'asc');
-    } else if (teamId) {
+    } else if (playerTeamData?.teamId) {
         answerQuery = firebase.firestore()
             .collection('quizzes').doc(quizId).collection('answers')
-            .where('teamId', '==', teamId)
+            .where('teamId', '==', playerTeamData.teamId)
             .orderBy('timestamp', 'asc');
     }
     const answersResult = useCollectionResult<Answer>(answerQuery);
@@ -123,10 +130,10 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
             console.error('Quiz data is undefined for id ' + quizId);
             return <p>There was an error loading the quiz! Please try again.</p>;
         }
-        if (!teamId && !isQuizOwner) {
+        if (!playerTeamData && !isQuizOwner) {
             return <p>You're not part of a team. Do you need to <Link to={`/quiz/${quizId}/create-team`}>create a new team</Link>?</p>
         }
-        const joinUrl = (teamId && !isQuizOwner) ? new URL(`/team/${teamId}/join-team`, window.location.href) : undefined;
+        const joinUrl = (playerTeamData?.teamId && !isQuizOwner) ? new URL(`/team/${playerTeamData.teamId}/join-team`, window.location.href) : undefined;
         return (
             <>
                 <div className={styles.leftPanel}>
@@ -161,8 +168,8 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                 </div>
                 <div className={styles.rightPanel}>
                     <Scoreboard quizId={quizId} teamsResult={teamsResult} />
-                    <AnswersHistory quizId={quizId} teamId={teamId} answersResult={answersResult} />
-                    {isCaptain && <AnswerSubmitBox quizId={quizId} teamId={teamId!} questionAndId={currentQuestionItem} />}
+                    <AnswersHistory quizId={quizId} teamId={playerTeamData?.teamId} answersResult={answersResult} />
+                    {isCaptain && <AnswerSubmitBox quizId={quizId} teamId={playerTeamData!.teamId} questionAndId={currentQuestionItem} />}
                 </div>
             </>
         );
@@ -326,7 +333,7 @@ const Scoreboard = ({ quizId, teamsResult }: { quizId: string; teamsResult: Coll
     );
 };
 
-const AnswersHistory = ({ quizId, teamId, answersResult }: { quizId: string; teamId: string|null; answersResult: CollectionQueryResult<Answer> }) => {
+const AnswersHistory = ({ quizId, teamId, answersResult }: { quizId: string; teamId?: string; answersResult: CollectionQueryResult<Answer> }) => {
     const {data: answersData, loading, error} = answersResult;
     if (error) {
         console.error(error);

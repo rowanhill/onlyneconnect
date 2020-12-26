@@ -3,14 +3,18 @@ import { Link, useHistory } from 'react-router-dom';
 import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
 import { useDocumentData } from 'react-firebase-hooks/firestore';
-import { Team } from './models';
+import { PlayerTeam, Team } from './models';
 
 interface JoinTeamPageProps {
     teamId: string;
 }
 
 export const JoinTeamPage = ({ teamId }: JoinTeamPageProps) => {
+    const { user } = useAuth();
     const [teamData, loading, error] = useDocumentData<Team>(firebase.firestore().collection('teams').doc(teamId));
+    const [playerTeam] = useDocumentData<PlayerTeam>(
+        user ? firebase.firestore().collection('playerTeams').doc(user.uid) : null
+    );
 
     if (error) {
         console.error(error);
@@ -23,16 +27,14 @@ export const JoinTeamPage = ({ teamId }: JoinTeamPageProps) => {
         console.error('Team data is undefined for id ' + teamId);
         return <p>There was an error loading the quiz! Please try again.</p>;
     }
-    const storedTeamId = window.localStorage.getItem('teamId');
 
     return (
         <>
         <h1>Join {teamData.name}</h1>
-        {storedTeamId && (
-            storedTeamId === teamId ?
-                <p>You're already a member of this team. Would you like to <Link to={`/quiz/${teamData.quizId}`}>go to your quiz</Link>?</p> :
-                <p>Careful! You're already a member of a different team. You can only be a member in one team at once.</p>
-        )}
+        {playerTeam?.teamId === teamId ?
+            <p>You're already a member of this team. Would you like to <Link to={`/quiz/${teamData.quizId}`}>go to your quiz</Link>?</p> :
+            <p>Careful! You're already a member of a different team. You can only be a member in one team at once.</p>
+        }
         <p>If you're captain has made a team, enter your team's passcode. You can get this from your captain.</p>
         <JoinTeamForm teamId={teamId} quizId={teamData.quizId} />
         
@@ -67,8 +69,6 @@ const JoinTeamForm = ({ teamId, quizId }: { teamId: string; quizId: string; }) =
             teamPasscode: passcode,
         })
         .then(() => {
-            window.localStorage.setItem('teamId', teamId);
-            window.localStorage.setItem('isCaptain', 'false');
             history.push(`/quiz/${quizId}`);
         })
         .catch((error) => {

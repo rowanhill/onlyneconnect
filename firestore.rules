@@ -140,7 +140,8 @@ service cloud.firestore {
       // You can remove your own player
       allow delete: if request.auth != null && request.auth.uid == player;
 
-      // Nobody can read player team assignments, they're just for access control
+      // You can read your own playerTeams entry, to work out what team you're on
+      allow get: if request.auth != null && request.auth.uid == player;
     }
   }
 }
