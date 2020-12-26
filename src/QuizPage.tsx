@@ -166,7 +166,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                 </div>
                 <div className={styles.rightPanel}>
                     <Scoreboard quizId={quizId} teamsResult={teamsResult} />
-                    <AnswersHistory quizId={quizId} teamId={playerTeamData?.teamId} answersResult={answersResult} />
+                    <AnswersHistory answersResult={answersResult} />
                     {isCaptain && <AnswerSubmitBox quizId={quizId} teamId={playerTeamData!.teamId} questionAndId={currentQuestionItem} />}
                 </div>
             </>
@@ -339,18 +339,14 @@ const Scoreboard = ({ quizId, teamsResult }: { quizId: string; teamsResult: Coll
     );
 };
 
-const AnswersHistory = ({ quizId, teamId, answersResult }: { quizId: string; teamId?: string; answersResult: CollectionQueryResult<Answer> }) => {
+const AnswersHistory = ({ answersResult }: { answersResult: CollectionQueryResult<Answer> }) => {
     const {data: answersData, loading, error} = answersResult;
     if (error) {
         console.error(error);
         return <div className={styles.answersHistory}><strong>There was an error loading your answers! Please try again</strong></div>;
     }
-    if (loading) {
+    if (loading || !answersData) {
         return <div className={styles.answersHistory}></div>;
-    }
-    if (!answersData) {
-        console.error(`Answers data is undefined for quiz ${quizId} for team ${teamId}`);
-        return <div className={styles.answersHistory}><strong>There was an error loading the answers! Please try again</strong></div>;
     }
     return (
         <div className={styles.answersHistory}>
