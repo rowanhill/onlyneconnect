@@ -4,11 +4,13 @@ export interface Team {
     name: string;
     quizId: string;
     points: number;
+    captainId: string;
 }
 
 export interface Quiz {
     name: string;
     currentQuestionIndex: number;
+    ownerId: string;
 }
 
 export interface Question {

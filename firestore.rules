@@ -10,7 +10,7 @@ service cloud.firestore {
     // True if the signed in user owns the parent quiz
     function quizOwner(quizId) {
       return request.auth != null
-        && get(/databases/$(database)/documents/quizSecrets/$(quizId)).data.ownerId == request.auth.uid;
+        && get(/databases/$(database)/documents/quizzes/$(quizId)).data.ownerId == request.auth.uid;
     }
 
     // True if the signed in user is a member of a team on the quiz

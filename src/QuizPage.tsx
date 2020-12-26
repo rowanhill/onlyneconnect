@@ -2,6 +2,7 @@ import React, { ChangeEvent, FormEvent, useState } from 'react';
 import { useCollection, useCollectionData, useDocumentData } from 'react-firebase-hooks/firestore';
 import { Link } from 'react-router-dom';
 import firebase from './firebase';
+import { useAuth } from './hooks/useAuth';
 import { Answer, Clue, Question, Quiz, Team } from './models';
 import styles from './QuizPage.module.css';
 
@@ -10,6 +11,7 @@ interface QuizPageProps {
 }
 
 export const QuizPage = ({ quizId }: QuizPageProps) => {
+    const { user } = useAuth();
     const [quizData, loading, error] = useDocumentData<Quiz>(firebase.firestore().collection('quizzes').doc(quizId));
     if (error) {
         console.error(error);
@@ -22,23 +24,155 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
         console.error('Quiz data is undefined for id ' + quizId);
         return <p>There was an error loading the quiz! Please try again.</p>;
     }
+    const isQuizOwner = user?.uid === quizData.ownerId;
     const teamId = window.localStorage.getItem('teamId');
-    if (!teamId) {
+    if (!teamId && !isQuizOwner) {
         return <p>You're not part of a team. Do you need to <Link to={`/quiz/${quizId}/create-team`}>create a new team</Link>?</p>
     }
-    const joinUrl = new URL(`/team/${teamId}/join-team`, window.location.href);
+    const joinUrl = (teamId && !isQuizOwner) ? new URL(`/team/${teamId}/join-team`, window.location.href) : undefined;
     return (
         <div className={styles.quizPage}>
             <div>
                 <h1>{quizData.name}</h1>
-                <p>Invite others to your team with this link: {joinUrl.href}</p>
+                {joinUrl && <p>Invite others to your team with this link: {joinUrl.href}</p>}
             </div>
-            <QuestionAndAnswers quizId={quizId} currentQuestionIndex={quizData.currentQuestionIndex} teamId={teamId} />
+            {!isQuizOwner ?
+                <QuestionAndAnswers quizId={quizId} currentQuestionIndex={quizData.currentQuestionIndex} teamId={teamId!} /> :
+                <QuizOwnerQuestionAndAnswers quizId={quizId} currentQuestionIndex={quizData.currentQuestionIndex} />
+            }
         </div>
     );
 };
 
-const QuestionAndAnswers = ({ quizId, currentQuestionIndex, teamId }: { quizId: string; currentQuestionIndex: number; teamId: string; }) => {
+const QuizOwnerQuestionAndAnswers = ({ quizId, currentQuestionIndex}: { quizId: string; currentQuestionIndex: number; }) => {
+    const query = firebase.firestore()
+        .collection('quizzes').doc(quizId).collection('questions')
+        .orderBy('questionIndex', 'asc');
+    const [questionsSnapshot, loading, error] = useCollection(query);
+    let questionAndId = undefined;
+    let questionsAndIds = undefined;
+    if (error) {
+        console.error(error);
+        questionAndId = null;
+        questionsAndIds = null;
+    }
+    if (!loading) {
+        if (!questionsSnapshot) {
+            console.error(`Questions data is undefined for quiz ${quizId} @ ${currentQuestionIndex}`);
+            questionAndId = null;
+            questionsAndIds = null;
+        } else {
+            questionsAndIds = questionsSnapshot.docs.map((doc: any) => ({ id: doc.id, data: doc.data() })) as Array<{ id: string; data: Question; }>;
+            questionAndId = questionsAndIds.find((qai) => qai.data.questionIndex === currentQuestionIndex);
+        }
+    }
+    return (
+        <div className={styles.questionAndAnswers}>
+            <div className={styles.questionPanel}>
+                <QuestionCluesOrError quizId={quizId} questionAndId={questionAndId} />
+                {questionsAndIds && (
+                    questionAndId ?
+                    <RevelationControls quizId={quizId} questionsAndIds={questionsAndIds} currentQuestionAndId={questionAndId} /> :
+                    <StartQuizButton quizId={quizId} questionsAndIds={questionsAndIds} />
+                )}
+            </div>
+            {/*TODO <RightPanel quizId={quizId} teamId={teamId} questionAndId={questionAndId} /> */}
+        </div>
+    );
+};
+
+const StartQuizButton = ({ quizId, questionsAndIds }: { quizId: string; questionsAndIds: Array<{ id: string; data: Question; }>; }) => {
+    const [disabled, setDisabled] = useState(false);
+    const startQuiz = () => {
+        firebase.firestore()
+            .collection('quizzes').doc(quizId)
+            .update({
+                currentQuestionIndex: questionsAndIds[0].data.questionIndex,
+            })
+            .then(() => setDisabled(false))
+            .catch((error) => {
+                console.error(`Could not start quiz ${quizId}`, error);
+                setDisabled(false);
+            });
+        setDisabled(true);
+    };
+    return <button disabled={disabled} onClick={startQuiz}>Start quiz</button>;
+};
+
+const RevelationControls = ({ quizId, questionsAndIds, currentQuestionAndId }: { quizId: string; questionsAndIds: Array<{ id: string; data: Question; }>; currentQuestionAndId: { id: string; data: Question; };  }) => {
+    const totalQuestions = questionsAndIds.length;
+    const currentQuestionNumber = questionsAndIds.findIndex((qai) => qai.data.questionIndex === currentQuestionAndId.data.questionIndex) + 1;
+    const query = firebase.firestore()
+        .collection('quizzes').doc(quizId).collection('questions').doc(currentQuestionAndId.id).collection('clues')
+        .orderBy('clueIndex', 'asc');
+    const [clues, loading, error] = useCollectionData<Clue>(query);
+    const [disabled, setDisabled] = useState(false);
+    if (error) {
+        console.error(error);
+        return <div className={styles.questionPanel}><strong>There was an error loading the clues! Please try again</strong></div>;
+    }
+    if (loading) {
+        return <div className={styles.questionPanel}>Loading clues</div>;
+    }
+    if (!clues) {
+        console.error(`Clues data is undefined for quiz ${quizId} / question ${currentQuestionAndId.id}`);
+        return <div className={styles.questionPanel}><strong>There was an error loading the clues! Please try again</strong></div>;
+    }
+    const totalClues = clues.length;
+    const currentClueNumber = clues.findIndex((clue) => clue.clueIndex === currentQuestionAndId.data.currentClueIndex) + 1;
+    const nextClue = clues.find((clue) => clue.clueIndex > currentQuestionAndId.data.currentClueIndex);
+    const nextQuestion = questionsAndIds.find((qai) => qai.data.questionIndex > currentQuestionAndId.data.questionIndex);
+
+    const goToNextClue = () => {
+        if (!nextClue) {
+            console.error('Tried to go to next clue, but next clue is not defined');
+            return;
+        }
+        firebase.firestore()
+            .collection('quizzes').doc(quizId).collection('questions').doc(currentQuestionAndId.id)
+            .update({
+                currentClueIndex: nextClue.clueIndex
+            })
+            .then(() => {
+                setDisabled(false);
+            })
+            .catch((error) => {
+                console.error(`Could not update quiz ${quizId} question ${currentQuestionAndId.id} to clue index ${nextClue.clueIndex}`, error);
+                setDisabled(false);
+            });
+        setDisabled(true);
+    };
+    const goToNextQuestion = () => {
+        if (!nextQuestion) {
+            console.error('Tried to go to next question, but next question is not defined');
+            return;
+        }
+        firebase.firestore()
+            .collection('quizzes').doc(quizId)
+            .update({
+                currentQuestionIndex: nextQuestion.data.questionIndex
+            })
+            .then(() => {
+                setDisabled(false);
+            })
+            .catch((error) => {
+                console.error(`Could not update quiz ${quizId} to question index ${nextQuestion.data.questionIndex}`, error);
+                setDisabled(false);
+            });
+        setDisabled(true);
+    }
+
+    return (
+        <div>
+            <p>This is question {currentQuestionNumber} of {totalQuestions}. For this question, it is clue {currentClueNumber} of {totalClues}.</p>
+            {nextClue && <button disabled={disabled} onClick={goToNextClue}>Next clue</button>}
+            {!nextClue && nextQuestion && <button disabled={disabled} onClick={goToNextQuestion}>Next question</button>}
+            {!nextClue && !nextQuestion && <p>You've reached the end of the quiz.</p>}
+        </div>
+    );
+};
+
+const QuestionAndAnswers = ({ quizId, currentQuestionIndex, teamId}: { quizId: string; currentQuestionIndex: number; teamId: string; }) => {
     const query = firebase.firestore()
         .collection('quizzes').doc(quizId).collection('questions')
         .where('questionIndex', '<=', currentQuestionIndex)
