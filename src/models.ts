@@ -21,11 +21,15 @@ export interface Quiz {
 export interface Question {
     questionIndex: number;
     currentClueIndex: number;
+    answerLimit: number|null;
+    revealedAt?: firebase.firestore.Timestamp;
+    closedAt?: firebase.firestore.Timestamp;
 }
 
 export interface Clue {
     clueIndex: number;
     text: string;
+    answerLimit: number|null;
     revealedAt?: firebase.firestore.Timestamp;
 }
 

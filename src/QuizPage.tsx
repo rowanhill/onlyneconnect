@@ -248,14 +248,24 @@ const RevelationControls = ({ quizId, questionsData, currentQuestionItem, cluesR
         }
         const db = firebase.firestore();
         const batch = db.batch();
+
+        // Move the question to the next clue
+        // If that's the first clue, also set the question's revealedAt time
         const questionDoc = db.doc(`quizzes/${quizId}/questions/${currentQuestionItem.id}`);
-        batch.update(questionDoc, {
-            currentClueIndex: nextClue.data.clueIndex
-        });
+        const questionUpdate: { currentClueIndex: number; revealedAt?: firebase.firestore.FieldValue; } = {
+            currentClueIndex: nextClue.data.clueIndex,
+        };
+        if (currentClueNumber === 0) {
+            questionUpdate.revealedAt = firebase.firestore.FieldValue.serverTimestamp();
+        }
+        batch.update(questionDoc, questionUpdate);
+
+        // Update the next clue to set the revealedAt time
         const clueDoc = db.doc(`quizzes/${quizId}/questions/${currentQuestionItem.id}/clues/${nextClue.id}`);
         batch.update(clueDoc, {
             revealedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
+
         batch.commit()
             .then(() => {
                 setDisabled(false);
@@ -271,16 +281,41 @@ const RevelationControls = ({ quizId, questionsData, currentQuestionItem, cluesR
             console.error('Tried to go to next question, but next question is not defined');
             return;
         }
-        firebase.firestore()
-            .collection('quizzes').doc(quizId)
-            .update({
-                currentQuestionIndex: nextQuestion.data.questionIndex
-            })
+        const db = firebase.firestore();
+        const batch = db.batch();
+
+        // Move the quiz to the next question
+        const quizDoc = db.doc(`quizzes/${quizId}`);
+        batch.update(quizDoc, {
+            currentQuestionIndex: nextQuestion.data.questionIndex
+        });
+
+        // Close the current question for answer submissions
+        const currentQuestionDoc = db.doc(`quizzes/${quizId}/questions/${currentQuestionItem.id}`);
+        batch.update(currentQuestionDoc, {
+            closedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+
+        batch.commit()
             .then(() => {
                 setDisabled(false);
             })
             .catch((error) => {
                 console.error(`Could not update quiz ${quizId} to question index ${nextQuestion.data.questionIndex}`, error);
+                setDisabled(false);
+            });
+        setDisabled(true);
+    }
+    const closeLastQuestion = () => {
+        firebase.firestore().doc(`quizzes/${quizId}/questions/${currentQuestionItem.id}`)
+            .update({
+                closedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            })
+            .then(() => {
+                setDisabled(false);
+            })
+            .catch((error) => {
+                console.error(`Could not update question ${quizId}/${currentQuestionItem.id} to close it`, error);
                 setDisabled(false);
             });
         setDisabled(true);
@@ -291,7 +326,8 @@ const RevelationControls = ({ quizId, questionsData, currentQuestionItem, cluesR
             <p>This is question {currentQuestionNumber} of {totalQuestions}. For this question, it is clue {currentClueNumber} of {totalClues}.</p>
             {nextClue && <button disabled={disabled} onClick={goToNextClue}>Next clue</button>}
             {!nextClue && nextQuestion && <button disabled={disabled} onClick={goToNextQuestion}>Next question</button>}
-            {!nextClue && !nextQuestion && <p>You've reached the end of the quiz.</p>}
+            {!nextClue && !nextQuestion && !currentQuestionItem.data.closedAt && <button disabled={disabled} onClick={closeLastQuestion}>End quiz</button>}
+            {!nextClue && !nextQuestion && currentQuestionItem.data.closedAt && <p>You've reached the end of the quiz</p>}
         </>
     );
 };
@@ -376,10 +412,33 @@ const AnswersHistory = ({ answersResult }: { answersResult: CollectionQueryResul
     );
 };
 
+function hasReachedAnswerLimit(
+    clueItem: CollectionQueryItem<Clue>|undefined,
+    questionItem: CollectionQueryItem<Question>|undefined,
+    answersResult: CollectionQueryResult<Answer>,
+): boolean {
+    if (!answersResult.data) {
+        return false;
+    }
+    if (questionItem && questionItem.data.answerLimit && questionItem.data.revealedAt && !questionItem.data.closedAt) {
+        const answersForQuestion = answersResult.data.filter((answer) => answer.data.timestamp > questionItem.data.revealedAt!);
+        if (answersForQuestion.length >= questionItem.data.answerLimit) {
+            return true;
+        }
+    }
+    if (clueItem && clueItem.data.answerLimit && clueItem.data.revealedAt) {
+        const answersForClue = answersResult.data.filter((answer) => answer.data.timestamp > clueItem.data.revealedAt!);
+        if (answersForClue.length >= clueItem.data.answerLimit) {
+            return true;
+        }
+    }
+    return false;
+}
+
 const AnswerSubmitBox = ({ quizId, teamId, questionItem, clueItem, answersResult }: { quizId: string; teamId: string; questionItem: CollectionQueryItem<Question>|undefined; clueItem: CollectionQueryItem<Clue>|undefined; answersResult: CollectionQueryResult<Answer>; }) => {
     const [answerText, setAnswerText] = useState('');
     const [submitting, setSubmitting] = useState(false);
-    const hasSubmitted = clueItem?.data.revealedAt && answersResult.data && answersResult.data.filter((answer) => answer.data.timestamp > clueItem.data.revealedAt!).length > 0;
+    const hasReachedLimit = hasReachedAnswerLimit(clueItem, questionItem, answersResult);
     const onAnswerChange = (e: ChangeEvent<HTMLInputElement>) => {
         e.preventDefault();
         setAnswerText(e.target.value);
@@ -405,7 +464,7 @@ const AnswerSubmitBox = ({ quizId, teamId, questionItem, clueItem, answersResult
     };
     return (
         <form onSubmit={submit}>
-            <fieldset disabled={submitting || !questionItem || !clueItem || hasSubmitted}>
+            <fieldset disabled={submitting || !questionItem || !clueItem || hasReachedLimit}>
                 <input type="text" placeholder="Type your answer here" value={answerText} onChange={onAnswerChange} />
                 <button>Submit</button>
             </fieldset>
