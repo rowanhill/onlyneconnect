@@ -26,6 +26,7 @@ export interface Question {
 export interface Clue {
     clueIndex: number;
     text: string;
+    revealedAt?: firebase.firestore.Timestamp;
 }
 
 export interface Answer {

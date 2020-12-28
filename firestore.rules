@@ -83,6 +83,10 @@ service cloud.firestore {
         allow list: if quizPlayer(quiz) || quizOwner(quiz);
 
         match /clues/{clue} {
+          // The quiz owner can update the revealedAt timestamp (to the server's timestamp)
+          allow update: if quizOwner(quiz) &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revealedAt']) &&
+            request.resource.data.revealedAt == request.time;
           allow get, list: if clueVisibleToPlayer(quiz, question) || quizOwner(quiz);
         }
       }

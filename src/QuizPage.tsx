@@ -58,8 +58,9 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
     if (questionsResult.error) {
         console.error(questionsResult.error);
     }
-    const currentQuestionItem = questionsResult.data
-        ?.find((questionData) => questionData.data.questionIndex === quizData?.currentQuestionIndex);
+    const currentQuestionItem = quizData && questionsResult.data?.find(
+        (questionData) => questionData.data.questionIndex === quizData.currentQuestionIndex
+    );
 
     // Fetch clues
     let cluesQuery: firebase.firestore.Query|null = null;
@@ -80,6 +81,9 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
     if (cluesResult.error) {
         console.error(cluesResult.error);
     }
+    const currentClueItem = currentQuestionItem && cluesResult.data?.find(
+        (clueData) => clueData.data.clueIndex === currentQuestionItem.data.currentClueIndex
+    );
 
     // Fetch teams
     let teamsQuery: firebase.firestore.Query = db.collection('teams')
@@ -167,7 +171,14 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                 <div className={styles.rightPanel}>
                     <Scoreboard quizId={quizId} teamsResult={teamsResult} />
                     <AnswersHistory answersResult={answersResult} />
-                    {isCaptain && <AnswerSubmitBox quizId={quizId} teamId={playerTeamData!.teamId} questionAndId={currentQuestionItem} />}
+                    {isCaptain &&
+                        <AnswerSubmitBox
+                            quizId={quizId}
+                            teamId={playerTeamData!.teamId}
+                            questionItem={currentQuestionItem}
+                            clueItem={currentClueItem}
+                            answersResult={answersResult}
+                        />}
                 </div>
             </>
         );
@@ -235,11 +246,17 @@ const RevelationControls = ({ quizId, questionsData, currentQuestionItem, cluesR
             console.error('Tried to go to next clue, but next clue is not defined');
             return;
         }
-        firebase.firestore()
-            .collection('quizzes').doc(quizId).collection('questions').doc(currentQuestionItem.id)
-            .update({
-                currentClueIndex: nextClue.data.clueIndex
-            })
+        const db = firebase.firestore();
+        const batch = db.batch();
+        const questionDoc = db.doc(`quizzes/${quizId}/questions/${currentQuestionItem.id}`);
+        batch.update(questionDoc, {
+            currentClueIndex: nextClue.data.clueIndex
+        });
+        const clueDoc = db.doc(`quizzes/${quizId}/questions/${currentQuestionItem.id}/clues/${nextClue.id}`);
+        batch.update(clueDoc, {
+            revealedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        batch.commit()
             .then(() => {
                 setDisabled(false);
             })
@@ -359,26 +376,27 @@ const AnswersHistory = ({ answersResult }: { answersResult: CollectionQueryResul
     );
 };
 
-const AnswerSubmitBox = ({ quizId, teamId, questionAndId }: { quizId: string; teamId: string; questionAndId: {id: string; data: Question; }|undefined|null; }) => {
+const AnswerSubmitBox = ({ quizId, teamId, questionItem, clueItem, answersResult }: { quizId: string; teamId: string; questionItem: CollectionQueryItem<Question>|undefined; clueItem: CollectionQueryItem<Clue>|undefined; answersResult: CollectionQueryResult<Answer>; }) => {
     const [answerText, setAnswerText] = useState('');
-    const [disabled, setDisabled] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const hasSubmitted = clueItem?.data.revealedAt && answersResult.data && answersResult.data.filter((answer) => answer.data.timestamp > clueItem.data.revealedAt!).length > 0;
     const onAnswerChange = (e: ChangeEvent<HTMLInputElement>) => {
         e.preventDefault();
         setAnswerText(e.target.value);
     };
     const submit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setDisabled(true);
+        setSubmitting(true);
 
         const db = firebase.firestore();
         db.collection('quizzes').doc(quizId).collection('answers').add({
-            questionId: questionAndId?.id,
+            questionId: questionItem?.id,
             teamId,
             text: answerText,
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         })
         .then(() => {
-            setDisabled(false);
+            setSubmitting(false);
             setAnswerText('');
         })
         .catch((error) => {
@@ -387,7 +405,7 @@ const AnswerSubmitBox = ({ quizId, teamId, questionAndId }: { quizId: string; te
     };
     return (
         <form onSubmit={submit}>
-            <fieldset disabled={disabled || !questionAndId}>
+            <fieldset disabled={submitting || !questionItem || !clueItem || hasSubmitted}>
                 <input type="text" placeholder="Type your answer here" value={answerText} onChange={onAnswerChange} />
                 <button>Submit</button>
             </fieldset>
