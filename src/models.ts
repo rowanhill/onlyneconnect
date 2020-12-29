@@ -14,29 +14,31 @@ export interface PlayerTeam {
 
 export interface Quiz {
     name: string;
-    currentQuestionIndex: number;
     ownerId: string;
+    questionIds: string[];
+    currentQuestionId: string | null;
 }
 
 export interface Question {
-    questionIndex: number;
-    currentClueIndex: number;
+    clueIds: string[];
+    isRevealed: boolean;
+    answerLimit: number|null;
+}
+
+export interface Clue {
+    questionId: string;
+    isRevealed: boolean;
+    text: string;
     answerLimit: number|null;
     revealedAt?: firebase.firestore.Timestamp;
     closedAt?: firebase.firestore.Timestamp;
 }
 
-export interface Clue {
-    clueIndex: number;
-    text: string;
-    answerLimit: number|null;
-    revealedAt?: firebase.firestore.Timestamp;
-}
-
 export interface Answer {
     questionId: string;
+    clueId: string;
     teamId: string;
     text: string;
     points?: number;
-    timestamp: firebase.firestore.Timestamp;
+    submittedAt: firebase.firestore.Timestamp;
 }

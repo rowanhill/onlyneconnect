@@ -20,12 +20,14 @@ service cloud.firestore {
       return request.auth != null && team.data.quizId == quizId;
     }
 
-    function teamMember(quizId, teamId) {
-      let playerTeam = get(/databases/$(database)/documents/playerTeams/$(request.auth.uid));
+    function authedAndTeamMember(quizId, teamId) {
+      return request.auth != null && teamMember(quizId, teamId, request.auth.uid);
+    }
+
+    function teamMember(quizId, teamId, uid) {
+      let playerTeam = get(/databases/$(database)/documents/playerTeams/$(uid));
       let team = get(/databases/$(database)/documents/teams/$(playerTeam.data.teamId));
-      return request.auth != null &&
-        team.data.quizId == quizId &&
-        playerTeam.data.teamId == teamId;
+      return team.data.quizId == quizId && playerTeam.data.teamId == teamId;
     }
 
     function teamCaptain(quizId, teamId, uid) {
@@ -35,23 +37,19 @@ service cloud.firestore {
       return uid == teamData.captainId && quizId == teamData.quizId;
     }
 
-    function questionVisibleToPlayer(quizId) {
-      let quizData = get(/databases/$(database)/documents/quizzes/$(quizId));
-      return quizPlayer(quizId) && // User is playing in this quiz
-          resource.data.questionIndex <= quizData.data.currentQuestionIndex; // Question is revealed
+    function questionVisibleToPlayer() {
+      return resource.data.isRevealed == true;
     }
 
-    function parentQuestionVisibleToPlayer(quizId, questionId) {
-      let quizData = get(/databases/$(database)/documents/quizzes/$(quizId));
-      let questionData = get(/databases/$(database)/documents/quizzes/$(quizId)/questions/$(questionId));
-      return quizPlayer(quizId) && // User is playing in this quiz
-          questionData.data.questionIndex <= quizData.data.currentQuestionIndex;
+    function clueVisibleToPlayer(quizId, clueId) {
+      let clue = get(/databases/$(database)/documents/quizzes/$(quizId)/clues/$(clueId));
+      let question = get(/databases/$(database)/documents/quizzes/$(quizId)/questions/$(clue.data.questionId));
+      return question.data.isRevealed && clue.data.isRevealed;
     }
 
-    function clueVisibleToPlayer(quizId, questionId) {
-      let questionData = get(/databases/$(database)/documents/quizzes/$(quizId)/questions/$(questionId));
-      return parentQuestionVisibleToPlayer(quizId, questionId) && // User can see the parent question
-          resource.data.clueIndex <= questionData.data.currentClueIndex; // Clue is revealed
+    function answerMatchesClueAndQuestion(quizId, clueId) {
+      let clue = get(/databases/$(database)/documents/quizzes/$(quizId)/clues/$(clueId));
+      return request.resource.data.questionId == clue.data.questionId;
     }
 
     match /quizTemplates/{template} {
@@ -79,16 +77,14 @@ service cloud.firestore {
       match /questions/{question} {
         // Owner can update a question to set the currentQuestionIndex, reveal/close timestamps
         allow update: if quizOwner(quiz);
-        allow get: if questionVisibleToPlayer(quiz) || quizOwner(quiz);
+        allow get: if questionVisibleToPlayer() || quizOwner(quiz);
         allow list: if quizPlayer(quiz) || quizOwner(quiz);
+      }
 
-        match /clues/{clue} {
-          // The quiz owner can update the revealedAt timestamp (to the server's timestamp)
-          allow update: if quizOwner(quiz) &&
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revealedAt']) &&
-            request.resource.data.revealedAt == request.time;
-          allow get, list: if clueVisibleToPlayer(quiz, question) || quizOwner(quiz);
-        }
+      match /clues/{clue} {
+        // The quiz owner updates the clue to set the isRevealed flag and the revealedAt/closedAt timestamps (to the server's timestamp)
+        allow update: if quizOwner(quiz);
+        allow get, list: if resource.data.get('isRevealed', true) == true || quizOwner(quiz);
       }
 
       match /answers/{answer} {
@@ -97,11 +93,12 @@ service cloud.firestore {
         // New answers must be created with the current (server) timestamp.
         allow create: if request.auth != null &&
           teamCaptain(quiz, request.resource.data.teamId, request.auth.uid) &&
-          parentQuestionVisibleToPlayer(quiz, request.resource.data.questionId) &&
+          clueVisibleToPlayer(quiz, request.resource.data.clueId) &&
+          answerMatchesClueAndQuestion(quiz, request.resource.data.clueId) &&
           !('points' in request.resource.data) &&
-          request.resource.data.timestamp == request.time;
+          request.resource.data.submittedAt == request.time;
         // The quiz owner and anyone on the team can read their answers
-        allow read: if quizOwner(quiz) || teamMember(quiz, resource.data.teamId);
+        allow read: if quizOwner(quiz) || authedAndTeamMember(quiz, resource.data.teamId);
         // The quiz owner can update the answer's awarded points
         allow update: if quizOwner(quiz) && request.resource.data.keys().hasOnly(['points']);
       }

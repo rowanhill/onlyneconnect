@@ -44,46 +44,45 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
     if (quizData) {
         if (isQuizOwner) {
             // Get all questions
-            questionsQuery = db.collection('quizzes').doc(quizId).collection('questions')
-                .orderBy('questionIndex', 'asc');
+            questionsQuery = db.collection(`quizzes/${quizId}/questions`);
         } else {
             // Get only revealed questions
-            questionsQuery = db.collection('quizzes').doc(quizId).collection('questions')
-                .where('questionIndex', '<=', quizData.currentQuestionIndex)
-                .orderBy('questionIndex', 'desc')
-                .limit(1);
+            questionsQuery = db.collection(`quizzes/${quizId}/questions`)
+                .where('isRevealed', '==', true);
         }
     }
     const questionsResult = useCollectionResult<Question>(questionsQuery);
     if (questionsResult.error) {
-        console.error(questionsResult.error);
+        console.error('Error getting questions:', questionsResult.error);
     }
-    const currentQuestionItem = quizData && questionsResult.data?.find(
-        (questionData) => questionData.data.questionIndex === quizData.currentQuestionIndex
-    );
+
+    // Find the current question item
+    const currentQuestionItem: CollectionQueryItem<Question>|undefined = quizData &&
+        questionsResult.data?.find((questionData) => questionData.id === quizData.currentQuestionId);
 
     // Fetch clues
     let cluesQuery: firebase.firestore.Query|null = null;
-    if (questionsResult.data) {
-        if (currentQuestionItem) {
-            // Get all question's clues
-            if (isQuizOwner) {
-                cluesQuery = db.collection('quizzes').doc(quizId).collection('questions').doc(currentQuestionItem.id).collection('clues')
-                    .orderBy('clueIndex', 'asc');
-            } else {
-                cluesQuery = db.collection('quizzes').doc(quizId).collection('questions').doc(currentQuestionItem.id).collection('clues')
-                    .where('clueIndex', '<=', currentQuestionItem.data.currentClueIndex)
-                    .orderBy('clueIndex', 'asc');
+    if (isQuizOwner) {
+        // Get all clues
+        cluesQuery = db.collection(`quizzes/${quizId}/clues`);
+    } else {
+        // Get only revealed clues for revealed questions
+        if (questionsResult.data) {
+            const revealedQuestionIds = questionsResult.data.map((questionItem) => questionItem.id);
+            cluesQuery = db.collection(`quizzes/${quizId}/clues`)
+                .where('isRevealed', '==', true);
+            if (revealedQuestionIds.length > 0) {
+                cluesQuery = cluesQuery.where('questionId', 'in', revealedQuestionIds);
             }
         }
     }
     const cluesResult = useCollectionResult<Clue>(cluesQuery);
     if (cluesResult.error) {
-        console.error(cluesResult.error);
+        console.error('Error getting clues:', cluesResult.error);
     }
-    const currentClueItem = currentQuestionItem && cluesResult.data?.find(
-        (clueData) => clueData.data.clueIndex === currentQuestionItem.data.currentClueIndex
-    );
+
+    // Find the current clue item - there should only be (zero or) one that's revealed but not closed
+    const currentClueItem = cluesResult.data?.find((clueData) => clueData.data.revealedAt && !clueData.data.closedAt);
 
     // Fetch teams
     let teamsQuery: firebase.firestore.Query = db.collection('teams')
@@ -91,7 +90,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
         .orderBy('points', 'desc');
     let teamsResult = useCollectionResult<Team>(teamsQuery);
     if (teamsResult.error) {
-        console.error(teamsResult.error);
+        console.error('Error getting teams:', teamsResult.error);
     }
 
     // Fetch team assignment
@@ -99,7 +98,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
         user ? db.collection('playerTeams').doc(user.uid) : null
     );
     if (playerTeamError) {
-        console.error(playerTeamError);
+        console.error('Error getting playerTeam:', playerTeamError);
     }
     const isCaptain = !isQuizOwner && teamsResult.data && playerTeamData &&
         teamsResult.data.find((teamItem) => teamItem.id === playerTeamData.teamId) !== null;
@@ -107,18 +106,16 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
     // Fetch answers
     let answerQuery: firebase.firestore.Query|null = null;
     if (isQuizOwner) {
-        answerQuery = firebase.firestore()
-            .collection('quizzes').doc(quizId).collection('answers')
-            .orderBy('timestamp', 'asc');
+        answerQuery = db.collection(`quizzes/${quizId}/answers`)
+            .orderBy('submittedAt', 'asc');
     } else if (playerTeamData?.teamId) {
-        answerQuery = firebase.firestore()
-            .collection('quizzes').doc(quizId).collection('answers')
+        answerQuery = db.collection(`quizzes/${quizId}/answers`)
             .where('teamId', '==', playerTeamData.teamId)
-            .orderBy('timestamp', 'asc');
+            .orderBy('submittedAt', 'asc');
     }
     const answersResult = useCollectionResult<Answer>(answerQuery);
     if (answersResult.error) {
-        console.error(answersResult.error);
+        console.error('Error getting answers:', answersResult.error);
     }
 
     // Render
@@ -157,6 +154,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                                 currentQuestionItem={currentQuestionItem}
                                 cluesResult={cluesResult}
                                 quizId={quizId}
+                                quiz={quizData}
                             />
                         </> :
                         <>
@@ -186,35 +184,41 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
     return <div className={styles.quizPage}>{inner()}</div>;
 };
 
-const QuizControls = ({ questionsData, currentQuestionItem, quizId, cluesResult }: { questionsData?: CollectionQueryData<Question>; currentQuestionItem?: CollectionQueryItem<Question>; quizId: string; cluesResult: CollectionQueryResult<Clue>; }) => {
+const QuizControls = ({ questionsData, currentQuestionItem, quizId, quiz, cluesResult }: { questionsData?: CollectionQueryData<Question>; currentQuestionItem?: CollectionQueryItem<Question>; quizId: string; quiz: Quiz; cluesResult: CollectionQueryResult<Clue>; }) => {
     if (!questionsData) {
         return null;
     }
     if (currentQuestionItem) {
         return (
             <div>
-                <RevelationControls quizId={quizId} questionsData={questionsData} currentQuestionItem={currentQuestionItem} cluesResult={cluesResult} />
+                <RevelationControls quizId={quizId} quiz={quiz} questionsData={questionsData} currentQuestionItem={currentQuestionItem} cluesResult={cluesResult} />
             </div>
         );
     } else {
         return (
             <div>
-                <StartQuizButton quizId={quizId} questionsData={questionsData} />
+                <StartQuizButton quizId={quizId} quiz={quiz} />
             </div>
         );
     }
 };
 
-const StartQuizButton = ({ quizId, questionsData }: { quizId: string; questionsData: CollectionQueryData<Question>; }) => {
+const StartQuizButton = ({ quizId, quiz }: { quizId: string; quiz: Quiz; }) => {
     const [disabled, setDisabled] = useState(false);
     const unmounted = useRef(false);
     useEffect(() => () => { unmounted.current = true; }, []);
     const startQuiz = () => {
-        firebase.firestore()
-            .collection('quizzes').doc(quizId)
-            .update({
-                currentQuestionIndex: questionsData[0].data.questionIndex,
-            })
+        const db = firebase.firestore();
+        const batch = db.batch();
+        const quizDoc = db.doc(`quizzes/${quizId}`);
+        batch.update(quizDoc, {
+            currentQuestionId: quiz.questionIds[0],
+        });
+        const questionDoc = db.doc(`quizzes/${quizId}/questions/${quiz.questionIds[0]}`);
+        batch.update(questionDoc, {
+            isRevealed: true,
+        });
+        batch.commit()
             .then(() => !unmounted.current && setDisabled(false))
             .catch((error) => {
                 console.error(`Could not start quiz ${quizId}`, error);
@@ -225,9 +229,7 @@ const StartQuizButton = ({ quizId, questionsData }: { quizId: string; questionsD
     return <button disabled={disabled} onClick={startQuiz}>Start quiz</button>;
 };
 
-const RevelationControls = ({ quizId, questionsData, currentQuestionItem, cluesResult }: { quizId: string; questionsData: CollectionQueryData<Question>; currentQuestionItem: CollectionQueryItem<Question>; cluesResult: CollectionQueryResult<Clue>; }) => {
-    const totalQuestions = questionsData.length;
-    const currentQuestionNumber = questionsData.findIndex((questionItem) => questionItem.data.questionIndex === currentQuestionItem.data.questionIndex) + 1;
+const RevelationControls = ({ quizId, quiz, questionsData, currentQuestionItem, cluesResult }: { quizId: string; quiz: Quiz; questionsData: CollectionQueryData<Question>; currentQuestionItem: CollectionQueryItem<Question>; cluesResult: CollectionQueryResult<Clue>; }) => {
     const { data: clues, loading, error } = cluesResult;
     const [disabled, setDisabled] = useState(false);
     if (error) {
@@ -236,10 +238,30 @@ const RevelationControls = ({ quizId, questionsData, currentQuestionItem, cluesR
     if (loading || !clues) {
         return <div>Loading clues</div>;
     }
-    const totalClues = clues.length;
-    const currentClueNumber = clues.findIndex((clue) => clue.data.clueIndex === currentQuestionItem.data.currentClueIndex) + 1;
-    const nextClue = clues.find((clue) => clue.data.clueIndex > currentQuestionItem.data.currentClueIndex);
-    const nextQuestion = questionsData.find((questionItem) => questionItem.data.questionIndex > currentQuestionItem.data.questionIndex);
+    
+    // Construct an ordered array of clue items for the current question
+    const cluesForQuestion = clues.filter((clue) => clue.data.questionId === quiz.currentQuestionId);
+    const cluesForQuestionById = Object.fromEntries(cluesForQuestion.map((clue) => [clue.id, clue]));
+    const orderedClues = currentQuestionItem.data.clueIds.map((id) => cluesForQuestionById[id]);
+    
+    // Find the current / total clue numbers for display, and the next clue, if any
+    const totalClues = orderedClues.length;
+    const nextClueIndex = orderedClues.findIndex((clue) => !clue.data.isRevealed);
+    const currentClueNumber = nextClueIndex === -1 ? totalClues : nextClueIndex;
+    const nextClue = nextClueIndex === -1 ? undefined : orderedClues[nextClueIndex];
+    const currentClue = nextClueIndex === -1 ?
+        orderedClues[orderedClues.length - 1] :
+        (nextClueIndex === 0 ? undefined : orderedClues[nextClueIndex - 1]);
+
+    // Construct an ordered array of question items
+    const questionsById = Object.fromEntries(questionsData.map((questionItem) => [questionItem.id, questionItem]));
+    const orderedQuestions = quiz.questionIds.map((id) => questionsById[id]);
+
+    // Find the current / total quesiton numbers for display, and the next question, if any
+    const totalQuestions = quiz.questionIds.length;
+    const currentQuestionNumber = quiz.questionIds.findIndex((questionId) => questionId === quiz.currentQuestionId) + 1;
+    const nextQuestionIndex = currentQuestionNumber;
+    const nextQuestion = nextQuestionIndex >= orderedQuestions.length ? undefined : orderedQuestions[nextQuestionIndex];
 
     const goToNextClue = () => {
         if (!nextClue) {
@@ -249,29 +271,27 @@ const RevelationControls = ({ quizId, questionsData, currentQuestionItem, cluesR
         const db = firebase.firestore();
         const batch = db.batch();
 
-        // Move the question to the next clue
-        // If that's the first clue, also set the question's revealedAt time
-        const questionDoc = db.doc(`quizzes/${quizId}/questions/${currentQuestionItem.id}`);
-        const questionUpdate: { currentClueIndex: number; revealedAt?: firebase.firestore.FieldValue; } = {
-            currentClueIndex: nextClue.data.clueIndex,
-        };
-        if (currentClueNumber === 0) {
-            questionUpdate.revealedAt = firebase.firestore.FieldValue.serverTimestamp();
+        // Update the current clue, if any, to set the closedAt time
+        if (currentClue) {
+            const currentClueDoc = db.doc(`quizzes/${quizId}/clues/${currentClue.id}`);
+            batch.update(currentClueDoc, {
+                closedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
         }
-        batch.update(questionDoc, questionUpdate);
 
-        // Update the next clue to set the revealedAt time
-        const clueDoc = db.doc(`quizzes/${quizId}/questions/${currentQuestionItem.id}/clues/${nextClue.id}`);
-        batch.update(clueDoc, {
+        // Update the next clue to set the revealedAt time, and set isRevealed to true
+        const nextClueDoc = db.doc(`quizzes/${quizId}/clues/${nextClue.id}`);
+        batch.update(nextClueDoc,{
+            isRevealed: true,
             revealedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
-
+        
         batch.commit()
             .then(() => {
                 setDisabled(false);
             })
             .catch((error) => {
-                console.error(`Could not update quiz ${quizId} question ${currentQuestionItem.id} to clue index ${nextClue.data.clueIndex}`, error);
+                console.error(`Could not update quiz ${quizId} to reveal clue ${nextClue.id}`, error);
                 setDisabled(false);
             });
         setDisabled(true);
@@ -284,16 +304,24 @@ const RevelationControls = ({ quizId, questionsData, currentQuestionItem, cluesR
         const db = firebase.firestore();
         const batch = db.batch();
 
+        // Close the current clue, if any, for answer submissions
+        if (currentClue) {
+            const currentClueDoc = db.doc(`quizzes/${quizId}/clues/${currentClue.id}`);
+            batch.update(currentClueDoc, {
+                closedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+        }
+
+        // Reveal the next question
+        const nextQuestionDoc = db.doc(`quizzes/${quizId}/questions/${nextQuestion.id}`);
+        batch.update(nextQuestionDoc, {
+            isRevealed: true,
+        });
+
         // Move the quiz to the next question
         const quizDoc = db.doc(`quizzes/${quizId}`);
         batch.update(quizDoc, {
-            currentQuestionIndex: nextQuestion.data.questionIndex
-        });
-
-        // Close the current question for answer submissions
-        const currentQuestionDoc = db.doc(`quizzes/${quizId}/questions/${currentQuestionItem.id}`);
-        batch.update(currentQuestionDoc, {
-            closedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            currentQuestionId: nextQuestion.id
         });
 
         batch.commit()
@@ -301,13 +329,17 @@ const RevelationControls = ({ quizId, questionsData, currentQuestionItem, cluesR
                 setDisabled(false);
             })
             .catch((error) => {
-                console.error(`Could not update quiz ${quizId} to question index ${nextQuestion.data.questionIndex}`, error);
+                console.error(`Could not update quiz ${quizId} to question ${nextQuestion.id}`, error);
                 setDisabled(false);
             });
         setDisabled(true);
     }
-    const closeLastQuestion = () => {
-        firebase.firestore().doc(`quizzes/${quizId}/questions/${currentQuestionItem.id}`)
+    const closeLastClue = () => {
+        if (!currentClue) {
+            console.error('Tried to close the last clue with no currentClue set');
+            return;
+        }
+        firebase.firestore().doc(`quizzes/${quizId}/clues/${currentClue.id}`)
             .update({
                 closedAt: firebase.firestore.FieldValue.serverTimestamp(),
             })
@@ -315,19 +347,32 @@ const RevelationControls = ({ quizId, questionsData, currentQuestionItem, cluesR
                 setDisabled(false);
             })
             .catch((error) => {
-                console.error(`Could not update question ${quizId}/${currentQuestionItem.id} to close it`, error);
+                console.error(`Could not update clue ${quizId}/${currentClue.id} to close it`, error);
                 setDisabled(false);
             });
         setDisabled(true);
     }
 
+    let buttonToShow: 'error'|'next-clue'|'next-question'|'end-quiz'|'quiz-ended' = 'error';
+    if (nextClue) {
+        buttonToShow = 'next-clue';
+    } else if (nextQuestion) {
+        buttonToShow = 'next-question';
+    } else if (currentClue) {
+        if (!currentClue.data.closedAt) {
+            buttonToShow = 'end-quiz';
+        } else {
+            buttonToShow = 'quiz-ended';
+        }
+    }
     return (
         <>
             <p>This is question {currentQuestionNumber} of {totalQuestions}. For this question, it is clue {currentClueNumber} of {totalClues}.</p>
-            {nextClue && <button disabled={disabled} onClick={goToNextClue}>Next clue</button>}
-            {!nextClue && nextQuestion && <button disabled={disabled} onClick={goToNextQuestion}>Next question</button>}
-            {!nextClue && !nextQuestion && !currentQuestionItem.data.closedAt && <button disabled={disabled} onClick={closeLastQuestion}>End quiz</button>}
-            {!nextClue && !nextQuestion && currentQuestionItem.data.closedAt && <p>You've reached the end of the quiz</p>}
+            {buttonToShow === 'next-clue' && <button disabled={disabled} onClick={goToNextClue}>Next clue</button>}
+            {buttonToShow === 'next-question' && <button disabled={disabled} onClick={goToNextQuestion}>Next question</button>}
+            {buttonToShow === 'end-quiz' && <button disabled={disabled} onClick={closeLastClue}>End quiz</button>}
+            {buttonToShow === 'quiz-ended' && <p>You've reached the end of the quiz</p>}
+            {buttonToShow === 'error' && <p>Error: There is no next clue or question, nor current clue to close</p>}
         </>
     );
 };
@@ -353,14 +398,19 @@ const QuestionClues = ({ currentQuestionItem, cluesResult }: { currentQuestionIt
     if (loading) {
         return <>Loading clues</>;
     }
-    if (!clues || clues.length === 0) {
+    const questionClues = clues?.filter((clue) => clue.data.questionId === currentQuestionItem.id);
+    if (!questionClues || questionClues.length === 0) {
         return <>Waiting for first clue...</>;
     }
+    const questionCluesById = Object.fromEntries(questionClues.map((clue) => [clue.id, clue]));
+    const orderedClues = currentQuestionItem.data.clueIds
+        .map((id) => questionCluesById[id])
+        .filter((clue) => !!clue);
     return (
         <>
-        {clues.map((clue) => (
-            <div key={clue.data.clueIndex}>
-                {clue.data.clueIndex <= currentQuestionItem.data.currentClueIndex ? clue.data.text : `(${clue.data.text})`}
+        {orderedClues.map((clue) => (
+            <div key={clue.id}>
+                {clue.data.isRevealed ? clue.data.text : `(${clue.data.text})`}
             </div>
         ))}
         </>
@@ -420,14 +470,14 @@ function hasReachedAnswerLimit(
     if (!answersResult.data) {
         return false;
     }
-    if (questionItem && questionItem.data.answerLimit && questionItem.data.revealedAt && !questionItem.data.closedAt) {
-        const answersForQuestion = answersResult.data.filter((answer) => answer.data.timestamp > questionItem.data.revealedAt!);
+    if (questionItem && questionItem.data.answerLimit) {
+        const answersForQuestion = answersResult.data.filter((answer) => answer.data.questionId === questionItem.id);
         if (answersForQuestion.length >= questionItem.data.answerLimit) {
             return true;
         }
     }
-    if (clueItem && clueItem.data.answerLimit && clueItem.data.revealedAt) {
-        const answersForClue = answersResult.data.filter((answer) => answer.data.timestamp > clueItem.data.revealedAt!);
+    if (clueItem && clueItem.data.answerLimit) {
+        const answersForClue = answersResult.data.filter((answer) => answer.data.clueId === clueItem.id);
         if (answersForClue.length >= clueItem.data.answerLimit) {
             return true;
         }
@@ -445,14 +495,25 @@ const AnswerSubmitBox = ({ quizId, teamId, questionItem, clueItem, answersResult
     };
     const submit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
+        if (!questionItem) {
+            console.error('Tried to submit an answer without a current question');
+            return;
+        }
+        if (!clueItem) {
+            console.error('Tried to submit an answer without a current clue');
+            return;
+        }
+
         setSubmitting(true);
 
         const db = firebase.firestore();
         db.collection('quizzes').doc(quizId).collection('answers').add({
-            questionId: questionItem?.id,
+            questionId: questionItem.id,
+            clueId: clueItem.id,
             teamId,
             text: answerText,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
         })
         .then(() => {
             setSubmitting(false);
