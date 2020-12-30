@@ -168,7 +168,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                 </div>
                 <div className={styles.rightPanel}>
                     <Scoreboard quizId={quizId} teamsResult={teamsResult} />
-                    <AnswersHistory answersResult={answersResult} />
+                    <AnswersHistory answersResult={answersResult} cluesResult={cluesResult} />
                     {isCaptain &&
                         <AnswerSubmitBox
                             quizId={quizId}
@@ -442,20 +442,40 @@ const Scoreboard = ({ quizId, teamsResult }: { quizId: string; teamsResult: Coll
     );
 };
 
-const AnswersHistory = ({ answersResult }: { answersResult: CollectionQueryResult<Answer> }) => {
-    const {data: answersData, loading, error} = answersResult;
-    if (error) {
-        console.error(error);
+const AnswersHistory = ({ answersResult, cluesResult }: { answersResult: CollectionQueryResult<Answer>; cluesResult: CollectionQueryResult<Clue>; }) => {
+    const { data: answersData, loading: answersLoading, error: answersError } = answersResult;
+    const { data: cluesData, loading: cluesLoading, error: cluesError } = cluesResult;
+    if (answersError || cluesError) {
         return <div className={styles.answersHistory}><strong>There was an error loading your answers! Please try again</strong></div>;
     }
-    if (loading || !answersData) {
+    if (answersLoading || !answersData || cluesLoading || !cluesData) {
         return <div className={styles.answersHistory}></div>;
     }
+    const cluesById = Object.fromEntries(cluesData.map((clue) => [clue.id, clue]));
+    const answersGroupedByQuestion = answersData.reduce((acc, answer) => {
+        if (acc.length === 0 || acc[acc.length - 1].questionId !== answer.data.questionId) {
+            acc.push({
+                questionId: answer.data.questionId,
+                answerMetas: [],
+            });
+        }
+        const latestGroup = acc[acc.length - 1];
+        const clue = cluesById[answer.data.clueId];
+        const valid = !!answer.data.submittedAt && !!clue.data.revealedAt && answer.data.submittedAt.toMillis() >= clue.data.revealedAt.toMillis() &&
+            (!clue.data.closedAt || answer.data.submittedAt.toMillis() <= clue.data.closedAt.toMillis());
+        latestGroup.answerMetas.push({ answer, valid });
+        return acc;
+    }, [] as Array<{ questionId: string; answerMetas: { answer: CollectionQueryItem<Answer>; valid: boolean; }[]; }>);
     return (
         <div className={styles.answersHistory}>
-            {answersData.map((answer) => (
-                <div key={answer.id}>
-                    {answer.data.text} ({answer.data.points !== undefined ? answer.data.points : 'unscored'})
+            {answersGroupedByQuestion.map((answerGroup) => (
+                <div key={answerGroup.questionId}>
+                    <h3>{answerGroup.questionId}</h3>
+                    {answerGroup.answerMetas.map((answerMeta) => (
+                        <div key={answerMeta.answer.id} className={answerMeta.valid ? '' : styles.invalidAnswer}>
+                            {answerMeta.answer.data.text} ({answerMeta.answer.data.points !== undefined ? answerMeta.answer.data.points : 'unscored'})
+                        </div>
+                    ))}
                 </div>
             ))}
         </div>

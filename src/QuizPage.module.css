@@ -24,3 +24,7 @@
 .answersHistory {
     flex-grow: 1;
 }
+
+.invalidAnswer {
+    text-decoration: line-through;
+}
