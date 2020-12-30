@@ -25,6 +25,15 @@
     flex-grow: 1;
 }
 
+.answer {
+    display: flex;
+    flex-direction: row;
+}
+
 .invalidAnswer {
     text-decoration: line-through;
+}
+
+.answerInfo {
+    flex-grow: 1;
 }

@@ -40,5 +40,6 @@ export interface Answer {
     teamId: string;
     text: string;
     points?: number;
+    correct?: boolean;
     submittedAt: firebase.firestore.Timestamp;
 }

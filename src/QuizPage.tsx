@@ -168,7 +168,14 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                 </div>
                 <div className={styles.rightPanel}>
                     <Scoreboard quizId={quizId} teamsResult={teamsResult} />
-                    <AnswersHistory answersResult={answersResult} cluesResult={cluesResult} />
+                    <AnswersHistory
+                        answersResult={answersResult}
+                        cluesResult={cluesResult}
+                        questionsResult={questionsResult}
+                        isQuizOwner={isQuizOwner}
+                        quizId={quizId}
+                        quiz={quizData}
+                    />
                     {isCaptain &&
                         <AnswerSubmitBox
                             quizId={quizId}
@@ -442,38 +449,93 @@ const Scoreboard = ({ quizId, teamsResult }: { quizId: string; teamsResult: Coll
     );
 };
 
-const AnswersHistory = ({ answersResult, cluesResult }: { answersResult: CollectionQueryResult<Answer>; cluesResult: CollectionQueryResult<Clue>; }) => {
+const AnswersHistory = ({ answersResult, cluesResult, questionsResult, isQuizOwner, quizId, quiz }: { answersResult: CollectionQueryResult<Answer>; cluesResult: CollectionQueryResult<Clue>; questionsResult: CollectionQueryResult<Question>; isQuizOwner: boolean; quizId: string; quiz: Quiz }) => {
     const { data: answersData, loading: answersLoading, error: answersError } = answersResult;
     const { data: cluesData, loading: cluesLoading, error: cluesError } = cluesResult;
-    if (answersError || cluesError) {
+    const { data: questionsData, loading: questionsLoading, error: questionsError } = questionsResult;
+    if (answersError || cluesError || questionsError) {
         return <div className={styles.answersHistory}><strong>There was an error loading your answers! Please try again</strong></div>;
     }
-    if (answersLoading || !answersData || cluesLoading || !cluesData) {
+    if (answersLoading || !answersData || cluesLoading || !cluesData || questionsLoading || !questionsData) {
         return <div className={styles.answersHistory}></div>;
     }
     const cluesById = Object.fromEntries(cluesData.map((clue) => [clue.id, clue]));
-    const answersGroupedByQuestion = answersData.reduce((acc, answer) => {
-        if (acc.length === 0 || acc[acc.length - 1].questionId !== answer.data.questionId) {
-            acc.push({
-                questionId: answer.data.questionId,
-                answerMetas: [],
-            });
+    const questionsById = Object.fromEntries(questionsData.map((question) => [question.id, question]));
+    const answerMetasByQuestionId = answersData.reduce((acc, answer) => {
+        if (!acc[answer.data.questionId]) {
+            acc[answer.data.questionId] = [];
         }
-        const latestGroup = acc[acc.length - 1];
         const clue = cluesById[answer.data.clueId];
-        const valid = !!answer.data.submittedAt && !!clue.data.revealedAt && answer.data.submittedAt.toMillis() >= clue.data.revealedAt.toMillis() &&
+        const valid = !!answer.data.submittedAt && !!clue.data.revealedAt &&
+            answer.data.submittedAt.toMillis() >= clue.data.revealedAt.toMillis() &&
             (!clue.data.closedAt || answer.data.submittedAt.toMillis() <= clue.data.closedAt.toMillis());
-        latestGroup.answerMetas.push({ answer, valid });
+        const question = questionsById[answer.data.questionId];
+        const clueIndex = question.data.clueIds.indexOf(clue.id);
+        acc[answer.data.questionId].push({ answer, valid, clueIndex });
         return acc;
-    }, [] as Array<{ questionId: string; answerMetas: { answer: CollectionQueryItem<Answer>; valid: boolean; }[]; }>);
+    }, {} as { [id: string]: { answer: CollectionQueryItem<Answer>; valid: boolean; clueIndex: number; }[]});
+    const answerGroups = quiz.questionIds
+        .map((id) => ({ questionId: id, answerMetas: answerMetasByQuestionId[id] }))
+        .filter((group) => !!group.answerMetas);
+    const scoredAnswerByQuestionByTeamId = answersData.reduce((acc, answer) => {
+        if (!acc[answer.data.teamId]) {
+            acc[answer.data.teamId] = {};
+        }
+        if (answer.data.correct === true) {
+            acc[answer.data.teamId][answer.data.questionId] = answer.data.clueId;
+        }
+        return acc;
+    }, {} as { [teamId: string]: { [questionId: string]: string } });
+    const markCorrect = (answerMeta: { answer: CollectionQueryItem<Answer>; valid: boolean; clueIndex: number; }) => {
+        if (!answerMeta.valid) {
+            console.error('Tried to mark invalid question as correct', answerMeta);
+            return;
+        }
+        const score = 5 - answerMeta.clueIndex;
+        firebase.firestore()
+            .doc(`quizzes/${quizId}/answers/${answerMeta.answer.id}`)
+            .update({
+                correct: true,
+                points: score,
+            })
+            .catch((error) => {
+                console.error(`Error when marking answer ${answerMeta.answer.id} correct with score ${score}`, error);
+            });
+    };
+    const markIncorrect = (answerMeta: { answer: CollectionQueryItem<Answer>; valid: boolean; }) => {
+        if (!answerMeta.valid) {
+            console.error('Tried to mark invalid question as incorrect', answerMeta);
+            return;
+        }
+        firebase.firestore()
+            .doc(`quizzes/${quizId}/answers/${answerMeta.answer.id}`)
+            .update({
+                correct: false,
+                points: 0,
+            })
+            .catch((error) => {
+                console.error(`Error when marking answer ${answerMeta.answer.id} incorrect`, error);
+            });
+    };
     return (
         <div className={styles.answersHistory}>
-            {answersGroupedByQuestion.map((answerGroup) => (
+            {answerGroups.map((answerGroup) => (
                 <div key={answerGroup.questionId}>
                     <h3>{answerGroup.questionId}</h3>
                     {answerGroup.answerMetas.map((answerMeta) => (
-                        <div key={answerMeta.answer.id} className={answerMeta.valid ? '' : styles.invalidAnswer}>
-                            {answerMeta.answer.data.text} ({answerMeta.answer.data.points !== undefined ? answerMeta.answer.data.points : 'unscored'})
+                        <div key={answerMeta.answer.id} className={styles.answer + (answerMeta.valid ? '' : (' ' + styles.invalidAnswer))}>
+                            <div className={styles.answerInfo}>
+                                {answerMeta.answer.data.text}{' '}
+                                {(answerMeta.answer.data.points !== undefined || !isQuizOwner) &&
+                                    <>({answerMeta.answer.data.points !== undefined ? answerMeta.answer.data.points : 'unscored'})</>
+                                }
+                            </div>
+                            {isQuizOwner && answerMeta.valid &&
+                            (scoredAnswerByQuestionByTeamId[answerMeta.answer.data.teamId][answerMeta.answer.data.questionId] === undefined || scoredAnswerByQuestionByTeamId[answerMeta.answer.data.teamId][answerMeta.answer.data.questionId] === answerMeta.answer.data.clueId) &&
+                            <div>
+                                <button onClick={() => markCorrect(answerMeta)}>✔️</button>
+                                <button onClick={() => markIncorrect(answerMeta)}>❌</button>
+                            </div>}
                         </div>
                     ))}
                 </div>

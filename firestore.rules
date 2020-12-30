@@ -100,7 +100,7 @@ service cloud.firestore {
         // The quiz owner and anyone on the team can read their answers
         allow read: if quizOwner(quiz) || authedAndTeamMember(quiz, resource.data.teamId);
         // The quiz owner can update the answer's awarded points
-        allow update: if quizOwner(quiz) && request.resource.data.keys().hasOnly(['points']);
+        allow update: if quizOwner(quiz) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['points', 'correct']);
       }
     }
 
