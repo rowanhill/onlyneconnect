@@ -172,6 +172,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                         answersResult={answersResult}
                         cluesResult={cluesResult}
                         questionsResult={questionsResult}
+                        teamsResult={teamsResult}
                         isQuizOwner={isQuizOwner}
                         quizId={quizId}
                         quiz={quizData}
@@ -453,10 +454,11 @@ const Scoreboard = ({ quizId, teamsResult }: { quizId: string; teamsResult: Coll
     );
 };
 
-const AnswersHistory = ({ answersResult, cluesResult, questionsResult, isQuizOwner, quizId, quiz }: { answersResult: CollectionQueryResult<Answer>; cluesResult: CollectionQueryResult<Clue>; questionsResult: CollectionQueryResult<Question>; isQuizOwner: boolean; quizId: string; quiz: Quiz }) => {
+const AnswersHistory = ({ answersResult, cluesResult, questionsResult, teamsResult, isQuizOwner, quizId, quiz }: { answersResult: CollectionQueryResult<Answer>; cluesResult: CollectionQueryResult<Clue>; questionsResult: CollectionQueryResult<Question>; teamsResult: CollectionQueryResult<Team>; isQuizOwner: boolean; quizId: string; quiz: Quiz }) => {
     const { data: answersData, loading: answersLoading, error: answersError } = answersResult;
     const { data: cluesData, loading: cluesLoading, error: cluesError } = cluesResult;
     const { data: questionsData, loading: questionsLoading, error: questionsError } = questionsResult;
+    const { data: teamsData } = teamsResult;
     if (answersError || cluesError || questionsError) {
         return <div className={styles.answersHistory}><strong>There was an error loading your answers! Please try again</strong></div>;
     }
@@ -465,6 +467,7 @@ const AnswersHistory = ({ answersResult, cluesResult, questionsResult, isQuizOwn
     }
     const cluesById = Object.fromEntries(cluesData.map((clue) => [clue.id, clue]));
     const questionsById = Object.fromEntries(questionsData.map((question) => [question.id, question]));
+    const teamsById = isQuizOwner && teamsData ? Object.fromEntries(teamsData.map((team) => [team.id, team])) : {};
     const answerMetasByQuestionId = answersData.reduce((acc, answer) => {
         if (!acc[answer.data.questionId]) {
             acc[answer.data.questionId] = [];
@@ -529,6 +532,7 @@ const AnswersHistory = ({ answersResult, cluesResult, questionsResult, isQuizOwn
                     {answerGroup.answerMetas.map((answerMeta) => (
                         <div key={answerMeta.answer.id} className={styles.answer + (answerMeta.valid ? '' : (' ' + styles.invalidAnswer))}>
                             <div className={styles.answerInfo}>
+                                {isQuizOwner && teamsById[answerMeta.answer.data.teamId] && <>{teamsById[answerMeta.answer.data.teamId].data.name}:<br/></>}
                                 {answerMeta.answer.data.text}{' '}
                                 {(answerMeta.answer.data.points !== undefined || !isQuizOwner) &&
                                     <>({answerMeta.answer.data.points !== undefined ? answerMeta.answer.data.points : 'unscored'})</>
