@@ -548,18 +548,19 @@ function hasReachedAnswerLimit(
     clueItem: CollectionQueryItem<Clue>|undefined,
     questionItem: CollectionQueryItem<Question>|undefined,
     answersResult: CollectionQueryResult<Answer>,
+    teamId: string,
 ): boolean {
     if (!answersResult.data) {
         return false;
     }
     if (questionItem && questionItem.data.answerLimit) {
-        const answersForQuestion = answersResult.data.filter((answer) => answer.data.questionId === questionItem.id);
+        const answersForQuestion = answersResult.data.filter((answer) => answer.data.questionId === questionItem.id && answer.data.teamId === teamId);
         if (answersForQuestion.length >= questionItem.data.answerLimit) {
             return true;
         }
     }
     if (clueItem && clueItem.data.answerLimit) {
-        const answersForClue = answersResult.data.filter((answer) => answer.data.clueId === clueItem.id);
+        const answersForClue = answersResult.data.filter((answer) => answer.data.clueId === clueItem.id && answer.data.teamId === teamId);
         if (answersForClue.length >= clueItem.data.answerLimit) {
             return true;
         }
@@ -581,7 +582,7 @@ function hasAnsweredQuestionCorrectly(
 const AnswerSubmitBox = ({ quizId, teamId, questionItem, clueItem, answersResult }: { quizId: string; teamId: string; questionItem: CollectionQueryItem<Question>|undefined; clueItem: CollectionQueryItem<Clue>|undefined; answersResult: CollectionQueryResult<Answer>; }) => {
     const [answerText, setAnswerText] = useState('');
     const [submitting, setSubmitting] = useState(false);
-    const hasReachedLimit = hasReachedAnswerLimit(clueItem, questionItem, answersResult);
+    const hasReachedLimit = hasReachedAnswerLimit(clueItem, questionItem, answersResult, teamId);
     const alreadyAnsweredCorrectly = hasAnsweredQuestionCorrectly(questionItem, answersResult, teamId);
     const onAnswerChange = (e: ChangeEvent<HTMLInputElement>) => {
         e.preventDefault();
