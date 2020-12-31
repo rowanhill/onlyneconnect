@@ -567,10 +567,22 @@ function hasReachedAnswerLimit(
     return false;
 }
 
+function hasAnsweredQuestionCorrectly(
+    questionItem: CollectionQueryItem<Question>|undefined,
+    answersResult: CollectionQueryResult<Answer>,
+    teamId: string,
+): boolean {
+    if (!questionItem || !answersResult.data) {
+        return false;
+    }
+    return answersResult.data.some((answer) => answer.data.questionId === questionItem.id && answer.data.teamId === teamId && answer.data.correct === true);
+}
+
 const AnswerSubmitBox = ({ quizId, teamId, questionItem, clueItem, answersResult }: { quizId: string; teamId: string; questionItem: CollectionQueryItem<Question>|undefined; clueItem: CollectionQueryItem<Clue>|undefined; answersResult: CollectionQueryResult<Answer>; }) => {
     const [answerText, setAnswerText] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const hasReachedLimit = hasReachedAnswerLimit(clueItem, questionItem, answersResult);
+    const alreadyAnsweredCorrectly = hasAnsweredQuestionCorrectly(questionItem, answersResult, teamId);
     const onAnswerChange = (e: ChangeEvent<HTMLInputElement>) => {
         e.preventDefault();
         setAnswerText(e.target.value);
@@ -607,7 +619,7 @@ const AnswerSubmitBox = ({ quizId, teamId, questionItem, clueItem, answersResult
     };
     return (
         <form onSubmit={submit}>
-            <fieldset disabled={submitting || !questionItem || !clueItem || hasReachedLimit}>
+            <fieldset disabled={submitting || !questionItem || !clueItem || hasReachedLimit || alreadyAnsweredCorrectly}>
                 <input type="text" placeholder="Type your answer here" value={answerText} onChange={onAnswerChange} />
                 <button>Submit</button>
             </fieldset>
