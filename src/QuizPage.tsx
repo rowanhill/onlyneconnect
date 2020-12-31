@@ -437,11 +437,12 @@ const Scoreboard = ({ quizId, teamsResult }: { quizId: string; teamsResult: Coll
         console.error(`Teams data is undefined for quiz ${quizId}`);
         return <div><strong>There was an error loading the scoreboard! Please try again</strong></div>;
     }
+    const teamsOrderedByScore = teamsData.sort((a, b) => b.data.points - a.data.points);
     return (
         <div>
             <h2>Scoreboard:</h2>
             <ul>
-                {teamsData.map((team) => (
+                {teamsOrderedByScore.map((team) => (
                     <li key={team.id}>{team.data.name}: {team.data.points}</li>
                 ))}
             </ul>
