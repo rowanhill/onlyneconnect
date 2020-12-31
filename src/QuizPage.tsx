@@ -134,13 +134,15 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
         if (!playerTeamData && !isQuizOwner) {
             return <p>You're not part of a team. Do you need to <Link to={`/quiz/${quizId}/create-team`}>create a new team</Link>?</p>
         }
-        const joinUrl = (playerTeamData?.teamId && !isQuizOwner) ? new URL(`/team/${playerTeamData.teamId}/join-team`, window.location.href) : undefined;
+        const joinTeamUrl = (playerTeamData?.teamId && !isQuizOwner) ? new URL(`/team/${playerTeamData.teamId}/join-team`, window.location.href) : undefined;
+        const joinQuizUrl = isQuizOwner ? new URL(`/quiz/${quizId}/create-team`, window.location.href) : undefined;
         return (
             <>
                 <div className={styles.leftPanel}>
                     <div>
                         <h1>{quizData.name}</h1>
-                        {joinUrl && <p>Invite others to your team with this link: {joinUrl.href}</p>}
+                        {joinTeamUrl && <p>Invite others to your team with this link: {joinTeamUrl.href}</p>}
+                        {joinQuizUrl && <p>Invite team captains to your quiz with this link: {joinQuizUrl.href}</p>}
                     </div>
                     {isQuizOwner ?
                         <>
