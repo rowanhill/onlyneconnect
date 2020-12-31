@@ -486,36 +486,36 @@ const AnswersHistory = ({ answersResult, cluesResult, questionsResult, isQuizOwn
         }
         return acc;
     }, {} as { [teamId: string]: { [questionId: string]: string } });
-    const markCorrect = (answerMeta: { answer: CollectionQueryItem<Answer>; valid: boolean; clueIndex: number; }) => {
+    const markAnswer = (answerMeta: { answer: CollectionQueryItem<Answer>; valid: boolean; clueIndex: number; }, score: number, correct: boolean) => {
         if (!answerMeta.valid) {
-            console.error('Tried to mark invalid question as correct', answerMeta);
+            console.error(`Tried to mark invalid question as ${correct ? 'correct' : 'incorrect'} with ${score} points`, answerMeta);
             return;
         }
-        const score = 5 - answerMeta.clueIndex;
-        firebase.firestore()
-            .doc(`quizzes/${quizId}/answers/${answerMeta.answer.id}`)
-            .update({
-                correct: true,
-                points: score,
-            })
-            .catch((error) => {
-                console.error(`Error when marking answer ${answerMeta.answer.id} correct with score ${score}`, error);
-            });
+        const db = firebase.firestore();
+        db.runTransaction(async (transaction) => {
+            try {
+                const answerDoc = db.doc(`quizzes/${quizId}/answers/${answerMeta.answer.id}`);
+                const freshAnswer = await transaction.get(answerDoc);
+                const oldScore = freshAnswer.data()?.points || 0;
+                const teamDoc = db.doc(`teams/${answerMeta.answer.data.teamId}`);
+                transaction.update(answerDoc, {
+                    correct,
+                    points: score,
+                });
+                transaction.update(teamDoc, {
+                    points: firebase.firestore.FieldValue.increment(score - oldScore),
+                });
+            } catch (error) {
+                console.error(`Error when marking answer ${answerMeta.answer.id} as ${correct ? 'correct' : 'incorrect'} with ${score} points`, error);
+            }
+        });
     };
-    const markIncorrect = (answerMeta: { answer: CollectionQueryItem<Answer>; valid: boolean; }) => {
-        if (!answerMeta.valid) {
-            console.error('Tried to mark invalid question as incorrect', answerMeta);
-            return;
-        }
-        firebase.firestore()
-            .doc(`quizzes/${quizId}/answers/${answerMeta.answer.id}`)
-            .update({
-                correct: false,
-                points: 0,
-            })
-            .catch((error) => {
-                console.error(`Error when marking answer ${answerMeta.answer.id} incorrect`, error);
-            });
+    const markCorrect = (answerMeta: { answer: CollectionQueryItem<Answer>; valid: boolean; clueIndex: number; }) => {
+        const score = 5 - answerMeta.clueIndex;
+        markAnswer(answerMeta, score, true);
+    };
+    const markIncorrect = (answerMeta: { answer: CollectionQueryItem<Answer>; valid: boolean; clueIndex:number; }) => {
+        markAnswer(answerMeta, 0, false);
     };
     return (
         <div className={styles.answersHistory}>
