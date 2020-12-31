@@ -1,5 +1,6 @@
 .quizPage {
     min-height: 100vh;
+    max-height: 100vh;
     display: flex;
     flex-direction: row;
     box-sizing: border-box;
@@ -45,6 +46,7 @@
 
 .answersHistory {
     flex-grow: 1;
+    overflow: auto;
 }
 
 .answer {
