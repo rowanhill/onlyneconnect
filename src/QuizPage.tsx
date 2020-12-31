@@ -416,9 +416,12 @@ const QuestionClues = ({ currentQuestionItem, cluesResult }: { currentQuestionIt
     return (
         <>
         {orderedClues.map((clue) => (
-            <div key={clue.id}>
+            <div key={clue.id} className={styles.clue + (clue.data.isRevealed ? '' : ` ${styles.unrevealedClue}`)}>
                 {clue.data.isRevealed ? clue.data.text : `(${clue.data.text})`}
             </div>
+        ))}
+        {Array.from(Array(4 - orderedClues.length).keys()).map((n) => (
+            <div key={n} className={styles.clue + ' ' + styles.hiddenClue}></div>
         ))}
         </>
     );
@@ -467,11 +470,11 @@ const AnswersHistory = ({ answersResult, cluesResult, questionsResult, isQuizOwn
             acc[answer.data.questionId] = [];
         }
         const clue = cluesById[answer.data.clueId];
-        const valid = !!answer.data.submittedAt && !!clue.data.revealedAt &&
+        const valid = clue && !!answer.data.submittedAt && !!clue.data.revealedAt &&
             answer.data.submittedAt.toMillis() >= clue.data.revealedAt.toMillis() &&
             (!clue.data.closedAt || answer.data.submittedAt.toMillis() <= clue.data.closedAt.toMillis());
         const question = questionsById[answer.data.questionId];
-        const clueIndex = question.data.clueIds.indexOf(clue.id);
+        const clueIndex = question.data.clueIds.indexOf(answer.data.clueId);
         acc[answer.data.questionId].push({ answer, valid, clueIndex });
         return acc;
     }, {} as { [id: string]: { answer: CollectionQueryItem<Answer>; valid: boolean; clueIndex: number; }[]});
