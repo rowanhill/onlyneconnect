@@ -519,9 +519,9 @@ const AnswersHistory = ({ answersResult, cluesResult, questionsResult, isQuizOwn
     };
     return (
         <div className={styles.answersHistory}>
-            {answerGroups.map((answerGroup) => (
+            {answerGroups.map((answerGroup, groupIndex) => (
                 <div key={answerGroup.questionId}>
-                    <h3>{answerGroup.questionId}</h3>
+                    <h3>Question {groupIndex + 1}</h3>
                     {answerGroup.answerMetas.map((answerMeta) => (
                         <div key={answerMeta.answer.id} className={styles.answer + (answerMeta.valid ? '' : (' ' + styles.invalidAnswer))}>
                             <div className={styles.answerInfo}>
