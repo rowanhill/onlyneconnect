@@ -5,6 +5,8 @@ import { Home } from './Home';
 import { CreateTeamPage } from './CreateTeamPage';
 import { JoinTeamPage } from './JoinTeamPage';
 import { QuizPage } from './QuizPage';
+import { QuizCreatePage } from './QuizCreatePage';
+import { QuizEditPage } from './QuizEditPage';
 
 export function LoggedInApp() {
     const { initialising, user } = useAuth();
@@ -26,6 +28,12 @@ export function LoggedInApp() {
             } />
             <Route path="/team/:id/join-team" render={(props) => (
                 <JoinTeamPage teamId={props.match.params.id} />
+            )} />
+            <Route path="/quiz/create">
+                <QuizCreatePage />
+            </Route>
+            <Route path="/quiz/:id/edit" render={(props) => (
+                <QuizEditPage quizId={props.match.params.id} />
             )} />
             <Route path="/quiz/:id" render={(props) => (
                 <QuizPage quizId={props.match.params.id} />

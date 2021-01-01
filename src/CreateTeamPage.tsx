@@ -1,7 +1,8 @@
-import React, { ChangeEvent, FormEvent, useState } from 'react';
+import React, { FormEvent, useState } from 'react';
 import { useCollection, useDocumentData } from 'react-firebase-hooks/firestore';
 import { Link, useHistory } from 'react-router-dom';
 import firebase from './firebase';
+import { createChangeHandler } from './forms/changeHandler';
 import { useAuth } from './hooks/useAuth';
 import { Quiz, Team } from './models';
 
@@ -32,13 +33,6 @@ export const CreateTeamPage = ({ quizId }: CreateTeamPageProps) => {
         <TeamsList quizId={quizId} />
         </>
     );
-};
-
-const createChangeHandler = (setValue: React.Dispatch<React.SetStateAction<string>>) => {
-    return (e: ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault();
-        setValue(e.target.value);
-    }
 };
 
 const CreateTeamForm = ({ quizId }: { quizId: string }) => {

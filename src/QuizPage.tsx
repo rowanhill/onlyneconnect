@@ -1,28 +1,11 @@
 import React, { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
-import { useCollection, useDocumentData } from 'react-firebase-hooks/firestore';
+import { useDocumentData } from 'react-firebase-hooks/firestore';
 import { Link } from 'react-router-dom';
 import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
+import { CollectionQueryData, CollectionQueryItem, CollectionQueryResult, useCollectionResult } from './hooks/useCollectionResult';
 import { Answer, Clue, PlayerTeam, Question, Quiz, Team } from './models';
 import styles from './QuizPage.module.css';
-
-interface CollectionQueryItem<T> {
-    id: string;
-    data: T;
-}
-type CollectionQueryData<T> = CollectionQueryItem<T>[];
-interface CollectionQueryResult<T> {
-    loading: boolean;
-    error: Error | undefined;
-    data: CollectionQueryData<T> | undefined;
-}
-function useCollectionResult<T>(query: firebase.firestore.Query|null): CollectionQueryResult<T> {
-    const [snapshot, loading, error] = useCollection(query) as [firebase.firestore.QuerySnapshot<T>|null, boolean, Error|undefined];
-    const data = snapshot ?
-        snapshot.docs.map((doc) => ({ id: doc.id, data: doc.data() })) :
-        undefined;
-    return { data, loading: loading || query === null, error };
-}
 
 interface QuizPageProps {
     quizId: string;

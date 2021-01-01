@@ -19,6 +19,10 @@ export interface Quiz {
     currentQuestionId: string | null;
 }
 
+export interface QuizSecrets {
+    passcode: string;
+}
+
 export interface Question {
     clueIds: string[];
     isRevealed: boolean;
