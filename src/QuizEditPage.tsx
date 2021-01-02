@@ -68,6 +68,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
     const [isSubmittingQuiz, setIsSubmittingQuiz] = useState(false);
     const [isSubmittingSecrets, setIsSubmittingSecrets] = useState(false);
     const [newQuestion, setNewQuestion] = useState<EditableQuestion|null>(null);
+    const [expandedQuestions, setExpandedQuestions] = useState<{ [questionId: string]: true }>({});
 
     const submit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -211,6 +212,15 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
             .catch((error) => console.error('Could not move down', error));
     };
 
+    const collapse = (questionId: string) => {
+        const newCollapsed = { ...expandedQuestions };
+        delete newCollapsed[questionId];
+        setExpandedQuestions(newCollapsed);
+    };
+    const expand = (questionId: string) => {
+        setExpandedQuestions({ ...expandedQuestions, [questionId]: true });
+    }
+
     const questionsById = Object.fromEntries(questions.map((q) => [q.id, q]));
     const cluesById = Object.fromEntries(clues.map((c) => [c.id, c]));
     const questionsAndClues = quiz.questionIds
@@ -238,15 +248,23 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
             <div>
                 <h2>Questions</h2>
                 {questionsAndClues.map(({ question, clues }, questionIndex) => (
-                    <QuestionForm
-                        key={question.id}
-                        initialQuestion={{ answerLimit: question.data.answerLimit, clues }}
-                        questionNumber={questionIndex + 1}
-                        save={(updatedQ) => updateQuestion(question.id, question.data.clueIds, updatedQ)}
-                        remove={() => deleteQuestion(question.id, question.data.clueIds)}
-                        moveUp={questionIndex > 0 ? () => moveUp(question.id) : undefined}
-                        moveDown={questionIndex < questionsAndClues.length - 1 ? () => moveDown(question.id) : undefined}
-                    />
+                    expandedQuestions[question.id] === true ?
+                        <QuestionForm
+                            key={question.id}
+                            initialQuestion={{ answerLimit: question.data.answerLimit, clues }}
+                            questionNumber={questionIndex + 1}
+                            save={(updatedQ) => updateQuestion(question.id, question.data.clueIds, updatedQ)}
+                            remove={() => deleteQuestion(question.id, question.data.clueIds)}
+                            moveUp={questionIndex > 0 ? () => moveUp(question.id) : undefined}
+                            moveDown={questionIndex < questionsAndClues.length - 1 ? () => moveDown(question.id) : undefined}
+                            collapse={() => collapse(question.id)}
+                        /> :
+                        <CollapsedQuestion
+                            key={question.id}
+                            question={{ answerLimit: question.data.answerLimit, clues }}
+                            questionNumber={questionIndex + 1}
+                            expand={() => expand(question.id)}
+                        />
                 ))}
                 {newQuestion ?
                     <QuestionForm
@@ -264,6 +282,25 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
     );
 };
 
+interface CollapsedQuestionProps {
+    question: EditableQuestion;
+    questionNumber: number;
+    expand: () => void;
+}
+const CollapsedQuestion = ({ question, questionNumber, expand }: CollapsedQuestionProps) => {
+    return (
+        <div>
+            <h3>
+                Question {questionNumber}{' '}
+                <button onClick={expand}>➕</button>
+            </h3>
+            <p>
+                {question.clues.map((c) => c.text).join(' | ')}
+            </p>
+        </div>
+    );
+}
+
 interface QuestionFormProps {
     initialQuestion: EditableQuestion;
     questionNumber: number;
@@ -271,8 +308,9 @@ interface QuestionFormProps {
     remove: (e: React.MouseEvent<HTMLButtonElement>) => void;
     moveUp?: () => void;
     moveDown?: () => void;
+    collapse?: () => void;
 }
-const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, moveDown }: QuestionFormProps) => {
+const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, moveDown, collapse }: QuestionFormProps) => {
     const [question, setQuestion] = useState(initialQuestion);
     const changeClue = (clueIndex: number, clue: EditableClue) => {
         setQuestion({
@@ -294,6 +332,7 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
                 {moveDown && <button onClick={moveDown}>⬇️</button>}
                 {save && <button onClick={() => save(question)}>✔️</button>}
                 <button onClick={remove}>❌</button>
+                {collapse && <button onClick={collapse}>➖</button>}
             </h3>
             <div>
                 <label>Question answer limit</label>
