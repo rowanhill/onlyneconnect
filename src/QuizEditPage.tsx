@@ -1,5 +1,6 @@
 import React, { ChangeEvent, FormEvent, useState } from 'react';
 import { useDocumentData } from 'react-firebase-hooks/firestore';
+import { Link } from 'react-router-dom';
 import firebase from './firebase';
 import { createChangeHandler } from './forms/changeHandler';
 import { useAuth } from './hooks/useAuth';
@@ -230,9 +231,12 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
             clues: questionsById[id].data.clueIds.map((id) => cluesById[id].data) as [Clue, Clue, Clue, Clue],
         }));
 
+    const joinQuizUrl = new URL(`/quiz/${quizId}/create-team`, window.location.href);
+
     return (
         <>
         <h1>Edit {quiz.name}</h1>
+        <p>Invite people to create teams at {joinQuizUrl.href} or <Link to={`/quiz/${quizId}`}>click here</Link> to play.</p>
         <form onSubmit={submit}>
             <div>
                 <label>Quiz title</label>
