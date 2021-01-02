@@ -45,14 +45,14 @@ export const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
     );
 };
 
-interface NewClue {
+interface EditableClue {
     text: string;
     answerLimit: number | null;
 }
 
-interface NewQuestion {
+interface EditableQuestion {
     answerLimit: number | null;
-    clues: [NewClue, NewClue, NewClue, NewClue];
+    clues: [EditableClue, EditableClue, EditableClue, EditableClue];
 }
 
 const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
@@ -67,7 +67,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
     const [passcode, setPasscode] = useState(secrets.passcode);
     const [isSubmittingQuiz, setIsSubmittingQuiz] = useState(false);
     const [isSubmittingSecrets, setIsSubmittingSecrets] = useState(false);
-    const [newQuestion, setNewQuestion] = useState<NewQuestion|null>(null);
+    const [newQuestion, setNewQuestion] = useState<EditableQuestion|null>(null);
 
     const submit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -103,7 +103,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
         e.preventDefault();
         setNewQuestion(null);
     };
-    const saveNewQuestion = (question: NewQuestion) => {
+    const saveNewQuestion = (question: EditableQuestion) => {
         const batch = db.batch();
         
         const quizDoc = db.doc(`quizzes/${quizId}`);
@@ -150,7 +150,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
             .catch((error) => console.error('Failed to create question', error));
     };
 
-    const updateQuestion = (questionId: string, clueIds: string[], question: NewQuestion) => {
+    const updateQuestion = (questionId: string, clueIds: string[], question: EditableQuestion) => {
         const batch = db.batch();
         batch.update(db.doc(`quizzes/${quizId}/questions/${questionId}`), {
             answerLimit: question.answerLimit
@@ -265,19 +265,19 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
 };
 
 interface QuestionFormProps {
-    initialQuestion: NewQuestion;
+    initialQuestion: EditableQuestion;
     questionNumber: number;
-    save?: (question: NewQuestion) => void;
+    save?: (question: EditableQuestion) => void;
     remove: (e: React.MouseEvent<HTMLButtonElement>) => void;
     moveUp?: () => void;
     moveDown?: () => void;
 }
 const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, moveDown }: QuestionFormProps) => {
     const [question, setQuestion] = useState(initialQuestion);
-    const changeClue = (clueIndex: number, clue: NewClue) => {
+    const changeClue = (clueIndex: number, clue: EditableClue) => {
         setQuestion({
             ...question,
-            clues: question.clues.map((c, i) => i === clueIndex ? clue : c) as [NewClue, NewClue, NewClue, NewClue],
+            clues: question.clues.map((c, i) => i === clueIndex ? clue : c) as [EditableClue, EditableClue, EditableClue, EditableClue],
         });
     };
     const changeAnswerLimit = (e: ChangeEvent<HTMLInputElement>) => {
@@ -307,7 +307,7 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
     );
 };
 
-const ClueForm = ({ clueNumber, clue, onChange }: { clueNumber: number; clue: NewClue; onChange: (clue: NewClue) => void; }) => {
+const ClueForm = ({ clueNumber, clue, onChange }: { clueNumber: number; clue: EditableClue; onChange: (clue: EditableClue) => void; }) => {
     const changeText = (e: ChangeEvent<HTMLInputElement>) => {
         onChange({
             ...clue,
