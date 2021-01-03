@@ -1,9 +1,5 @@
 @import-normalize;
 
-html {
-  margin: 1.5em;
-}
-
 body {
   background-color: #f8feff;
   margin: 0;
@@ -17,4 +13,8 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+.page {
+  padding: 2em;
 }

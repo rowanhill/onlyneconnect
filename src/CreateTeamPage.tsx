@@ -12,27 +12,30 @@ interface CreateTeamPageProps {
 
 export const CreateTeamPage = ({ quizId }: CreateTeamPageProps) => {
     const [quiz, quizLoading, quizError] = useDocumentData<Quiz>(firebase.firestore().collection('quizzes').doc(quizId));
-    if (quizError) {
-        console.error(quizError);
-        return <p>There was an error loading the quiz. Try again later.</p>
+    function inner() {
+        if (quizError) {
+            console.error(quizError);
+            return <p>There was an error loading the quiz. Try again later.</p>
+        }
+        if (quizLoading) {
+            return <p>Loading your quiz lobby...</p>
+        }
+        if (!quiz) {
+            console.error(`No doc data found for quiz id ${quizId}`);
+            return <p>There was an error loading the quiz. Try again later.</p>
+        }
+        return (
+            <>
+            <h1>Join a team in {quiz.name}</h1>
+            <h2>Starting a new team?</h2>
+            <p>Team captains must start the team. Only team captains can submit answers.</p>
+            <p>To create a new team, enter the ID passcode for the quiz you're joining. You can get these from your quizmaster.</p>
+            <CreateTeamForm quizId={quizId} />
+            <TeamsList quizId={quizId} />
+            </>
+        );
     }
-    if (quizLoading) {
-        return <p>Loading your quiz lobby...</p>
-    }
-    if (!quiz) {
-        console.error(`No doc data found for quiz id ${quizId}`);
-        return <p>There was an error loading the quiz. Try again later.</p>
-    }
-    return (
-        <>
-        <h1>Join a team in {quiz.name}</h1>
-        <h2>Starting a new team?</h2>
-        <p>Team captains must start the team. Only team captains can submit answers.</p>
-        <p>To create a new team, enter the ID passcode for the quiz you're joining. You can get these from your quizmaster.</p>
-        <CreateTeamForm quizId={quizId} />
-        <TeamsList quizId={quizId} />
-        </>
-    );
+    return <div className="page">{inner()}</div>;
 };
 
 const CreateTeamForm = ({ quizId }: { quizId: string }) => {

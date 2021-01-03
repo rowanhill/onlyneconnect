@@ -71,7 +71,7 @@ export const SignInPage = () => {
     };
 
     return (
-        <div>
+        <div className="page">
             <form onSubmit={submit}>
                 <fieldset disabled={disabled}>
                     <h1>Sign in with email</h1>

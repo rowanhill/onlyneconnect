@@ -16,7 +16,7 @@ export const Home = () => {
         firebase.auth().signOut()
     };
     return (
-        <>
+        <div className="page">
             <h1>Onlyne Connect</h1>
             <p>You're logged in with {user?.email}. If that's not you, you can <button onClick={signOut}>Sign out</button></p>
             <p>If you'd like to play a quiz, you'll need an invitation link from the quiz owner (to start a team) or your team captain (to join a team).</p>
@@ -39,6 +39,6 @@ export const Home = () => {
                 }
             </>
             }
-        </>
+        </div>
     );
 };

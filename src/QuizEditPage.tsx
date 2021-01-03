@@ -20,30 +20,33 @@ export const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
     const questionsResult = useCollectionResult<Question>(user ? db.collection(`quizzes/${quizId}/questions`) : null);
     const cluesResult = useCollectionResult<Clue>(user ? db.collection(`quizzes/${quizId}/clues`) : null);
 
-    // Bail out if there are any problems or display a loading notice if we're not loaded yet
-    if (quizError || secretsError || questionsResult.error || cluesResult.error) {
-        console.log('Could not load quiz', quizError, secretsError, questionsResult.error, cluesResult.error);
-        return <div>Could not load quiz. Try again later.</div>;
+    function inner() {
+        // Bail out if there are any problems or display a loading notice if we're not loaded yet
+        if (quizError || secretsError || questionsResult.error || cluesResult.error) {
+            console.log('Could not load quiz', quizError, secretsError, questionsResult.error, cluesResult.error);
+            return <div>Could not load quiz. Try again later.</div>;
+        }
+        if (user && quizData && user.uid !== quizData.ownerId) {
+            return <div>No quiz owned by you with id ${quizId} was found</div>;
+        }
+        if (quizLoading || !user || secretsLoading || questionsResult.loading || cluesResult.loading) {
+            return <div>Loading...</div>;
+        }
+        if (!quizData || !secretsData || !questionsResult.data || !cluesResult.data) {
+            return <div>No quiz owned by you with id ${quizId} was found</div>;
+        }
+        
+        return (
+            <QuizEditPageLoaded
+                quizId={quizId}
+                quiz={quizData}
+                secrets={secretsData}
+                questions={questionsResult.data}
+                clues={cluesResult.data}
+            />
+        );
     }
-    if (user && quizData && user.uid !== quizData.ownerId) {
-        return <div>No quiz owned by you with id ${quizId} was found</div>;
-    }
-    if (quizLoading || !user || secretsLoading || questionsResult.loading || cluesResult.loading) {
-        return <div>Loading...</div>;
-    }
-    if (!quizData || !secretsData || !questionsResult.data || !cluesResult.data) {
-        return <div>No quiz owned by you with id ${quizId} was found</div>;
-    }
-    
-    return (
-        <QuizEditPageLoaded
-            quizId={quizId}
-            quiz={quizData}
-            secrets={secretsData}
-            questions={questionsResult.data}
-            clues={cluesResult.data}
-        />
-    );
+    return <div className="page">{inner()}</div>;
 };
 
 interface EditableClue {

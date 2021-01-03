@@ -42,7 +42,7 @@ export const QuizCreatePage = () => {
     };
 
     return (
-        <div>
+        <div className="page">
             <h1>Create a new quiz</h1>
             <form onSubmit={handleSubmit}>
                 <fieldset disabled={isSubmitting}>

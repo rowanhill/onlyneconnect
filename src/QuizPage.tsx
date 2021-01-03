@@ -174,7 +174,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
             </>
         );
     }
-    return <div className={styles.quizPage}>{inner()}</div>;
+    return <div className={'page ' + styles.quizPage}>{inner()}</div>;
 };
 
 const QuizControls = ({ questionsData, currentQuestionItem, quizId, quiz, cluesResult }: { questionsData?: CollectionQueryData<Question>; currentQuestionItem?: CollectionQueryItem<Question>; quizId: string; quiz: Quiz; cluesResult: CollectionQueryResult<Clue>; }) => {

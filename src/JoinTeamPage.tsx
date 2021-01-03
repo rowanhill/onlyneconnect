@@ -16,32 +16,35 @@ export const JoinTeamPage = ({ teamId }: JoinTeamPageProps) => {
         user ? firebase.firestore().collection('playerTeams').doc(user.uid) : null
     );
 
-    if (error) {
-        console.error(error);
-        return <p>There was an error trying to load the team. Please try again.</p>;
-    }
-    if (loading) {
-        return <p>Loading your team lobby...</p>;
-    }
-    if (!teamData) {
-        console.error('Team data is undefined for id ' + teamId);
-        return <p>There was an error loading the quiz! Please try again.</p>;
-    }
-
-    return (
-        <>
-        <h1>Join {teamData.name}</h1>
-        {playerTeam?.teamId === teamId ?
-            <p>You're already a member of this team. Would you like to <Link to={`/quiz/${teamData.quizId}`}>go to your quiz</Link>?</p> :
-            <p>Careful! You're already a member of a different team. You can only be a member in one team at once.</p>
+    function inner() {
+        if (error) {
+            console.error(error);
+            return <p>There was an error trying to load the team. Please try again.</p>;
         }
-        <p>If you're captain has made a team, enter your team's passcode. You can get this from your captain.</p>
-        <JoinTeamForm teamId={teamId} quizId={teamData.quizId} />
-        
-        <h2>Want to start your own team?</h2>
-        <p>If you'd rather start your own team (as captain), you can <Link to={`/quiz/${teamData.quizId}/create-team`}>click here</Link>.</p>
-        </>
-    );
+        if (loading) {
+            return <p>Loading your team lobby...</p>;
+        }
+        if (!teamData) {
+            console.error('Team data is undefined for id ' + teamId);
+            return <p>There was an error loading the quiz! Please try again.</p>;
+        }
+
+        return (
+            <>
+            <h1>Join {teamData.name}</h1>
+            {playerTeam?.teamId === teamId ?
+                <p>You're already a member of this team. Would you like to <Link to={`/quiz/${teamData.quizId}`}>go to your quiz</Link>?</p> :
+                <p>Careful! You're already a member of a different team. You can only be a member in one team at once.</p>
+            }
+            <p>If you're captain has made a team, enter your team's passcode. You can get this from your captain.</p>
+            <JoinTeamForm teamId={teamId} quizId={teamData.quizId} />
+            
+            <h2>Want to start your own team?</h2>
+            <p>If you'd rather start your own team (as captain), you can <Link to={`/quiz/${teamData.quizId}/create-team`}>click here</Link>.</p>
+            </>
+        );
+    }
+    return <div className="page">{inner()}</div>;
 };
 
 const createChangeHandler = (setValue: React.Dispatch<React.SetStateAction<string>>) => {
