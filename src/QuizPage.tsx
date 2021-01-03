@@ -402,7 +402,7 @@ const QuestionClues = ({ currentQuestionItem, cluesResult }: { currentQuestionIt
     return (
         <>
         {orderedClues.map((clue) => (
-            <div key={clue.id} className={styles.clue + (clue.data.isRevealed ? '' : ` ${styles.unrevealedClue}`)}>
+            <div key={clue.id} className={styles.clue + (clue.data.isRevealed ? ` ${styles.revealedClue}` : ` ${styles.unrevealedClue}`)}>
                 {clue.data.isRevealed ? clue.data.text : `(${clue.data.text})`}
             </div>
         ))}
