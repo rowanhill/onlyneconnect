@@ -1,5 +1,11 @@
+@import-normalize;
+
+html {
+  margin: 1.5em;
+}
+
 body {
-  background-color: #d3eaec;
+  background-color: #f8feff;
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
