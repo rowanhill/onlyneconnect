@@ -41,8 +41,8 @@ service cloud.firestore {
       return uid == teamData.captainId && quizId == teamData.quizId;
     }
 
-    function questionVisibleToPlayer() {
-      return resource.data.isRevealed == true;
+    function questionVisibleToPlayer(quizId) {
+      return resource.data.isRevealed == true && quizPlayer(quizId);
     }
 
     function clueVisibleToPlayer(quizId, clueId) {
@@ -80,10 +80,8 @@ service cloud.firestore {
       allow read: if request.auth != null;
 
       match /questions/{question} {
-        // Owner can update a question to set the currentQuestionIndex, reveal/close timestamps
         allow create, update, delete: if quizOwner(quiz);
-        allow get: if questionVisibleToPlayer() || quizOwner(quiz);
-        allow list: if quizPlayer(quiz) || quizOwner(quiz);
+        allow get, list: if questionVisibleToPlayer(quiz) || quizOwner(quiz);
       }
 
       match /clues/{clue} {
