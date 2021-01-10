@@ -10,6 +10,10 @@ service cloud.firestore {
     // True if the signed in user owns the parent quiz
     function quizOwner(quizId) {
       return request.auth != null
+        && get(/databases/$(database)/documents/quizzes/$(quizId)).data.ownerId == request.auth.uid;
+    }
+    function quizOwnerAfter(quizId) {
+      return request.auth != null
         && getAfter(/databases/$(database)/documents/quizzes/$(quizId)).data.ownerId == request.auth.uid;
     }
 
@@ -66,12 +70,13 @@ service cloud.firestore {
     }
 
     match /quizSecrets/{quiz} {
-      allow create: if request.auth != null;
+      allow create: if quizOwnerAfter(quiz);
       allow read, update, delete: if quizOwner(quiz);
     }
 
     match /quizzes/{quiz} {
-      allow create, update, delete: if quizOwner(quiz);
+      allow create: if quizOwnerAfter(quiz);
+      allow update, delete: if quizOwner(quiz);
       allow read: if request.auth != null;
 
       match /questions/{question} {
