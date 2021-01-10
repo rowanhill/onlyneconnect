@@ -41,7 +41,7 @@ service cloud.firestore {
       return uid == teamData.captainId && quizId == teamData.quizId;
     }
 
-    function questionVisibleToPlayer(quizId) {
+    function questionOrClueVisibleToPlayer(quizId) {
       return resource.data.isRevealed == true && quizPlayer(quizId);
     }
 
@@ -81,13 +81,12 @@ service cloud.firestore {
 
       match /questions/{question} {
         allow create, update, delete: if quizOwner(quiz);
-        allow get, list: if questionVisibleToPlayer(quiz) || quizOwner(quiz);
+        allow get, list: if questionOrClueVisibleToPlayer(quiz) || quizOwner(quiz);
       }
 
       match /clues/{clue} {
-        // The quiz owner updates the clue to set the isRevealed flag and the revealedAt/closedAt timestamps (to the server's timestamp)
         allow create, update, delete: if quizOwner(quiz);
-        allow get, list: if resource.data.get('isRevealed', true) == true || quizOwner(quiz);
+        allow get, list: if questionOrClueVisibleToPlayer(quiz) || quizOwner(quiz);
       }
 
       match /answers/{answer} {
