@@ -41,11 +41,11 @@ service cloud.firestore {
       return uid == teamData.captainId && quizId == teamData.quizId;
     }
 
-    function questionOrClueVisibleToPlayer(quizId) {
+    function currentQuestionOrClueVisibleToPlayer(quizId) {
       return resource.data.isRevealed == true && quizPlayer(quizId);
     }
 
-    function clueVisibleToPlayer(quizId, clueId) {
+    function clueAndQuestionRevealed(quizId, clueId) {
       let clue = get(/databases/$(database)/documents/quizzes/$(quizId)/clues/$(clueId));
       let question = get(/databases/$(database)/documents/quizzes/$(quizId)/questions/$(clue.data.questionId));
       return question.data.isRevealed && clue.data.isRevealed;
@@ -81,23 +81,24 @@ service cloud.firestore {
 
       match /questions/{question} {
         allow create, update, delete: if quizOwner(quiz);
-        allow get, list: if questionOrClueVisibleToPlayer(quiz) || quizOwner(quiz);
+        allow get, list: if currentQuestionOrClueVisibleToPlayer(quiz) || quizOwner(quiz);
       }
 
       match /clues/{clue} {
         allow create, update, delete: if quizOwner(quiz);
-        allow get, list: if questionOrClueVisibleToPlayer(quiz) || quizOwner(quiz);
+        allow get, list: if currentQuestionOrClueVisibleToPlayer(quiz) || quizOwner(quiz);
       }
 
       match /answers/{answer} {
         // Only team captains can create answers, and only for revealed questions.
-        // New answers may not have points.
+        // New answers may not have points or be marked.
         // New answers must be created with the current (server) timestamp.
         allow create: if request.auth != null &&
           teamCaptain(quiz, request.resource.data.teamId, request.auth.uid) &&
-          clueVisibleToPlayer(quiz, request.resource.data.clueId) &&
+          clueAndQuestionRevealed(quiz, request.resource.data.clueId) &&
           answerMatchesClueAndQuestion(quiz, request.resource.data.clueId) &&
           !('points' in request.resource.data) &&
+          !('correct' in request.resource.data) &&
           request.resource.data.submittedAt == request.time;
         // The quiz owner and anyone on the team can read their answers
         allow read: if quizOwner(quiz) || authedAndTeamMember(quiz, resource.data.teamId);
