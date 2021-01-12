@@ -110,18 +110,20 @@ service cloud.firestore {
     match /teamSecrets/{team} {
       // You need the QUIZ passcode to create a team for this quiz
       allow create: if request.auth != null &&
+        teamCaptain(request.resource.data.quizId, team, request.auth.uid) &&
         request.resource.data.quizPasscode == get(/databases/$(database)/documents/quizSecrets/$(request.resource.data.quizId)).data.passcode;
 
-      // You need to be the captain to update or delete a team
-      allow update, delete: if request.auth != null && request.auth.id == resource.data.captainId;
+      // You need to be the captain to update a team
+      allow update: if request.auth != null && teamCaptain(resource.data.quizId, team, request.auth.uid);
 
       // Nobody can read the info - it's just for access control
     }
 
     match /teams/{team} {
-      // Only team captains (according to teamSecrets) can create / delete their team
-      allow create, delete: if request.auth != null &&
+      // Only team captains can create their team
+      allow create: if request.auth != null &&
         teamCaptain(request.resource.data.quizId, team, request.auth.uid) &&
+        existsAfter(/databases/$(database)/documents/teamSecrets/$(team)) && // Team secret must be created at same time
         request.resource.data.points == 0; // Points must start at zero
 
       // Team captains can update the non-sensitive fields, but only the quiz owner can update points
