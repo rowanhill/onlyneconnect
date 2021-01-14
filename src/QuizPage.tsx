@@ -6,6 +6,7 @@ import { useAuth } from './hooks/useAuth';
 import { CollectionQueryData, CollectionQueryItem, CollectionQueryResult, useCollectionResult } from './hooks/useCollectionResult';
 import { Answer, Clue, PlayerTeam, Question, Quiz, Team } from './models';
 import styles from './QuizPage.module.css';
+import commonStyles from './common.module.css';
 
 interface QuizPageProps {
     quizId: string;
@@ -122,7 +123,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
         return (
             <>
                 <div className={styles.leftPanel}>
-                    <div>
+                    <div className={commonStyles.card}>
                         <h1>{quizData.name}</h1>
                         {joinTeamUrl && <p>Invite others to your team with this link: {joinTeamUrl.href}</p>}
                         {joinQuizUrl && <p>Invite team captains to your quiz with this link: {joinQuizUrl.href}</p>}
@@ -153,28 +154,30 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                 </div>
                 <div className={styles.rightPanel}>
                     <Scoreboard quizId={quizId} teamsResult={teamsResult} />
-                    <AnswersHistory
-                        answersResult={answersResult}
-                        cluesResult={cluesResult}
-                        questionsResult={questionsResult}
-                        teamsResult={teamsResult}
-                        isQuizOwner={isQuizOwner}
-                        quizId={quizId}
-                        quiz={quizData}
-                    />
-                    {isCaptain &&
-                        <AnswerSubmitBox
-                            quizId={quizId}
-                            teamId={playerTeamData!.teamId}
-                            questionItem={currentQuestionItem}
-                            clueItem={currentClueItem}
+                    <div className={commonStyles.card + ' ' + styles.answersCard}>
+                        <AnswersHistory
                             answersResult={answersResult}
-                        />}
+                            cluesResult={cluesResult}
+                            questionsResult={questionsResult}
+                            teamsResult={teamsResult}
+                            isQuizOwner={isQuizOwner}
+                            quizId={quizId}
+                            quiz={quizData}
+                        />
+                        {isCaptain &&
+                            <AnswerSubmitBox
+                                quizId={quizId}
+                                teamId={playerTeamData!.teamId}
+                                questionItem={currentQuestionItem}
+                                clueItem={currentClueItem}
+                                answersResult={answersResult}
+                            />}
+                    </div>
                 </div>
             </>
         );
     }
-    return <div className={'page ' + styles.quizPage}>{inner()}</div>;
+    return <div className={styles.quizPage}>{inner()}</div>;
 };
 
 const QuizControls = ({ questionsData, currentQuestionItem, quizId, quiz, cluesResult }: { questionsData?: CollectionQueryData<Question>; currentQuestionItem?: CollectionQueryItem<Question>; quizId: string; quiz: Quiz; cluesResult: CollectionQueryResult<Clue>; }) => {
@@ -380,7 +383,7 @@ const CurrentQuestion = ({ currentQuestionItem, questionsError, cluesResult }: {
         }
         return <QuestionClues currentQuestionItem={currentQuestionItem} cluesResult={cluesResult} />;
     }
-    return <div className={styles.questionPanel}>{inner()}</div>;
+    return <div className={styles.questionPanel + ' ' + commonStyles.card}>{inner()}</div>;
 };
 
 const QuestionClues = ({ currentQuestionItem, cluesResult }: { currentQuestionItem: CollectionQueryItem<Question>; cluesResult: CollectionQueryResult<Clue>; }) => {
@@ -428,8 +431,8 @@ const Scoreboard = ({ quizId, teamsResult }: { quizId: string; teamsResult: Coll
     }
     const teamsOrderedByScore = teamsData.sort((a, b) => b.data.points - a.data.points);
     return (
-        <div>
-            <h2>Scoreboard:</h2>
+        <div className={commonStyles.card + ' ' + styles.scoreboard}>
+            <h2>Scoreboard</h2>
             <ul>
                 {teamsOrderedByScore.map((team) => (
                     <li key={team.id}>{team.data.name}: {team.data.points}</li>
@@ -613,7 +616,7 @@ const AnswerSubmitBox = ({ quizId, teamId, questionItem, clueItem, answersResult
     };
     return (
         <form onSubmit={submit}>
-            <fieldset disabled={submitting || !questionItem || !clueItem || hasReachedLimit || alreadyAnsweredCorrectly}>
+            <fieldset className={styles.submitAnswerForm} disabled={submitting || !questionItem || !clueItem || hasReachedLimit || alreadyAnsweredCorrectly}>
                 <input type="text" placeholder="Type your answer here" value={answerText} onChange={onAnswerChange} />
                 <button>Submit</button>
             </fieldset>

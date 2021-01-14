@@ -2,6 +2,7 @@ import React, { ChangeEvent, FormEvent, useState } from 'react';
 import { Redirect } from 'react-router-dom';
 import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
+import commonStyles from './common.module.css';
 
 export const QuizCreatePage = () => {
     const { user } = useAuth();
@@ -42,7 +43,7 @@ export const QuizCreatePage = () => {
     };
 
     return (
-        <div className="page">
+        <div className={commonStyles.page}>
             <h1>Create a new quiz</h1>
             <form onSubmit={handleSubmit}>
                 <fieldset disabled={isSubmitting}>

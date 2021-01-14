@@ -6,6 +6,7 @@ import { createChangeHandler } from './forms/changeHandler';
 import { useAuth } from './hooks/useAuth';
 import { CollectionQueryData, useCollectionResult } from './hooks/useCollectionResult';
 import { Clue, Question, Quiz, QuizSecrets } from './models';
+import commonStyles from './common.module.css';
 
 interface QuizEditPageProps {
     quizId: string;
@@ -46,7 +47,7 @@ export const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
             />
         );
     }
-    return <div className="page">{inner()}</div>;
+    return <div className={commonStyles.page}>{inner()}</div>;
 };
 
 interface EditableClue {

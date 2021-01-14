@@ -5,6 +5,7 @@ import firebase from './firebase';
 import { createChangeHandler } from './forms/changeHandler';
 import { useAuth } from './hooks/useAuth';
 import { Quiz, Team } from './models';
+import commonStyles from './common.module.css';
 
 interface CreateTeamPageProps {
     quizId: string;
@@ -35,7 +36,7 @@ export const CreateTeamPage = ({ quizId }: CreateTeamPageProps) => {
             </>
         );
     }
-    return <div className="page">{inner()}</div>;
+    return <div className={commonStyles.page}>{inner()}</div>;
 };
 
 const CreateTeamForm = ({ quizId }: { quizId: string }) => {

@@ -4,6 +4,7 @@ import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
 import { useDocumentData } from 'react-firebase-hooks/firestore';
 import { PlayerTeam, Team } from './models';
+import commonStyles from './common.module.css';
 
 interface JoinTeamPageProps {
     teamId: string;
@@ -44,7 +45,7 @@ export const JoinTeamPage = ({ teamId }: JoinTeamPageProps) => {
             </>
         );
     }
-    return <div className="page">{inner()}</div>;
+    return <div className={commonStyles.page}>{inner()}</div>;
 };
 
 const createChangeHandler = (setValue: React.Dispatch<React.SetStateAction<string>>) => {

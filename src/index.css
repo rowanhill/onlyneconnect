@@ -15,6 +15,25 @@ code {
     monospace;
 }
 
-.page {
-  padding: 2em;
+h1, h2, h3, h4 {
+  margin: 0;
+}
+
+fieldset {
+  border: none;
+  padding: 0;
+}
+
+input {
+  padding: 5px;
+}
+button {
+  padding: 5px 8px;
+  border: none;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
+a, a:visited, a:active {
+  color: hsl(225, 60%, 55%);
 }

@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Redirect } from 'react-router-dom';
 import firebase from './firebase';
+import commonStyles from './common.module.css';
 
 export const SignInPage = () => {
     const [email, setEmail] = useState('');
@@ -71,7 +72,7 @@ export const SignInPage = () => {
     };
 
     return (
-        <div className="page">
+        <div className={commonStyles.page}>
             <form onSubmit={submit}>
                 <fieldset disabled={disabled}>
                     <h1>Sign in with email</h1>
