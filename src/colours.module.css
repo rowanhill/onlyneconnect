@@ -1,0 +1,11 @@
+:root {
+    --dark-blue: hsl(225, 60%, 55%);
+}
+
+.primaryBg {
+    background-color: var(--dark-blue);
+}
+.textOnPrimaryBg {
+    composes: primaryBg;
+    color: white;
+}

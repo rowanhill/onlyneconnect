@@ -2,7 +2,8 @@ import React, { ChangeEvent, FormEvent, useState } from 'react';
 import { Redirect } from 'react-router-dom';
 import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
-import commonStyles from './common.module.css';
+import { Page } from './Page';
+import { Card } from './Card';
 
 export const QuizCreatePage = () => {
     const { user } = useAuth();
@@ -43,15 +44,16 @@ export const QuizCreatePage = () => {
     };
 
     return (
-        <div className={commonStyles.page}>
-            <h1>Create a new quiz</h1>
-            <form onSubmit={handleSubmit}>
-                <fieldset disabled={isSubmitting}>
-                    <input type="text" placeholder="Quiz name" onChange={handleNameChange} value={quizName} />
-                    <input type="text" placeholder="Passcode" onChange={handlePasscodeChange} value={passcode} />
-                    <button>Create</button>
-                </fieldset>
-            </form>
-        </div>
+        <Page title="Create a new quiz">
+            <Card>
+                <form onSubmit={handleSubmit}>
+                    <fieldset disabled={isSubmitting}>
+                        <input type="text" placeholder="Quiz name" onChange={handleNameChange} value={quizName} />
+                        <input type="text" placeholder="Passcode" onChange={handlePasscodeChange} value={passcode} />
+                        <button>Create</button>
+                    </fieldset>
+                </form>
+            </Card>
+        </Page>
     )
 };

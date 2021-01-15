@@ -4,7 +4,7 @@ import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
 import { useDocumentData } from 'react-firebase-hooks/firestore';
 import { PlayerTeam, Team } from './models';
-import commonStyles from './common.module.css';
+import { Page } from './Page';
 
 interface JoinTeamPageProps {
     teamId: string;
@@ -32,7 +32,6 @@ export const JoinTeamPage = ({ teamId }: JoinTeamPageProps) => {
 
         return (
             <>
-            <h1>Join {teamData.name}</h1>
             {playerTeam?.teamId === teamId ?
                 <p>You're already a member of this team. Would you like to <Link to={`/quiz/${teamData.quizId}`}>go to your quiz</Link>?</p> :
                 <p>Careful! You're already a member of a different team. You can only be a member in one team at once.</p>
@@ -45,7 +44,7 @@ export const JoinTeamPage = ({ teamId }: JoinTeamPageProps) => {
             </>
         );
     }
-    return <div className={commonStyles.page}>{inner()}</div>;
+    return <Page title={teamData ? `Join ${teamData.name}` : 'Join'}>{inner()}</Page>;
 };
 
 const createChangeHandler = (setValue: React.Dispatch<React.SetStateAction<string>>) => {

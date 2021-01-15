@@ -1,0 +1,12 @@
+.card {
+    composes: rounded shadow from './effects.module.css';
+    composes: smallPadding from './layout.module.css';
+    background-color: white;
+}
+.card + .card {
+    margin-top: 2em;
+}
+
+.card > h2 {
+    margin-top: 0;
+}

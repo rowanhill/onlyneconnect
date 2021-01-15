@@ -1,10 +1,13 @@
 .quizPage {
-    composes: page from './common.module.css';
     min-height: 100vh;
     max-height: 100vh;
     display: flex;
     flex-direction: row;
     box-sizing: border-box;
+}
+
+.pageTitle {
+    margin-top: 0;
 }
 
 .leftPanel {
@@ -86,10 +89,6 @@
 .submitAnswerForm input {
     flex-grow: 1;
     margin-right: 0.5em;
-}
-.submitAnswerForm button {
-    color: white;
-    background-color: hsl(225, 60%, 55%);
 }
 
 .invalidAnswer {

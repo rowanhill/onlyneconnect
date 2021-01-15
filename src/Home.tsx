@@ -4,7 +4,8 @@ import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
 import { useCollectionResult } from './hooks/useCollectionResult';
 import { Quiz } from './models';
-import commonStyles from './common.module.css';
+import { Page } from './Page';
+import buttonStyles from './button.module.css';
 
 export const Home = () => {
     const db = firebase.firestore();
@@ -17,9 +18,9 @@ export const Home = () => {
         firebase.auth().signOut()
     };
     return (
-        <div className={commonStyles.page}>
+        <Page>
             <h1>Onlyne Connect</h1>
-            <p>You're logged in with {user?.email}. If that's not you, you can <button className={commonStyles.buttonAsLink} onClick={signOut}>sign out</button>.</p>
+            <p>You're logged in with {user?.email}. If that's not you, you can <button className={buttonStyles.asLink} onClick={signOut}>sign out</button>.</p>
             <p>If you'd like to play a quiz, you'll need an invitation link from the quiz owner (to start a team) or your team captain (to join a team).</p>
             {ownedQuizzes.data !== undefined &&
             <>
@@ -40,6 +41,6 @@ export const Home = () => {
                 }
             </>
             }
-        </div>
+        </Page>
     );
 };

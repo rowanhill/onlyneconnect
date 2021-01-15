@@ -1,0 +1,7 @@
+.rounded {
+    border-radius: 5px;
+}
+
+.shadow {
+    box-shadow: black 1px 1px 4px -1px;
+}

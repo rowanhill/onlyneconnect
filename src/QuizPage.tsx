@@ -5,8 +5,9 @@ import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
 import { CollectionQueryData, CollectionQueryItem, CollectionQueryResult, useCollectionResult } from './hooks/useCollectionResult';
 import { Answer, Clue, PlayerTeam, Question, Quiz, Team } from './models';
+import { Card } from './Card';
+import { Page } from './Page';
 import styles from './QuizPage.module.css';
-import commonStyles from './common.module.css';
 
 interface QuizPageProps {
     quizId: string;
@@ -123,8 +124,8 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
         return (
             <>
                 <div className={styles.leftPanel}>
-                    <div className={commonStyles.card}>
-                        <h1>{quizData.name}</h1>
+                    <div>
+                        <h1 className={styles.pageTitle}>{quizData.name}</h1>
                         {joinTeamUrl && <p>Invite others to your team with this link: {joinTeamUrl.href}</p>}
                         {joinQuizUrl && <p>Invite team captains to your quiz with this link: {joinQuizUrl.href}</p>}
                     </div>
@@ -154,7 +155,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                 </div>
                 <div className={styles.rightPanel}>
                     <Scoreboard quizId={quizId} teamsResult={teamsResult} />
-                    <div className={commonStyles.card + ' ' + styles.answersCard}>
+                    <Card className={styles.answersCard}>
                         <AnswersHistory
                             answersResult={answersResult}
                             cluesResult={cluesResult}
@@ -172,12 +173,12 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                                 clueItem={currentClueItem}
                                 answersResult={answersResult}
                             />}
-                    </div>
+                    </Card>
                 </div>
             </>
         );
     }
-    return <div className={styles.quizPage}>{inner()}</div>;
+    return <Page className={styles.quizPage}>{inner()}</Page>;
 };
 
 const QuizControls = ({ questionsData, currentQuestionItem, quizId, quiz, cluesResult }: { questionsData?: CollectionQueryData<Question>; currentQuestionItem?: CollectionQueryItem<Question>; quizId: string; quiz: Quiz; cluesResult: CollectionQueryResult<Clue>; }) => {
@@ -383,7 +384,7 @@ const CurrentQuestion = ({ currentQuestionItem, questionsError, cluesResult }: {
         }
         return <QuestionClues currentQuestionItem={currentQuestionItem} cluesResult={cluesResult} />;
     }
-    return <div className={styles.questionPanel + ' ' + commonStyles.card}>{inner()}</div>;
+    return <Card className={styles.questionPanel}>{inner()}</Card>;
 };
 
 const QuestionClues = ({ currentQuestionItem, cluesResult }: { currentQuestionItem: CollectionQueryItem<Question>; cluesResult: CollectionQueryResult<Clue>; }) => {
@@ -431,14 +432,14 @@ const Scoreboard = ({ quizId, teamsResult }: { quizId: string; teamsResult: Coll
     }
     const teamsOrderedByScore = teamsData.sort((a, b) => b.data.points - a.data.points);
     return (
-        <div className={commonStyles.card + ' ' + styles.scoreboard}>
+        <Card className={styles.scoreboard}>
             <h2>Scoreboard</h2>
             <ul>
                 {teamsOrderedByScore.map((team) => (
                     <li key={team.id}>{team.data.name}: {team.data.points}</li>
                 ))}
             </ul>
-        </div>
+        </Card>
     );
 };
 

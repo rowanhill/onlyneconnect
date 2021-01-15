@@ -5,7 +5,7 @@ import firebase from './firebase';
 import { createChangeHandler } from './forms/changeHandler';
 import { useAuth } from './hooks/useAuth';
 import { Quiz, Team } from './models';
-import commonStyles from './common.module.css';
+import { Page } from './Page';
 
 interface CreateTeamPageProps {
     quizId: string;
@@ -27,7 +27,6 @@ export const CreateTeamPage = ({ quizId }: CreateTeamPageProps) => {
         }
         return (
             <>
-            <h1>Join a team in {quiz.name}</h1>
             <h2>Starting a new team?</h2>
             <p>Team captains must start the team. Only team captains can submit answers.</p>
             <p>To create a new team, enter the ID passcode for the quiz you're joining. You can get these from your quizmaster.</p>
@@ -36,7 +35,7 @@ export const CreateTeamPage = ({ quizId }: CreateTeamPageProps) => {
             </>
         );
     }
-    return <div className={commonStyles.page}>{inner()}</div>;
+    return <Page title={quiz ? `Join a team in ${quiz.name}` : 'Join a team'}>{inner()}</Page>;
 };
 
 const CreateTeamForm = ({ quizId }: { quizId: string }) => {

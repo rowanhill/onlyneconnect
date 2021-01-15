@@ -1,0 +1,10 @@
+.asLink {
+    composes: textOnPrimaryBg from './colours.module.css';
+    background-color: inherit;
+    border: none;
+    cursor: pointer;
+    display: inline;
+    font: inherit;
+    padding: 0;
+    text-decoration: underline;
+}

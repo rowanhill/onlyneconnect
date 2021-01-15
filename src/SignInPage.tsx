@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Redirect } from 'react-router-dom';
 import firebase from './firebase';
-import commonStyles from './common.module.css';
+import { Page } from './Page';
 
 export const SignInPage = () => {
     const [email, setEmail] = useState('');
@@ -72,16 +72,15 @@ export const SignInPage = () => {
     };
 
     return (
-        <div className={commonStyles.page}>
+        <Page title="Sign in with email">
             <form onSubmit={submit}>
                 <fieldset disabled={disabled}>
-                    <h1>Sign in with email</h1>
                     <p>You must sign in to play Onlyne Connect. Enter your email, and we'll send you a login link.</p>
                     <input type="text" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
                     <button>Log in</button>
                 </fieldset>
             </form>
             {emailSent && <p>An email has been sent to {email}</p>}
-        </div>
+        </Page>
     );
 };

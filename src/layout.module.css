@@ -1,0 +1,35 @@
+:root {
+    --large: 6em;
+    --medium: 2em;
+    --small: 1em;
+}
+
+.noMarginTop {
+    margin-top: 0;
+}
+
+.mediumTopMargin {
+    margin-top: var(--medium);
+}
+
+.wideHorizontalPadding {
+    padding-left: var(--large);
+    padding-right: var(--large);
+}
+
+.mediumTopPadding {
+    padding-top: var(--medium);
+}
+.mediumBottomPadding {
+    padding-bottom: var(--medium);
+}
+.mediumVerticalPadding {
+    composes: mediumTopPadding mediumBottomPadding;
+}
+
+.smallLeftPadding {
+    padding-left: var(--small);
+}
+.smallPadding {
+    padding: var(--small);
+}

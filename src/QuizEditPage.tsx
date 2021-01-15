@@ -6,7 +6,9 @@ import { createChangeHandler } from './forms/changeHandler';
 import { useAuth } from './hooks/useAuth';
 import { CollectionQueryData, useCollectionResult } from './hooks/useCollectionResult';
 import { Clue, Question, Quiz, QuizSecrets } from './models';
-import commonStyles from './common.module.css';
+import { Page } from './Page';
+import { Card } from './Card';
+import styles from './QuizEditPage.module.css';
 
 interface QuizEditPageProps {
     quizId: string;
@@ -47,7 +49,7 @@ export const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
             />
         );
     }
-    return <div className={commonStyles.page}>{inner()}</div>;
+    return <Page title={quizData ? `Edit ${quizData.name}` : 'Edit quiz'}>{inner()}</Page>;
 };
 
 interface EditableClue {
@@ -239,20 +241,21 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
 
     return (
         <>
-        <h1>Edit {quiz.name}</h1>
         <p>Invite people to create teams at {joinQuizUrl.href} or <Link to={`/quiz/${quizId}`}>click here</Link> to play.</p>
         <form onSubmit={submit}>
-            <div>
-                <label>Quiz title</label>
-                <input type="text" value={name} onChange={createChangeHandler(setName)} />
-            </div>
-            <div>
-                <label>Quiz passcode</label>
-                <input type="text" value={passcode} onChange={createChangeHandler(setPasscode)} />
-            </div>
-            <div>
-                <button disabled={isSubmittingQuiz || isSubmittingSecrets}>Save</button>
-            </div>
+            <Card>
+                <p className={styles.row}>
+                    <label>Quiz title</label>
+                    <input type="text" value={name} onChange={createChangeHandler(setName)} />
+                </p>
+                <p className={styles.row}>
+                    <label>Quiz passcode</label>
+                    <input type="text" value={passcode} onChange={createChangeHandler(setPasscode)} />
+                </p>
+                <p>
+                    <button disabled={isSubmittingQuiz || isSubmittingSecrets}>Save</button>
+                </p>
+            </Card>
             <div>
                 <h2>Questions</h2>
                 {questionsAndClues.map(({ question, clues }, questionIndex) => (
@@ -282,7 +285,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
                         remove={clearNewQuestion}
                     />
                 :
-                    <button onClick={addNewQuestion}>Add question</button>
+                    <button className={styles.addQuestionButton} onClick={addNewQuestion}>Add question</button>
                 }
             </div>
         </form>
@@ -297,7 +300,7 @@ interface CollapsedQuestionProps {
 }
 const CollapsedQuestion = ({ question, questionNumber, expand }: CollapsedQuestionProps) => {
     return (
-        <div>
+        <Card>
             <h3>
                 Question {questionNumber}{' '}
                 <button onClick={expand}>➕</button>
@@ -305,7 +308,7 @@ const CollapsedQuestion = ({ question, questionNumber, expand }: CollapsedQuesti
             <p>
                 {question.clues.map((c) => c.text).join(' | ')}
             </p>
-        </div>
+        </Card>
     );
 }
 
@@ -333,24 +336,24 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
         });
     };
     return (
-        <div>
+        <Card>
             <h3>
                 Question {questionNumber}{' '}
-                {moveUp && <button onClick={moveUp}>⬆️</button>}
-                {moveDown && <button onClick={moveDown}>⬇️</button>}
-                {save && <button onClick={() => save(question)}>✔️</button>}
-                <button onClick={remove}>❌</button>
+                {moveUp && <button onClick={moveUp}>⬆️</button>}{' '}
+                {moveDown && <button onClick={moveDown}>⬇️</button>}{' '}
+                {save && <button onClick={() => save(question)}>✔️</button>}{' '}
+                <button onClick={remove}>❌</button>{' '}
                 {collapse && <button onClick={collapse}>➖</button>}
             </h3>
-            <div>
+            <p className={styles.row}>
                 <label>Question answer limit</label>
                 <input type="number" value={question.answerLimit || ''} placeholder="No limit" onChange={changeAnswerLimit} />
-            </div>
+            </p>
             <h4>Clues</h4>
             {question.clues.map((clue, clueIndex) => (
                 <ClueForm key={clueIndex} clueNumber={clueIndex + 1} clue={clue} onChange={(c) => changeClue(clueIndex, c)} />
             ))}
-        </div>
+        </Card>
     );
 };
 
@@ -370,14 +373,14 @@ const ClueForm = ({ clueNumber, clue, onChange }: { clueNumber: number; clue: Ed
     return (
         <>
         <h5>Clue {clueNumber}</h5>
-        <div>
-            <label>Clue text</label>
+        <p className={styles.row}>
+            <label className={styles.cluePropLabel}>Clue text</label>
             <input type="text" value={clue.text} onChange={changeText} />
-        </div>
-        <div>
-            <label>Clue answer limit</label>
+        </p>
+        <p className={styles.row + ' ' + styles.clueRow}>
+            <label className={styles.cluePropLabel}>Clue answer limit</label>
             <input type="number" value={clue.answerLimit || ''} placeholder="No limit" onChange={changeAnswerLimit} />
-        </div>
+        </p>
         </>
     );
 };
