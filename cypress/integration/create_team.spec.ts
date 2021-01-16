@@ -33,5 +33,5 @@ describe('Creating quiz team page', () => {
         cy.get('[data-cy="quiz-passcode"]').should('not.be.disabled');
         cy.get('[data-cy="team-name"]').should('not.be.disabled');
         cy.get('[data-cy="submit"]').should('not.be.disabled');
-    })
+    });
 });
