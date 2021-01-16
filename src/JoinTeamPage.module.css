@@ -1,0 +1,3 @@
+.errorMessage {
+    composes: errorText from './colours.module.css';
+}

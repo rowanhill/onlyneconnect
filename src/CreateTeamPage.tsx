@@ -2,6 +2,7 @@ import React, { FormEvent, useState } from 'react';
 import { useCollection, useDocumentData } from 'react-firebase-hooks/firestore';
 import { Link, useHistory } from 'react-router-dom';
 import firebase from './firebase';
+import { createTeam } from './models/team';
 import { createChangeHandler } from './forms/changeHandler';
 import { useAuth } from './hooks/useAuth';
 import { Quiz, Team } from './models';
@@ -58,30 +59,7 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
         setDisabled(true);
         setErrorMessage(null);
 
-        const db = firebase.firestore();
-        const batch = db.batch();
-        // Create the secret doc for the team, to prove the quiz passcode is correct
-        const newTeamSecretRef = db.collection('teamSecrets').doc();
-        batch.set(newTeamSecretRef, {
-            quizId,
-            quizPasscode: quizPasscode,
-            passcode: teamPasscode,
-        });
-        // Create the public record of the team
-        const newTeamRef = db.collection('teams').doc(newTeamSecretRef.id);
-        batch.set(newTeamRef, {
-            quizId,
-            captainId: user!.uid,
-            name: teamName,
-            points: 0,
-        });
-        // Add the captain as a player on the team
-        const playerTeamRef = db.collection('playerTeams').doc(user!.uid);
-        batch.set(playerTeamRef, {
-            teamId: newTeamRef.id,
-            teamPasscode,
-        });
-        batch.commit()
+        createTeam(quizId, quizPasscode, teamName, teamPasscode, user?.uid!)
             .then(() => {
                 history.push(`/quiz/${quizId}`);
             })

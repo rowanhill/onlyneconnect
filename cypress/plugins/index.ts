@@ -14,6 +14,7 @@
 import * as admin from 'firebase-admin';
 import firebase from 'firebase';
 import { createQuiz } from '../../src/models/quiz';
+import { createTeam, joinPlayerToTeam } from '../../src/models/team';
 const cypressFirebasePlugin = require('cypress-firebase').plugin;
 
 /**
@@ -31,6 +32,26 @@ module.exports = (on, config) => {
         quizName,
         passcode,
         ownerId,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
+      );
+    },
+
+    createTeam({ quizId, quizPasscode, teamName, teamPasscode, captainId }) {
+      return createTeam(
+        quizId,
+        quizPasscode,
+        teamName,
+        teamPasscode,
+        captainId,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
+      );
+    },
+
+    joinPlayerToTeam({ playerId, teamId, teamPasscode }) {
+      return joinPlayerToTeam(
+        playerId,
+        teamId,
+        teamPasscode,
         admin.app().firestore() as unknown as firebase.firestore.Firestore,
       );
     },

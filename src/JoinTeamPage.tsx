@@ -6,6 +6,8 @@ import { useDocumentData } from 'react-firebase-hooks/firestore';
 import { PlayerTeam, Team } from './models';
 import { Page } from './Page';
 import { PrimaryButton } from './Button';
+import styles from './JoinTeamPage.module.css';
+import { joinPlayerToTeam } from './models/team';
 
 interface JoinTeamPageProps {
     teamId: string;
@@ -33,11 +35,13 @@ export const JoinTeamPage = ({ teamId }: JoinTeamPageProps) => {
 
         return (
             <>
-            {playerTeam?.teamId === teamId ?
-                <p>You're already a member of this team. Would you like to <Link to={`/quiz/${teamData.quizId}`}>go to your quiz</Link>?</p> :
+            {playerTeam && playerTeam.teamId === teamId &&
+                <p>You're already a member of this team. Would you like to <Link to={`/quiz/${teamData.quizId}`}>go to your quiz</Link>?</p>
+            }
+            {playerTeam && playerTeam.teamId !== teamId &&
                 <p>Careful! You're already a member of a different team. You can only be a member in one team at once.</p>
             }
-            <p>If you're captain has made a team, enter your team's passcode. You can get this from your captain.</p>
+            <p>To join your team, enter your team's passcode. You can get this from your captain.</p>
             <JoinTeamForm teamId={teamId} quizId={teamData.quizId} />
             
             <h2>Want to start your own team?</h2>
@@ -59,6 +63,7 @@ const JoinTeamForm = ({ teamId, quizId }: { teamId: string; quizId: string; }) =
     const [passcode, setPasscode] = useState('');
     const onPasscodeChange = createChangeHandler(setPasscode);
     const [disabled, setDisabled] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string|null>(null);
     const { user } = useAuth();
 
     const history = useHistory();
@@ -67,25 +72,23 @@ const JoinTeamForm = ({ teamId, quizId }: { teamId: string; quizId: string; }) =
         e.preventDefault();
         setDisabled(true);
 
-        const db = firebase.firestore();
-        db.collection('playerTeams').doc(user!.uid).set({
-            teamId,
-            teamPasscode: passcode,
-        })
+        joinPlayerToTeam(user!.uid, teamId, passcode)
         .then(() => {
             history.push(`/quiz/${quizId}`);
         })
         .catch((error) => {
             console.error("Could not join team", error);
+            setErrorMessage('Something went wrong. Could not join team. Did you get the passcode right?');
         });
     };
 
     return (
         <form onSubmit={submit}>
             <fieldset disabled={disabled}>
-                <input type="text" placeholder="Team passcode" value={passcode} onChange={onPasscodeChange} />
-                <PrimaryButton>Join a team</PrimaryButton>
+                <input type="text" placeholder="Team passcode" value={passcode} onChange={onPasscodeChange} data-cy="passcode" />
+                <PrimaryButton data-cy="submit">Join a team</PrimaryButton>
             </fieldset>
+            {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
         </form>
     );
 };
