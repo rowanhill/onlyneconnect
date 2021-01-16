@@ -5,6 +5,7 @@ import { useAuth } from './hooks/useAuth';
 import { useDocumentData } from 'react-firebase-hooks/firestore';
 import { PlayerTeam, Team } from './models';
 import { Page } from './Page';
+import { PrimaryButton } from './Button';
 
 interface JoinTeamPageProps {
     teamId: string;
@@ -83,7 +84,7 @@ const JoinTeamForm = ({ teamId, quizId }: { teamId: string; quizId: string; }) =
         <form onSubmit={submit}>
             <fieldset disabled={disabled}>
                 <input type="text" placeholder="Team passcode" value={passcode} onChange={onPasscodeChange} />
-                <button>Join a team</button>
+                <PrimaryButton>Join a team</PrimaryButton>
             </fieldset>
         </form>
     );

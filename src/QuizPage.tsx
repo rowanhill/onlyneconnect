@@ -7,6 +7,7 @@ import { CollectionQueryData, CollectionQueryItem, CollectionQueryResult, useCol
 import { Answer, Clue, PlayerTeam, Question, Quiz, Team } from './models';
 import { Card } from './Card';
 import { Page } from './Page';
+import { PrimaryButton } from './Button';
 import styles from './QuizPage.module.css';
 
 interface QuizPageProps {
@@ -223,7 +224,7 @@ const StartQuizButton = ({ quizId, quiz }: { quizId: string; quiz: Quiz; }) => {
             });
         setDisabled(true);
     };
-    return <button disabled={disabled} onClick={startQuiz}>Start quiz</button>;
+    return <PrimaryButton disabled={disabled} onClick={startQuiz}>Start quiz</PrimaryButton>;
 };
 
 const RevelationControls = ({ quizId, quiz, questionsData, currentQuestionItem, cluesResult }: { quizId: string; quiz: Quiz; questionsData: CollectionQueryData<Question>; currentQuestionItem: CollectionQueryItem<Question>; cluesResult: CollectionQueryResult<Clue>; }) => {
@@ -365,9 +366,9 @@ const RevelationControls = ({ quizId, quiz, questionsData, currentQuestionItem, 
     return (
         <>
             <p>This is question {currentQuestionNumber} of {totalQuestions}. For this question, it is clue {currentClueNumber} of {totalClues}.</p>
-            {buttonToShow === 'next-clue' && <button disabled={disabled} onClick={goToNextClue}>Next clue</button>}
-            {buttonToShow === 'next-question' && <button disabled={disabled} onClick={goToNextQuestion}>Next question</button>}
-            {buttonToShow === 'end-quiz' && <button disabled={disabled} onClick={closeLastClue}>End quiz</button>}
+            {buttonToShow === 'next-clue' && <PrimaryButton disabled={disabled} onClick={goToNextClue}>Next clue</PrimaryButton>}
+            {buttonToShow === 'next-question' && <PrimaryButton disabled={disabled} onClick={goToNextQuestion}>Next question</PrimaryButton>}
+            {buttonToShow === 'end-quiz' && <PrimaryButton disabled={disabled} onClick={closeLastClue}>End quiz</PrimaryButton>}
             {buttonToShow === 'quiz-ended' && <p>You've reached the end of the quiz</p>}
             {buttonToShow === 'error' && <p>Error: There is no next clue or question, nor current clue to close</p>}
         </>
@@ -530,8 +531,8 @@ const AnswersHistory = ({ answersResult, cluesResult, questionsResult, teamsResu
                             {isQuizOwner && answerMeta.valid &&
                             (scoredAnswerByQuestionByTeamId[answerMeta.answer.data.teamId][answerMeta.answer.data.questionId] === undefined || scoredAnswerByQuestionByTeamId[answerMeta.answer.data.teamId][answerMeta.answer.data.questionId] === answerMeta.answer.data.clueId) &&
                             <div>
-                                <button onClick={() => markCorrect(answerMeta)}>✔️</button>
-                                <button onClick={() => markIncorrect(answerMeta)}>❌</button>
+                                <PrimaryButton onClick={() => markCorrect(answerMeta)}>✔️</PrimaryButton>
+                                <PrimaryButton onClick={() => markIncorrect(answerMeta)}>❌</PrimaryButton>
                             </div>}
                         </div>
                     ))}
@@ -619,7 +620,7 @@ const AnswerSubmitBox = ({ quizId, teamId, questionItem, clueItem, answersResult
         <form onSubmit={submit}>
             <fieldset className={styles.submitAnswerForm} disabled={submitting || !questionItem || !clueItem || hasReachedLimit || alreadyAnsweredCorrectly}>
                 <input type="text" placeholder="Type your answer here" value={answerText} onChange={onAnswerChange} />
-                <button>Submit</button>
+                <PrimaryButton>Submit</PrimaryButton>
             </fieldset>
         </form>
     );

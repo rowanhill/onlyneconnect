@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Redirect } from 'react-router-dom';
 import firebase from './firebase';
 import { Page } from './Page';
+import { PrimaryButton } from './Button';
 
 export const SignInPage = () => {
     const [email, setEmail] = useState('');
@@ -77,7 +78,7 @@ export const SignInPage = () => {
                 <fieldset disabled={disabled}>
                     <p>You must sign in to play Onlyne Connect. Enter your email, and we'll send you a login link.</p>
                     <input type="text" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
-                    <button>Log in</button>
+                    <PrimaryButton>Log in</PrimaryButton>
                 </fieldset>
             </form>
             {emailSent && <p>An email has been sent to {email}</p>}

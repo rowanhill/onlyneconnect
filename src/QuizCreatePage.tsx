@@ -4,6 +4,7 @@ import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
 import { Page } from './Page';
 import { Card } from './Card';
+import { PrimaryButton } from './Button';
 
 export const QuizCreatePage = () => {
     const { user } = useAuth();
@@ -50,7 +51,7 @@ export const QuizCreatePage = () => {
                     <fieldset disabled={isSubmitting}>
                         <input type="text" placeholder="Quiz name" onChange={handleNameChange} value={quizName} />
                         <input type="text" placeholder="Passcode" onChange={handlePasscodeChange} value={passcode} />
-                        <button>Create</button>
+                        <PrimaryButton>Create</PrimaryButton>
                     </fieldset>
                 </form>
             </Card>

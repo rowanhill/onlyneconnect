@@ -2,6 +2,10 @@
     --dark-blue: hsl(225, 60%, 55%);
 }
 
+.primaryText {
+    color: var(--dark-blue);
+}
+
 .primaryBg {
     background-color: var(--dark-blue);
 }

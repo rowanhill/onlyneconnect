@@ -8,6 +8,7 @@ import { CollectionQueryData, useCollectionResult } from './hooks/useCollectionR
 import { Clue, Question, Quiz, QuizSecrets } from './models';
 import { Page } from './Page';
 import { Card } from './Card';
+import { PrimaryButton } from './Button';
 import styles from './QuizEditPage.module.css';
 
 interface QuizEditPageProps {
@@ -253,7 +254,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
                     <input type="text" value={passcode} onChange={createChangeHandler(setPasscode)} />
                 </p>
                 <p>
-                    <button disabled={isSubmittingQuiz || isSubmittingSecrets}>Save</button>
+                    <PrimaryButton disabled={isSubmittingQuiz || isSubmittingSecrets}>Save</PrimaryButton>
                 </p>
             </Card>
             <div>
@@ -285,7 +286,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
                         remove={clearNewQuestion}
                     />
                 :
-                    <button className={styles.addQuestionButton} onClick={addNewQuestion}>Add question</button>
+                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewQuestion}>Add question</PrimaryButton>
                 }
             </div>
         </form>
@@ -303,7 +304,7 @@ const CollapsedQuestion = ({ question, questionNumber, expand }: CollapsedQuesti
         <Card>
             <h3>
                 Question {questionNumber}{' '}
-                <button onClick={expand}>➕</button>
+                <PrimaryButton onClick={expand}>➕</PrimaryButton>
             </h3>
             <p>
                 {question.clues.map((c) => c.text).join(' | ')}
@@ -339,11 +340,11 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
         <Card>
             <h3>
                 Question {questionNumber}{' '}
-                {moveUp && <button onClick={moveUp}>⬆️</button>}{' '}
-                {moveDown && <button onClick={moveDown}>⬇️</button>}{' '}
-                {save && <button onClick={() => save(question)}>✔️</button>}{' '}
-                <button onClick={remove}>❌</button>{' '}
-                {collapse && <button onClick={collapse}>➖</button>}
+                {moveUp && <PrimaryButton onClick={moveUp}>⬆️</PrimaryButton>}{' '}
+                {moveDown && <PrimaryButton onClick={moveDown}>⬇️</PrimaryButton>}{' '}
+                {save && <PrimaryButton onClick={() => save(question)}>✔️</PrimaryButton>}{' '}
+                <PrimaryButton onClick={remove}>❌</PrimaryButton>{' '}
+                {collapse && <PrimaryButton onClick={collapse}>➖</PrimaryButton>}
             </h3>
             <p className={styles.row}>
                 <label>Question answer limit</label>

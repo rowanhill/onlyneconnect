@@ -1,6 +1,9 @@
 .rounded {
     border-radius: 5px;
 }
+.roundedSmall {
+    border-radius: 3px;
+}
 
 .shadow {
     box-shadow: black 1px 1px 4px -1px;

@@ -1,5 +1,17 @@
-.asLink {
+.base {
+    composes: roundedSmall from './effects.module.css';
+    padding: 5px 8px;
+    border: none;
+  }
+
+.primary {
+    composes: base;
     composes: textOnPrimaryBg from './colours.module.css';
+    font-weight: bold;
+}
+
+.asLink {
+    composes: primaryText from './colours.module.css';
     background-color: inherit;
     border: none;
     cursor: pointer;

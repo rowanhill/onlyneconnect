@@ -5,7 +5,7 @@ import { useAuth } from './hooks/useAuth';
 import { useCollectionResult } from './hooks/useCollectionResult';
 import { Quiz } from './models';
 import { Page } from './Page';
-import buttonStyles from './button.module.css';
+import { LinkButton } from './Button';
 
 export const Home = () => {
     const db = firebase.firestore();
@@ -20,7 +20,7 @@ export const Home = () => {
     return (
         <Page>
             <h1>Onlyne Connect</h1>
-            <p>You're logged in with {user?.email}. If that's not you, you can <button className={buttonStyles.asLink} onClick={signOut}>sign out</button>.</p>
+            <p>You're logged in with {user?.email}. If that's not you, you can <LinkButton onClick={signOut}>sign out</LinkButton>.</p>
             <p>If you'd like to play a quiz, you'll need an invitation link from the quiz owner (to start a team) or your team captain (to join a team).</p>
             {ownedQuizzes.data !== undefined &&
             <>

@@ -6,6 +6,7 @@ import { createChangeHandler } from './forms/changeHandler';
 import { useAuth } from './hooks/useAuth';
 import { Quiz, Team } from './models';
 import { Page } from './Page';
+import { PrimaryButton } from './Button';
 
 interface CreateTeamPageProps {
     quizId: string;
@@ -90,7 +91,7 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
             <fieldset disabled={disabled}>
                 <input type="text" placeholder="Quiz passcode" value={passcode} onChange={onPasscodeChange} />
                 <input type="text" placeholder="Team name" value={teamName} onChange={onTeamNameChange} />
-                <button>Create a team</button>
+                <PrimaryButton>Create a team</PrimaryButton>
             </fieldset>
         </form>
     );
