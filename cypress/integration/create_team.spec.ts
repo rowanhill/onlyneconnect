@@ -13,6 +13,7 @@ describe('Creating quiz team page', () => {
     it('allows a user to create a new team if the have the quiz passcode', () => {
         cy.get('[data-cy="quiz-passcode"]').type('itsasecret');
         cy.get('[data-cy="team-name"]').type('Universally Challenged');
+        cy.get('[data-cy="team-passcode"]').type('opensesame');
         cy.get('[data-cy="submit"]').click();
 
         cy.url().should('match', /\/quiz\/abc123$/);
@@ -23,6 +24,7 @@ describe('Creating quiz team page', () => {
     it('disallows team creation if the quiz passcode is wrong', () => {
         cy.get('[data-cy="quiz-passcode"]').type('wrong passcode');
         cy.get('[data-cy="team-name"]').type('Universally Challenged');
+        cy.get('[data-cy="team-passcode"]').type('opensesame');
         cy.get('[data-cy="submit"]').click();
 
         cy.contains('Something went wrong')
