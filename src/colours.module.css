@@ -1,9 +1,14 @@
 :root {
     --dark-blue: hsl(225, 60%, 55%);
+    --red: hsl(350, 85%, 45%);
 }
 
 .primaryText {
     color: var(--dark-blue);
+}
+
+.errorText {
+    color: var(--red);
 }
 
 .primaryBg {

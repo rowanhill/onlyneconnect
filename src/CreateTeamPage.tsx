@@ -7,6 +7,7 @@ import { useAuth } from './hooks/useAuth';
 import { Quiz, Team } from './models';
 import { Page } from './Page';
 import { PrimaryButton } from './Button';
+import styles from './CreateTeamPage.module.css';
 
 interface CreateTeamPageProps {
     quizId: string;
@@ -45,6 +46,7 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
     const [teamName, setTeamName] = useState('');
     const onTeamNameChange = createChangeHandler(setTeamName);
     const [disabled, setDisabled] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string|null>(null);
     const { user } = useAuth();
     const teamPasscode = 'changeme'; // TODO - generate a passcode/phrase
 
@@ -53,6 +55,7 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
     const submit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setDisabled(true);
+        setErrorMessage(null);
 
         const db = firebase.firestore();
         const batch = db.batch();
@@ -83,16 +86,19 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
             })
             .catch((error) => {
                 console.error("Could not create new team", error);
+                setErrorMessage('Something went wrong. The team wasn\'t created. Make sure you have the right passcode!');
+                setDisabled(false);
             });
     };
 
     return (
         <form onSubmit={submit}>
             <fieldset disabled={disabled}>
-                <input type="text" placeholder="Quiz passcode" value={passcode} onChange={onPasscodeChange} />
-                <input type="text" placeholder="Team name" value={teamName} onChange={onTeamNameChange} />
-                <PrimaryButton>Create a team</PrimaryButton>
+                <input type="text" placeholder="Quiz passcode" value={passcode} onChange={onPasscodeChange} data-cy="quiz-passcode" />
+                <input type="text" placeholder="Team name" value={teamName} onChange={onTeamNameChange} data-cy="team-name" />
+                <PrimaryButton data-cy="submit">Create a team</PrimaryButton>
             </fieldset>
+            {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
         </form>
     );
 };
