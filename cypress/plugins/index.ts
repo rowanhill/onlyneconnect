@@ -17,10 +17,7 @@ import { createQuiz } from '../../src/models/quiz';
 import { createTeam, joinPlayerToTeam } from '../../src/models/team';
 const cypressFirebasePlugin = require('cypress-firebase').plugin;
 
-/**
- * @type {Cypress.PluginConfig}
- */
-module.exports = (on, config) => {
+const config: Cypress.PluginConfig = (on, config) => {
   // `on` is used to hook into various events Cypress emits
   // `config` is the resolved Cypress config
 
@@ -58,4 +55,6 @@ module.exports = (on, config) => {
   });
 
   return config;
-}
+};
+
+export default config;
