@@ -1,10 +1,10 @@
 import React, { ChangeEvent, FormEvent, useState } from 'react';
 import { Redirect } from 'react-router-dom';
-import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
 import { Page } from './Page';
 import { Card } from './Card';
 import { PrimaryButton } from './Button';
+import { createQuiz } from './models/quiz';
 
 export const QuizCreatePage = () => {
     const { user } = useAuth();
@@ -32,14 +32,8 @@ export const QuizCreatePage = () => {
             return;
         }
         setIsSubmitting(true);
-        const db = firebase.firestore();
-        const batch = db.batch();
-        const secretsDoc = db.collection('quizSecrets').doc();
-        batch.set(secretsDoc, { passcode });
-        const quizDoc = db.doc(`quizzes/${secretsDoc.id}`);
-        batch.set(quizDoc, { name: quizName, ownerId: user.uid, questionIds: [], currentQuestionId: null });
-        batch.commit()
-            .then(() => setCreatedQuizId(quizDoc.id))
+        createQuiz(quizName, passcode, user.uid)
+            .then((quizId) => setCreatedQuizId(quizId))
             .catch((error) => console.error('Failed to create quiz: ', error))
             .finally(() => setIsSubmitting(false));
     };

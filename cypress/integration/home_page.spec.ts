@@ -14,9 +14,9 @@ describe('The home page', () => {
         const quizTitles = ['Quiz One', 'Quiz Two'];
         beforeEach(() => {
             for (const name of quizTitles) {
-                cy.callFirestore('add', 'quizzes', { name, ownerId: Cypress.env('TEST_UID') });
+                cy.task('createQuiz', { quizName: name, passcode: 'quiz passcode', ownerId: Cypress.env('TEST_UID') });
             }
-            cy.callFirestore('add', 'quizzes', { name: 'Other Quiz', ownerId: 'anotheruid' });
+            cy.task('createQuiz', { quizName: 'Other Quiz', passcode: 'quiz passcode', ownerId: 'anotheruid' });
         });
 
         it('lists owned quizzes', () => {

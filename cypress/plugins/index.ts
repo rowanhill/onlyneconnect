@@ -11,8 +11,9 @@
 
 // This function is called when a project is opened or re-opened (e.g. due to
 // the project's config changing)
-
-const admin = require('firebase-admin');
+import * as admin from 'firebase-admin';
+import firebase from 'firebase';
+import { createQuiz } from '../../src/models/quiz';
 const cypressFirebasePlugin = require('cypress-firebase').plugin;
 
 /**
@@ -23,6 +24,17 @@ module.exports = (on, config) => {
   // `config` is the resolved Cypress config
 
   config = cypressFirebasePlugin(on, config, admin);
+
+  on('task', {
+    createQuiz({ quizName, passcode, ownerId }) {
+      return createQuiz(
+        quizName,
+        passcode,
+        ownerId,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
+      );
+    },
+  });
 
   return config;
 }
