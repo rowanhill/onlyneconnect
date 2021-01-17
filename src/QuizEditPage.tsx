@@ -10,6 +10,7 @@ import { Page } from './Page';
 import { Card } from './Card';
 import { PrimaryButton } from './Button';
 import styles from './QuizEditPage.module.css';
+import { createConnectionQuestion } from './models/quiz';
 
 interface QuizEditPageProps {
     quizId: string;
@@ -113,48 +114,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
         setNewQuestion(null);
     };
     const saveNewQuestion = (question: EditableQuestion) => {
-        const batch = db.batch();
-        
-        const quizDoc = db.doc(`quizzes/${quizId}`);
-        const clue1Doc = db.collection(`quizzes/${quizId}/clues`).doc();
-        const clue2Doc = db.collection(`quizzes/${quizId}/clues`).doc();
-        const clue3Doc = db.collection(`quizzes/${quizId}/clues`).doc();
-        const clue4Doc = db.collection(`quizzes/${quizId}/clues`).doc();
-        const questionDoc = db.collection(`quizzes/${quizId}/questions`).doc();
-
-        batch.set(questionDoc, {
-            answerLimit: question.answerLimit,
-            isRevealed: false,
-            clueIds: [clue1Doc.id, clue2Doc.id, clue3Doc.id, clue4Doc.id],
-        });
-        batch.set(clue1Doc, {
-            questionId: questionDoc.id,
-            isRevealed: false,
-            text: question.clues[0].text,
-            answerLimit: question.clues[0].answerLimit,
-        });
-        batch.set(clue2Doc, {
-            questionId: questionDoc.id,
-            isRevealed: false,
-            text: question.clues[1].text,
-            answerLimit: question.clues[1].answerLimit,
-        });
-        batch.set(clue3Doc, {
-            questionId: questionDoc.id,
-            isRevealed: false,
-            text: question.clues[2].text,
-            answerLimit: question.clues[2].answerLimit,
-        });
-        batch.set(clue4Doc, {
-            questionId: questionDoc.id,
-            isRevealed: false,
-            text: question.clues[3].text,
-            answerLimit: question.clues[3].answerLimit,
-        });
-        batch.update(quizDoc, {
-            questionIds: [...quiz.questionIds, questionDoc.id],
-        });
-        batch.commit()
+        createConnectionQuestion(quizId, question)
             .then(() => setNewQuestion(null))
             .catch((error) => console.error('Failed to create question', error));
     };

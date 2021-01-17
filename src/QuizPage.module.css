@@ -98,3 +98,7 @@
 .answerInfo {
     flex-grow: 1;
 }
+
+.quizControls {
+    composes: mediumTopMargin from './layout.module.css';
+}

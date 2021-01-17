@@ -9,6 +9,8 @@ import { Card } from './Card';
 import { Page } from './Page';
 import { PrimaryButton } from './Button';
 import styles from './QuizPage.module.css';
+import { closeLastClue, revealNextClue, revealNextQuestion } from './models/quiz';
+import { markAnswer, submitAnswer } from './models/answer';
 
 interface QuizPageProps {
     quizId: string;
@@ -86,8 +88,9 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
     if (playerTeamError) {
         console.error('Error getting playerTeam:', playerTeamError);
     }
-    const isCaptain = !isQuizOwner && teamsResult.data && playerTeamData &&
-        teamsResult.data.find((teamItem) => teamItem.id === playerTeamData.teamId) !== null;
+    const teamOfCurrentPlayer = teamsResult.data && playerTeamData &&
+        teamsResult.data.find((teamItem) => teamItem.id === playerTeamData.teamId);
+    const isCaptain = !isQuizOwner && teamOfCurrentPlayer && teamOfCurrentPlayer.data.captainId === user?.uid;
 
     // Fetch answers
     let answerQuery: firebase.firestore.Query|null = null;
@@ -188,13 +191,13 @@ const QuizControls = ({ questionsData, currentQuestionItem, quizId, quiz, cluesR
     }
     if (currentQuestionItem) {
         return (
-            <div>
+            <div className={styles.quizControls} data-cy="quiz-controls">
                 <RevelationControls quizId={quizId} quiz={quiz} questionsData={questionsData} currentQuestionItem={currentQuestionItem} cluesResult={cluesResult} />
             </div>
         );
     } else {
         return (
-            <div>
+            <div className={styles.quizControls} data-cy="quiz-controls">
                 <StartQuizButton quizId={quizId} quiz={quiz} />
             </div>
         );
@@ -261,30 +264,13 @@ const RevelationControls = ({ quizId, quiz, questionsData, currentQuestionItem, 
     const nextQuestionIndex = currentQuestionNumber;
     const nextQuestion = nextQuestionIndex >= orderedQuestions.length ? undefined : orderedQuestions[nextQuestionIndex];
 
-    const goToNextClue = () => {
+    const handleGoToNextClue = () => {
         if (!nextClue) {
             console.error('Tried to go to next clue, but next clue is not defined');
             return;
         }
-        const db = firebase.firestore();
-        const batch = db.batch();
 
-        // Update the current clue, if any, to set the closedAt time
-        if (currentClue) {
-            const currentClueDoc = db.doc(`quizzes/${quizId}/clues/${currentClue.id}`);
-            batch.update(currentClueDoc, {
-                closedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            });
-        }
-
-        // Update the next clue to set the revealedAt time, and set isRevealed to true
-        const nextClueDoc = db.doc(`quizzes/${quizId}/clues/${nextClue.id}`);
-        batch.update(nextClueDoc,{
-            isRevealed: true,
-            revealedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        });
-        
-        batch.commit()
+        revealNextClue(quizId, nextClue.id, currentClue?.id)
             .then(() => {
                 setDisabled(false);
             })
@@ -294,35 +280,13 @@ const RevelationControls = ({ quizId, quiz, questionsData, currentQuestionItem, 
             });
         setDisabled(true);
     };
-    const goToNextQuestion = () => {
+    const handleGoToNextQuestion = () => {
         if (!nextQuestion) {
             console.error('Tried to go to next question, but next question is not defined');
             return;
         }
-        const db = firebase.firestore();
-        const batch = db.batch();
 
-        // Close the current clue, if any, for answer submissions
-        if (currentClue) {
-            const currentClueDoc = db.doc(`quizzes/${quizId}/clues/${currentClue.id}`);
-            batch.update(currentClueDoc, {
-                closedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            });
-        }
-
-        // Reveal the next question
-        const nextQuestionDoc = db.doc(`quizzes/${quizId}/questions/${nextQuestion.id}`);
-        batch.update(nextQuestionDoc, {
-            isRevealed: true,
-        });
-
-        // Move the quiz to the next question
-        const quizDoc = db.doc(`quizzes/${quizId}`);
-        batch.update(quizDoc, {
-            currentQuestionId: nextQuestion.id
-        });
-
-        batch.commit()
+        revealNextQuestion(quizId, nextQuestion.id, currentClue?.id)
             .then(() => {
                 setDisabled(false);
             })
@@ -332,15 +296,12 @@ const RevelationControls = ({ quizId, quiz, questionsData, currentQuestionItem, 
             });
         setDisabled(true);
     }
-    const closeLastClue = () => {
+    const handleCloseLastClue = () => {
         if (!currentClue) {
             console.error('Tried to close the last clue with no currentClue set');
             return;
         }
-        firebase.firestore().doc(`quizzes/${quizId}/clues/${currentClue.id}`)
-            .update({
-                closedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            })
+        closeLastClue(quizId, currentClue.id)
             .then(() => {
                 setDisabled(false);
             })
@@ -366,9 +327,9 @@ const RevelationControls = ({ quizId, quiz, questionsData, currentQuestionItem, 
     return (
         <>
             <p>This is question {currentQuestionNumber} of {totalQuestions}. For this question, it is clue {currentClueNumber} of {totalClues}.</p>
-            {buttonToShow === 'next-clue' && <PrimaryButton disabled={disabled} onClick={goToNextClue}>Next clue</PrimaryButton>}
-            {buttonToShow === 'next-question' && <PrimaryButton disabled={disabled} onClick={goToNextQuestion}>Next question</PrimaryButton>}
-            {buttonToShow === 'end-quiz' && <PrimaryButton disabled={disabled} onClick={closeLastClue}>End quiz</PrimaryButton>}
+            {buttonToShow === 'next-clue' && <PrimaryButton disabled={disabled} onClick={handleGoToNextClue}>Next clue</PrimaryButton>}
+            {buttonToShow === 'next-question' && <PrimaryButton disabled={disabled} onClick={handleGoToNextQuestion}>Next question</PrimaryButton>}
+            {buttonToShow === 'end-quiz' && <PrimaryButton disabled={disabled} onClick={handleCloseLastClue}>End quiz</PrimaryButton>}
             {buttonToShow === 'quiz-ended' && <p>You've reached the end of the quiz</p>}
             {buttonToShow === 'error' && <p>Error: There is no next clue or question, nor current clue to close</p>}
         </>
@@ -385,7 +346,7 @@ const CurrentQuestion = ({ currentQuestionItem, questionsError, cluesResult }: {
         }
         return <QuestionClues currentQuestionItem={currentQuestionItem} cluesResult={cluesResult} />;
     }
-    return <Card className={styles.questionPanel}>{inner()}</Card>;
+    return <Card className={styles.questionPanel} data-cy="clue-holder">{inner()}</Card>;
 };
 
 const QuestionClues = ({ currentQuestionItem, cluesResult }: { currentQuestionItem: CollectionQueryItem<Question>; cluesResult: CollectionQueryResult<Clue>; }) => {
@@ -406,8 +367,12 @@ const QuestionClues = ({ currentQuestionItem, cluesResult }: { currentQuestionIt
         .filter((clue) => !!clue);
     return (
         <>
-        {orderedClues.map((clue) => (
-            <div key={clue.id} className={styles.clue + (clue.data.isRevealed ? ` ${styles.revealedClue}` : ` ${styles.unrevealedClue}`)}>
+        {orderedClues.map((clue, i) => (
+            <div
+                key={clue.id}
+                className={styles.clue + (clue.data.isRevealed ? ` ${styles.revealedClue}` : ` ${styles.unrevealedClue}`)}
+                data-cy={clue.data.isRevealed ? `revealed-clue-${i}` : `unrevealed-clue-${i}`}
+            >
                 {clue.data.isRevealed ? clue.data.text : `(${clue.data.text})`}
             </div>
         ))}
@@ -433,7 +398,7 @@ const Scoreboard = ({ quizId, teamsResult }: { quizId: string; teamsResult: Coll
     }
     const teamsOrderedByScore = teamsData.sort((a, b) => b.data.points - a.data.points);
     return (
-        <Card className={styles.scoreboard}>
+        <Card className={styles.scoreboard} data-cy="scoreboard">
             <h2>Scoreboard</h2>
             <ul>
                 {teamsOrderedByScore.map((team) => (
@@ -444,6 +409,7 @@ const Scoreboard = ({ quizId, teamsResult }: { quizId: string; teamsResult: Coll
     );
 };
 
+interface AnswerMeta { answer: CollectionQueryItem<Answer>; valid: boolean; clueIndex: number; }
 const AnswersHistory = ({ answersResult, cluesResult, questionsResult, teamsResult, isQuizOwner, quizId, quiz }: { answersResult: CollectionQueryResult<Answer>; cluesResult: CollectionQueryResult<Clue>; questionsResult: CollectionQueryResult<Question>; teamsResult: CollectionQueryResult<Team>; isQuizOwner: boolean; quizId: string; quiz: Quiz }) => {
     const { data: answersData, loading: answersLoading, error: answersError } = answersResult;
     const { data: cluesData, loading: cluesLoading, error: cluesError } = cluesResult;
@@ -470,57 +436,66 @@ const AnswersHistory = ({ answersResult, cluesResult, questionsResult, teamsResu
         const clueIndex = question.data.clueIds.indexOf(answer.data.clueId);
         acc[answer.data.questionId].push({ answer, valid, clueIndex });
         return acc;
-    }, {} as { [id: string]: { answer: CollectionQueryItem<Answer>; valid: boolean; clueIndex: number; }[]});
+    }, {} as { [id: string]: AnswerMeta[]});
     const answerGroups = quiz.questionIds
         .map((id) => ({ questionId: id, answerMetas: answerMetasByQuestionId[id] }))
         .filter((group) => !!group.answerMetas);
-    const scoredAnswerByQuestionByTeamId = answersData.reduce((acc, answer) => {
+    const answersByQuestionByTeam = answersData.reduce((acc, answer) => {
         if (!acc[answer.data.teamId]) {
             acc[answer.data.teamId] = {};
         }
-        if (answer.data.correct === true) {
-            acc[answer.data.teamId][answer.data.questionId] = answer.data.clueId;
+        if (!acc[answer.data.teamId][answer.data.questionId]) {
+            acc[answer.data.teamId][answer.data.questionId] = [];
         }
+        acc[answer.data.teamId][answer.data.questionId].push(answer);
+        acc[answer.data.teamId][answer.data.questionId].sort((a, b) => a.data.submittedAt.toMillis() - b.data.submittedAt.toMillis());
         return acc;
-    }, {} as { [teamId: string]: { [questionId: string]: string } });
-    const markAnswer = (answerMeta: { answer: CollectionQueryItem<Answer>; valid: boolean; clueIndex: number; }, score: number, correct: boolean) => {
+    }, {} as { [teamId: string]: { [questionId: string]: CollectionQueryItem<Answer>[] } });
+    const questionAnsweredEarlier = (answerMeta: AnswerMeta) => {
+        const answersByQuestion = answersByQuestionByTeam[answerMeta.answer.data.teamId];
+        const answers = answersByQuestion[answerMeta.answer.data.questionId];
+        for (const answer of answers) {
+            if (answer.id === answerMeta.answer.id) {
+                return false;
+            } else if (answer.data.correct === true) {
+                return true;
+            }
+        }
+        return false;
+    };
+    const markAnswerWithScoreAndCorrect = (answerMeta: AnswerMeta, score: number, correct: boolean) => {
         if (!answerMeta.valid) {
             console.error(`Tried to mark invalid question as ${correct ? 'correct' : 'incorrect'} with ${score} points`, answerMeta);
             return;
         }
-        const db = firebase.firestore();
-        db.runTransaction(async (transaction) => {
-            try {
-                const answerDoc = db.doc(`quizzes/${quizId}/answers/${answerMeta.answer.id}`);
-                const freshAnswer = await transaction.get(answerDoc);
-                const oldScore = freshAnswer.data()?.points || 0;
-                const teamDoc = db.doc(`teams/${answerMeta.answer.data.teamId}`);
-                transaction.update(answerDoc, {
-                    correct,
-                    points: score,
-                });
-                transaction.update(teamDoc, {
-                    points: firebase.firestore.FieldValue.increment(score - oldScore),
-                });
-            } catch (error) {
-                console.error(`Error when marking answer ${answerMeta.answer.id} as ${correct ? 'correct' : 'incorrect'} with ${score} points`, error);
-            }
+        markAnswer(
+            quizId,
+            answerMeta.answer.id,
+            answerMeta.answer.data.teamId,
+            correct,
+            score,
+        ).catch((error) => {
+            console.error(`Error when marking answer ${answerMeta.answer.id} as ${correct ? 'correct' : 'incorrect'} with ${score} points`, error);
         });
     };
-    const markCorrect = (answerMeta: { answer: CollectionQueryItem<Answer>; valid: boolean; clueIndex: number; }) => {
+    const markCorrect = (answerMeta: AnswerMeta) => {
         const score = 5 - answerMeta.clueIndex;
-        markAnswer(answerMeta, score, true);
+        markAnswerWithScoreAndCorrect(answerMeta, score, true);
     };
-    const markIncorrect = (answerMeta: { answer: CollectionQueryItem<Answer>; valid: boolean; clueIndex:number; }) => {
-        markAnswer(answerMeta, 0, false);
+    const markIncorrect = (answerMeta: AnswerMeta) => {
+        markAnswerWithScoreAndCorrect(answerMeta, 0, false);
     };
     return (
-        <div className={styles.answersHistory}>
+        <div className={styles.answersHistory} data-cy="answers-history">
             {answerGroups.map((answerGroup, groupIndex) => (
                 <div key={answerGroup.questionId}>
                     <h3>Question {groupIndex + 1}</h3>
                     {answerGroup.answerMetas.map((answerMeta) => (
-                        <div key={answerMeta.answer.id} className={styles.answer + (answerMeta.valid ? '' : (' ' + styles.invalidAnswer))}>
+                        <div
+                            key={answerMeta.answer.id}
+                            className={styles.answer + (answerMeta.valid ? '' : (' ' + styles.invalidAnswer))}
+                            data-cy={`submitted-answer-${answerMeta.answer.id}`}
+                        >
                             <div className={styles.answerInfo}>
                                 {isQuizOwner && teamsById[answerMeta.answer.data.teamId] && <>{teamsById[answerMeta.answer.data.teamId].data.name}:<br/></>}
                                 {answerMeta.answer.data.text}{' '}
@@ -528,12 +503,12 @@ const AnswersHistory = ({ answersResult, cluesResult, questionsResult, teamsResu
                                     <>({answerMeta.answer.data.points !== undefined ? answerMeta.answer.data.points : 'unscored'})</>
                                 }
                             </div>
-                            {isQuizOwner && answerMeta.valid &&
-                            (scoredAnswerByQuestionByTeamId[answerMeta.answer.data.teamId][answerMeta.answer.data.questionId] === undefined || scoredAnswerByQuestionByTeamId[answerMeta.answer.data.teamId][answerMeta.answer.data.questionId] === answerMeta.answer.data.clueId) &&
-                            <div>
-                                <PrimaryButton onClick={() => markCorrect(answerMeta)}>✔️</PrimaryButton>
-                                <PrimaryButton onClick={() => markIncorrect(answerMeta)}>❌</PrimaryButton>
-                            </div>}
+                            {isQuizOwner && answerMeta.valid && !questionAnsweredEarlier(answerMeta) &&
+                                <div>
+                                    {answerMeta.answer.data.correct !== true && <PrimaryButton onClick={() => markCorrect(answerMeta)}>✔️</PrimaryButton>}
+                                    {answerMeta.answer.data.correct !== false && <PrimaryButton onClick={() => markIncorrect(answerMeta)}>❌</PrimaryButton>}
+                                </div>
+                            }
                         </div>
                     ))}
                 </div>
@@ -600,14 +575,13 @@ const AnswerSubmitBox = ({ quizId, teamId, questionItem, clueItem, answersResult
 
         setSubmitting(true);
 
-        const db = firebase.firestore();
-        db.collection('quizzes').doc(quizId).collection('answers').add({
-            questionId: questionItem.id,
-            clueId: clueItem.id,
+        submitAnswer(
+            quizId,
+            questionItem.id,
+            clueItem.id,
             teamId,
-            text: answerText,
-            submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        })
+            answerText,
+        )
         .then(() => {
             setSubmitting(false);
             setAnswerText('');
@@ -619,8 +593,8 @@ const AnswerSubmitBox = ({ quizId, teamId, questionItem, clueItem, answersResult
     return (
         <form onSubmit={submit}>
             <fieldset className={styles.submitAnswerForm} disabled={submitting || !questionItem || !clueItem || hasReachedLimit || alreadyAnsweredCorrectly}>
-                <input type="text" placeholder="Type your answer here" value={answerText} onChange={onAnswerChange} />
-                <PrimaryButton>Submit</PrimaryButton>
+                <input type="text" placeholder="Type your answer here" value={answerText} onChange={onAnswerChange} data-cy="answer-text" />
+                <PrimaryButton data-cy="answer-submit">Submit</PrimaryButton>
             </fieldset>
         </form>
     );

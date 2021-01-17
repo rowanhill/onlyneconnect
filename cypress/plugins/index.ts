@@ -13,9 +13,15 @@
 // the project's config changing)
 import * as admin from 'firebase-admin';
 import firebase from 'firebase';
-import { createQuiz } from '../../src/models/quiz';
+import { closeLastClue, createConnectionQuestion, createQuiz, revealNextClue, revealNextQuestion } from '../../src/models/quiz';
+import { markAnswer, submitAnswer } from '../../src/models/answer';
 import { createTeam, joinPlayerToTeam } from '../../src/models/team';
 const cypressFirebasePlugin = require('cypress-firebase').plugin;
+
+export interface CreateConnectionQuestionResult {
+  questionId: string;
+  clueIds: [string, string, string, string];
+}
 
 const config: Cypress.PluginConfig = (on, config) => {
   // `on` is used to hook into various events Cypress emits
@@ -30,6 +36,68 @@ const config: Cypress.PluginConfig = (on, config) => {
         passcode,
         ownerId,
         admin.app().firestore() as unknown as firebase.firestore.Firestore,
+      );
+    },
+
+    createConnectionQuestion({ quizId, question }) {
+      return createConnectionQuestion(
+        quizId,
+        question,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
+        admin.firestore.FieldValue.arrayUnion as unknown as typeof firebase.firestore.FieldValue.arrayUnion,
+      );
+    },
+
+    revealNextClue({ quizId, nextClueId, currentClueId }) {
+      return revealNextClue(
+        quizId,
+        nextClueId,
+        currentClueId,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
+        admin.firestore.FieldValue.serverTimestamp as unknown as typeof firebase.firestore.FieldValue.serverTimestamp,
+      );
+    },
+
+    revealNextQuestion({ quizId, nextQuestionId, currentClueId }) {
+      return revealNextQuestion(
+        quizId,
+        nextQuestionId,
+        currentClueId,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
+        admin.firestore.FieldValue.serverTimestamp,
+      );
+    },
+
+    closeLastClue({ quizId, currentClueId }) {
+      return closeLastClue(
+        quizId,
+        currentClueId,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
+        admin.firestore.FieldValue.serverTimestamp,
+      );
+    },
+
+    submitAnswer({ quizId, questionId, clueId, teamId, text }) {
+      return submitAnswer(
+        quizId,
+        questionId,
+        clueId,
+        teamId,
+        text,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
+        admin.firestore.FieldValue.serverTimestamp,
+      );
+    },
+
+    markAnswer({ quizId, answerId, teamId, correct, score }) {
+      return markAnswer(
+        quizId,
+        answerId,
+        teamId,
+        correct,
+        score,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
+        admin.firestore.FieldValue.increment as typeof firebase.firestore.FieldValue.increment,
       );
     },
 
