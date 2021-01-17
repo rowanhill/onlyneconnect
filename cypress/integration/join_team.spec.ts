@@ -39,6 +39,8 @@ describe('Join a team page', () => {
         cy.get('[data-cy="submit"]').click();
 
         cy.contains('Something went wrong');
+        cy.get('[data-cy="passcode"]').should('not.be.disabled');
+        cy.get('[data-cy="submit"]').should('not.be.disabled');
     });
 
     it('informs users if they are already a member of the team', () => {

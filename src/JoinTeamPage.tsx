@@ -79,6 +79,7 @@ const JoinTeamForm = ({ teamId, quizId }: { teamId: string; quizId: string; }) =
         .catch((error) => {
             console.error("Could not join team", error);
             setErrorMessage('Something went wrong. Could not join team. Did you get the passcode right?');
+            setDisabled(false);
         });
     };
 
