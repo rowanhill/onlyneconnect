@@ -3,7 +3,7 @@ import { useDocumentData } from 'react-firebase-hooks/firestore';
 import { Link } from 'react-router-dom';
 import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
-import { CollectionQueryData, CollectionQueryItem, CollectionQueryResult, useCollectionResult } from './hooks/useCollectionResult';
+import { CollectionQueryItem, CollectionQueryResult, useCollectionResult } from './hooks/useCollectionResult';
 import { Answer, Clue, PlayerTeam, Question, Quiz, Team } from './models';
 import { Card } from './Card';
 import { Page } from './Page';
@@ -11,6 +11,13 @@ import { PrimaryButton } from './Button';
 import styles from './QuizPage.module.css';
 import { closeLastClue, revealNextClue, revealNextQuestion } from './models/quiz';
 import { markAnswer, submitAnswer } from './models/answer';
+import {
+    QuizContext, useQuizContext,
+    QuestionsContext, useQuestionsContext,
+    CluesContext, useCluesContext,
+    TeamsContext, useTeamsContext,
+    AnswersContext, useAnswersContext,
+ } from './contexts/quizPage';
 
 interface QuizPageProps {
     quizId: string;
@@ -127,84 +134,67 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
         const joinQuizUrl = isQuizOwner ? new URL(`/quiz/${quizId}/create-team`, window.location.href) : undefined;
         return (
             <>
+            <QuizContext.Provider value={{ quizId, quiz: quizData }}>
+            <QuestionsContext.Provider value={questionsResult}>
+            <CluesContext.Provider value={cluesResult}>
+            <TeamsContext.Provider value={teamsResult}>
+            <AnswersContext.Provider value={answersResult}>
                 <div className={styles.leftPanel}>
                     <div>
                         <h1 className={styles.pageTitle}>{quizData.name}</h1>
                         {joinTeamUrl && <p>Invite others to your team with this link: {joinTeamUrl.href}</p>}
                         {joinQuizUrl && <p>Invite team captains to your quiz with this link: {joinQuizUrl.href}</p>}
                     </div>
-                    {isQuizOwner ?
-                        <>
-                            <CurrentQuestion
-                                currentQuestionItem={currentQuestionItem}
-                                questionsError={questionsResult.error}
-                                cluesResult={cluesResult}
-                            />
-                            <QuizControls
-                                questionsData={questionsResult.data}
-                                currentQuestionItem={currentQuestionItem}
-                                cluesResult={cluesResult}
-                                quizId={quizId}
-                                quiz={quizData}
-                            />
-                        </> :
-                        <>
-                            <CurrentQuestion
-                                currentQuestionItem={currentQuestionItem}
-                                questionsError={questionsResult.error}
-                                cluesResult={cluesResult}
-                            />
-                        </> 
+                    <CurrentQuestion currentQuestionItem={currentQuestionItem} />
+                    {isQuizOwner &&
+                        <QuizControls currentQuestionItem={currentQuestionItem} />
                     }
                 </div>
                 <div className={styles.rightPanel}>
-                    <Scoreboard quizId={quizId} teamsResult={teamsResult} />
+                    <Scoreboard />
                     <Card className={styles.answersCard}>
-                        <AnswersHistory
-                            answersResult={answersResult}
-                            cluesResult={cluesResult}
-                            questionsResult={questionsResult}
-                            teamsResult={teamsResult}
-                            isQuizOwner={isQuizOwner}
-                            quizId={quizId}
-                            quiz={quizData}
-                        />
+                        <AnswersHistory isQuizOwner={isQuizOwner} />
                         {isCaptain &&
                             <AnswerSubmitBox
-                                quizId={quizId}
                                 teamId={playerTeamData!.teamId}
                                 questionItem={currentQuestionItem}
                                 clueItem={currentClueItem}
-                                answersResult={answersResult}
                             />}
                     </Card>
                 </div>
+            </AnswersContext.Provider>
+            </TeamsContext.Provider>
+            </CluesContext.Provider>
+            </QuestionsContext.Provider>
+            </QuizContext.Provider>
             </>
         );
     }
     return <Page className={styles.quizPage}>{inner()}</Page>;
 };
 
-const QuizControls = ({ questionsData, currentQuestionItem, quizId, quiz, cluesResult }: { questionsData?: CollectionQueryData<Question>; currentQuestionItem?: CollectionQueryItem<Question>; quizId: string; quiz: Quiz; cluesResult: CollectionQueryResult<Clue>; }) => {
+const QuizControls = ({ currentQuestionItem }: { currentQuestionItem?: CollectionQueryItem<Question>; }) => {
+    const { data: questionsData } = useQuestionsContext();
     if (!questionsData) {
         return null;
     }
     if (currentQuestionItem) {
         return (
             <div className={styles.quizControls} data-cy="quiz-controls">
-                <RevelationControls quizId={quizId} quiz={quiz} questionsData={questionsData} currentQuestionItem={currentQuestionItem} cluesResult={cluesResult} />
+                <RevelationControls currentQuestionItem={currentQuestionItem} />
             </div>
         );
     } else {
         return (
             <div className={styles.quizControls} data-cy="quiz-controls">
-                <StartQuizButton quizId={quizId} quiz={quiz} />
+                <StartQuizButton />
             </div>
         );
     }
 };
 
-const StartQuizButton = ({ quizId, quiz }: { quizId: string; quiz: Quiz; }) => {
+const StartQuizButton = () => {
+    const { quizId, quiz } = useQuizContext();
     const [disabled, setDisabled] = useState(false);
     const unmounted = useRef(false);
     useEffect(() => () => { unmounted.current = true; }, []);
@@ -230,13 +220,15 @@ const StartQuizButton = ({ quizId, quiz }: { quizId: string; quiz: Quiz; }) => {
     return <PrimaryButton disabled={disabled} onClick={startQuiz}>Start quiz</PrimaryButton>;
 };
 
-const RevelationControls = ({ quizId, quiz, questionsData, currentQuestionItem, cluesResult }: { quizId: string; quiz: Quiz; questionsData: CollectionQueryData<Question>; currentQuestionItem: CollectionQueryItem<Question>; cluesResult: CollectionQueryResult<Clue>; }) => {
-    const { data: clues, loading, error } = cluesResult;
+const RevelationControls = ({ currentQuestionItem }: { currentQuestionItem: CollectionQueryItem<Question>; }) => {
+    const { quizId, quiz } = useQuizContext();
+    const { data: questionsData } = useQuestionsContext();
+    const { data: clues, loading, error } = useCluesContext();
     const [disabled, setDisabled] = useState(false);
     if (error) {
         return <div><strong>There was an error loading the clues! Please try again</strong></div>;
     }
-    if (loading || !clues) {
+    if (loading || !clues || !questionsData) {
         return <div>Loading clues</div>;
     }
     
@@ -336,7 +328,8 @@ const RevelationControls = ({ quizId, quiz, questionsData, currentQuestionItem, 
     );
 };
 
-const CurrentQuestion = ({ currentQuestionItem, questionsError, cluesResult }: { currentQuestionItem?: CollectionQueryItem<Question>; questionsError?: Error; cluesResult: CollectionQueryResult<Clue>; }) => {
+const CurrentQuestion = ({ currentQuestionItem }: { currentQuestionItem?: CollectionQueryItem<Question>; }) => {
+    const { error: questionsError } = useQuestionsContext();
     function inner() {
         if (currentQuestionItem === undefined) {
             return <>Waiting for quiz to start...</>;
@@ -344,13 +337,13 @@ const CurrentQuestion = ({ currentQuestionItem, questionsError, cluesResult }: {
         if (questionsError) {
             return <strong>There was an error loading the question! Please try again.</strong>;
         }
-        return <QuestionClues currentQuestionItem={currentQuestionItem} cluesResult={cluesResult} />;
+        return <QuestionClues currentQuestionItem={currentQuestionItem} />;
     }
     return <Card className={styles.questionPanel} data-cy="clue-holder">{inner()}</Card>;
 };
 
-const QuestionClues = ({ currentQuestionItem, cluesResult }: { currentQuestionItem: CollectionQueryItem<Question>; cluesResult: CollectionQueryResult<Clue>; }) => {
-    const { data: clues, loading, error } = cluesResult;
+const QuestionClues = ({ currentQuestionItem }: { currentQuestionItem: CollectionQueryItem<Question>; }) => {
+    const { data: clues, loading, error } = useCluesContext();
     if (error) {
         return <strong>There was an error loading the clues! Please try again</strong>;
     }
@@ -383,8 +376,9 @@ const QuestionClues = ({ currentQuestionItem, cluesResult }: { currentQuestionIt
     );
 };
 
-const Scoreboard = ({ quizId, teamsResult }: { quizId: string; teamsResult: CollectionQueryResult<Team>; }) => {
-    const { data: teamsData, loading, error } = teamsResult;
+const Scoreboard = () => {
+    const { quizId } = useQuizContext();
+    const { data: teamsData, loading, error } = useTeamsContext();
     if (error) {
         console.error(error);
         return <div><strong>There was an error loading the scoreboard! Please try again</strong></div>;
@@ -410,11 +404,12 @@ const Scoreboard = ({ quizId, teamsResult }: { quizId: string; teamsResult: Coll
 };
 
 interface AnswerMeta { answer: CollectionQueryItem<Answer>; valid: boolean; clueIndex: number; }
-const AnswersHistory = ({ answersResult, cluesResult, questionsResult, teamsResult, isQuizOwner, quizId, quiz }: { answersResult: CollectionQueryResult<Answer>; cluesResult: CollectionQueryResult<Clue>; questionsResult: CollectionQueryResult<Question>; teamsResult: CollectionQueryResult<Team>; isQuizOwner: boolean; quizId: string; quiz: Quiz }) => {
-    const { data: answersData, loading: answersLoading, error: answersError } = answersResult;
-    const { data: cluesData, loading: cluesLoading, error: cluesError } = cluesResult;
-    const { data: questionsData, loading: questionsLoading, error: questionsError } = questionsResult;
-    const { data: teamsData } = teamsResult;
+const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
+    const { quizId, quiz } = useQuizContext();
+    const { data: answersData, loading: answersLoading, error: answersError } = useAnswersContext();
+    const { data: cluesData, loading: cluesLoading, error: cluesError } = useCluesContext();
+    const { data: questionsData, loading: questionsLoading, error: questionsError } = useQuestionsContext();
+    const { data: teamsData } = useTeamsContext();
     if (answersError || cluesError || questionsError) {
         return <div className={styles.answersHistory}><strong>There was an error loading your answers! Please try again</strong></div>;
     }
@@ -552,7 +547,9 @@ function hasAnsweredQuestionCorrectly(
     return answersResult.data.some((answer) => answer.data.questionId === questionItem.id && answer.data.teamId === teamId && answer.data.correct === true);
 }
 
-const AnswerSubmitBox = ({ quizId, teamId, questionItem, clueItem, answersResult }: { quizId: string; teamId: string; questionItem: CollectionQueryItem<Question>|undefined; clueItem: CollectionQueryItem<Clue>|undefined; answersResult: CollectionQueryResult<Answer>; }) => {
+const AnswerSubmitBox = ({ teamId, questionItem, clueItem }: { teamId: string; questionItem: CollectionQueryItem<Question>|undefined; clueItem: CollectionQueryItem<Clue>|undefined; }) => {
+    const { quizId } = useQuizContext();
+    const answersResult = useAnswersContext();
     const [answerText, setAnswerText] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const hasReachedLimit = hasReachedAnswerLimit(clueItem, questionItem, answersResult, teamId);
