@@ -1,5 +1,6 @@
 describe('Creating quiz team page', () => {
     beforeEach(() => {
+        cy.login();
         cy.callFirestore('delete', 'quizzes', { recursive: true });
         cy.callFirestore('delete', 'quizSecrets', { recursive: true });
         cy.callFirestore('delete', 'teams', { recursive: true });
