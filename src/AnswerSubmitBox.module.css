@@ -1,0 +1,8 @@
+.submitAnswerForm {
+    display: flex;
+    flex-direction: row;
+}
+.submitAnswerForm input {
+    flex-grow: 1;
+    margin-right: 0.5em;
+}

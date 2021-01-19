@@ -1,0 +1,8 @@
+.scoreboard ul {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+}
+.scoreboard h2 {
+    margin-bottom: 0.5em;
+}

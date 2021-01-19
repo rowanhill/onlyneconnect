@@ -17,88 +17,14 @@
     margin-right: 2em;
 }
 
-.questionPanel {
-    flex-grow: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    max-width: 43em;
-}
-
-.clue {
-    box-sizing: border-box;
-    border-radius: 5px;
-    font-size: 1.2rem;
-    width: calc(25% - 1em);
-    height: 5em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.revealedClue {
-    box-shadow: inset -1px -1px 7px 2px hsl(212 30% 57% / 1);
-    background-image: radial-gradient(ellipse at 480% 95%, hsl(196 90% 89% / 1) 0%, hsl(196 90% 91% / 1) 80%, rgb(221, 248, 253) 82%);
-    background-color: rgb(221, 248, 253);
-}
-
-.hiddenClue {
-    visibility: hidden;
-}
-
-.unrevealedClue {
-    border: 2px dashed #708fb2;
-    opacity: 0.6;
-}
-
 .rightPanel {
     display: flex;
     flex-direction: column;
     min-width: 18em;
 }
 
-.scoreboard ul {
-    margin: 0;
-    padding: 0;
-    list-style-type: none;
-}
-.scoreboard h2 {
-    margin-bottom: 0.5em;
-}
-
 .answersCard {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-}
-
-.answersHistory {
-    flex-grow: 1;
-    overflow: auto;
-}
-
-.answer {
-    display: flex;
-    flex-direction: row;
-}
-
-.submitAnswerForm {
-    display: flex;
-    flex-direction: row;
-}
-.submitAnswerForm input {
-    flex-grow: 1;
-    margin-right: 0.5em;
-}
-
-.invalidAnswer {
-    text-decoration: line-through;
-}
-
-.answerInfo {
-    flex-grow: 1;
-}
-
-.quizControls {
-    composes: mediumTopMargin from './layout.module.css';
 }
