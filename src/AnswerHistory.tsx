@@ -2,14 +2,16 @@ import React from 'react';
 import { PrimaryButton } from './Button';
 import { useAnswersContext, useCluesContext, useQuestionsContext, useQuizContext, useTeamsContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { Answer } from './models';
+import { Answer, Question } from './models';
 import { markAnswer } from './models/answer';
 import styles from './AnswerHistory.module.css';
+import { calculateScore } from './answerScoreCalculator';
 
 interface AnswerMeta {
     answer: CollectionQueryItem<Answer>;
     valid: boolean;
     clueIndex: number;
+    question: Question;
 }
 
 export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
@@ -37,7 +39,7 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
             (!clue.data.closedAt || answer.data.submittedAt.toMillis() <= clue.data.closedAt.toMillis());
         const question = questionsById[answer.data.questionId];
         const clueIndex = question.data.clueIds.indexOf(answer.data.clueId);
-        acc[answer.data.questionId].push({ answer, valid, clueIndex });
+        acc[answer.data.questionId].push({ answer, valid, clueIndex, question: question.data });
         return acc;
     }, {} as { [id: string]: AnswerMeta[]});
     const answerGroups = quiz.questionIds
@@ -82,7 +84,7 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
         });
     };
     const markCorrect = (answerMeta: AnswerMeta) => {
-        const score = 5 - answerMeta.clueIndex;
+        const score = calculateScore(answerMeta.question, answerMeta.clueIndex);
         markAnswerWithScoreAndCorrect(answerMeta, score, true);
     };
     const markIncorrect = (answerMeta: AnswerMeta) => {

@@ -1,10 +1,10 @@
-import { ConnectionQuestionSpec } from "../../src/models/quiz";
-import { CreateConnectionQuestionResult } from "../plugins";
+import { ConnectionQuestionSpec, SequenceQuestionSpec } from "../../src/models/quiz";
+import { CreateConnectionOrSequenceQuestionResult } from "../plugins";
 
 describe('The quiz page', () => {
     let quizId: string;
     let teamId: string;
-    let questionAndClueIds: Array<CreateConnectionQuestionResult>;
+    let questionAndClueIds: Array<CreateConnectionOrSequenceQuestionResult>;
     beforeEach(() => {
         cy.login();
         cy.task<string>('createQuiz', {
@@ -15,6 +15,7 @@ describe('The quiz page', () => {
             quizId = id;
 
             const question1: ConnectionQuestionSpec = {
+                type: 'connection',
                 answerLimit: null,
                 clues: [
                     { answerLimit: 1, text: 'Q1 C1' },
@@ -23,22 +24,22 @@ describe('The quiz page', () => {
                     { answerLimit: 1, text: 'Q1 C4' },
                 ],
             };
-            return cy.task<CreateConnectionQuestionResult>('createConnectionQuestion', {
+            return cy.task<CreateConnectionOrSequenceQuestionResult>('createConnectionOrSequenceQuestion', {
                 quizId,
                 question: question1,
             });
         }).then((ids) => {
             questionAndClueIds = [ids];
-            const question2: ConnectionQuestionSpec = {
+            const question2: SequenceQuestionSpec = {
+                type: 'sequence',
                 answerLimit: null,
                 clues: [
                     { answerLimit: 1, text: 'Q2 C1' },
                     { answerLimit: 1, text: 'Q2 C2' },
                     { answerLimit: 1, text: 'Q2 C3' },
-                    { answerLimit: 1, text: 'Q2 C4' },
                 ],
             };
-            return cy.task<CreateConnectionQuestionResult>('createConnectionQuestion', {
+            return cy.task<CreateConnectionOrSequenceQuestionResult>('createConnectionOrSequenceQuestion', {
                 quizId,
                 question: question2,
             });
@@ -69,6 +70,7 @@ describe('The quiz page', () => {
     const answerSubmit = () => cy.get('[data-cy="answer-submit"]');
     const revealedClues = () => cy.get('[data-cy^="revealed-clue"]');
     const unrevealedClues = () => cy.get('[data-cy^="unrevealed-clue"]');
+    const finalClue = () => cy.get('[data-cy="last-clue"]');
     const answersHistory = () => cy.get('[data-cy="answers-history"]');
     const submittedAnswer = (id) => cy.get(`[data-cy="submitted-answer-${id}"]`);
     const scoreboard = () => cy.get('[data-cy="scoreboard"]');
@@ -93,7 +95,7 @@ describe('The quiz page', () => {
         let questionId = questionAndClueIds[0].questionId;
         let clueIds = questionAndClueIds[0].clueIds;
         cy.task('revealNextQuestion', { quizId, nextQuestionId: questionId });
-        cy.contains('Waiting for first clue');
+        cy.contains('Waiting for question to start');
         expectRevealedCluesToBe([]);
 
         // Owner shows first clue
@@ -138,15 +140,16 @@ describe('The quiz page', () => {
         questionId = questionAndClueIds[1].questionId;
         cy.task('revealNextQuestion', { quizId, nextQuestionId: questionId, currentClueId: clueIds[3] });
         clueIds = questionAndClueIds[1].clueIds;
-        cy.contains('Waiting for first clue');
+        cy.contains('Waiting for question to start');
         expectRevealedCluesToBe([]);
 
         // Onwer shows clues and ends quiz
         cy.task('revealNextClue', { quizId, nextClueId: clueIds[0] });
         cy.task('revealNextClue', { quizId, nextClueId: clueIds[1], currentClueId: clueIds[0] });
         cy.task('revealNextClue', { quizId, nextClueId: clueIds[2], currentClueId: clueIds[1] });
-        cy.task('revealNextClue', { quizId, nextClueId: clueIds[3], currentClueId: clueIds[2] });
-        cy.task('closeLastClue', { quizId, currentClueId: clueIds[3] });
+        expectRevealedCluesToBe(['Q2 C1', 'Q2 C2', 'Q2 C3']);
+        finalClue().should('contain.text', '?');
+        cy.task('closeLastClue', { quizId, currentClueId: clueIds[2] });
     });
 
     describe('as team captain', () => {
@@ -207,7 +210,7 @@ describe('The quiz page', () => {
             // Start the next question and show the first clue
             quizControls().contains('Next question').click();
             expectRevealedCluesToBe([]);
-            expectUnrevealedCluesToBe(['(Q2 C1)', '(Q2 C2)', '(Q2 C3)', '(Q2 C4)']);
+            expectUnrevealedCluesToBe(['(Q2 C1)', '(Q2 C2)', '(Q2 C3)']);
             quizControls().contains('Next clue').click();
 
             // A team captain submits an answer

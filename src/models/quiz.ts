@@ -1,4 +1,5 @@
 import firebase from 'firebase';
+import { Four, Three } from '.';
 
 export const createQuiz = (
     quizName: string,
@@ -23,55 +24,45 @@ export interface ClueSpec {
 export interface ConnectionQuestionSpec {
     id?: string;
     answerLimit: number | null;
-    clues: [ClueSpec, ClueSpec, ClueSpec, ClueSpec];
+    clues: Four<ClueSpec>;
+    type: 'connection';
 }
 
-export const createConnectionQuestion = (
+export interface SequenceQuestionSpec {
+    id?: string;
+    answerLimit: number | null;
+    clues: Three<ClueSpec>;
+    type: 'sequence';
+}
+
+export const createConnectionOrSequenceQuestion = (
     quizId: string,
-    question: ConnectionQuestionSpec,
+    question: ConnectionQuestionSpec | SequenceQuestionSpec,
     db: firebase.firestore.Firestore = firebase.app().firestore(),
     arrayUnion = firebase.firestore.FieldValue.arrayUnion,
 ) => {
     const batch = db.batch();
 
     const quizDoc = db.doc(`quizzes/${quizId}`);
-    const clue1Doc = db.collection(`quizzes/${quizId}/clues`).doc();
-    const clue2Doc = db.collection(`quizzes/${quizId}/clues`).doc();
-    const clue3Doc = db.collection(`quizzes/${quizId}/clues`).doc();
-    const clue4Doc = db.collection(`quizzes/${quizId}/clues`).doc();
+    const clueAndDocs = question.clues.map((clue) => ({ clue, doc: db.collection(`quizzes/${quizId}/clues`).doc() }));
+
     const questionDoc = db.collection(`quizzes/${quizId}/questions`).doc();
-
-    const clueIds = [clue1Doc.id, clue2Doc.id, clue3Doc.id, clue4Doc.id];
-
+    const clueIds = clueAndDocs.map((cad) => cad.doc.id);
     batch.set(questionDoc, {
+        type: question.type,
         answerLimit: question.answerLimit,
         isRevealed: false,
         clueIds,
     });
-    batch.set(clue1Doc, {
-        questionId: questionDoc.id,
-        isRevealed: false,
-        text: question.clues[0].text,
-        answerLimit: question.clues[0].answerLimit,
-    });
-    batch.set(clue2Doc, {
-        questionId: questionDoc.id,
-        isRevealed: false,
-        text: question.clues[1].text,
-        answerLimit: question.clues[1].answerLimit,
-    });
-    batch.set(clue3Doc, {
-        questionId: questionDoc.id,
-        isRevealed: false,
-        text: question.clues[2].text,
-        answerLimit: question.clues[2].answerLimit,
-    });
-    batch.set(clue4Doc, {
-        questionId: questionDoc.id,
-        isRevealed: false,
-        text: question.clues[3].text,
-        answerLimit: question.clues[3].answerLimit,
-    });
+
+    for (const { clue, doc } of clueAndDocs) {
+        batch.set(doc, {
+            questionId: questionDoc.id,
+            isRevealed: false,
+            text: clue.text,
+            answerLimit: clue.answerLimit,
+        });
+    }
     batch.update(quizDoc, {
         questionIds: arrayUnion(questionDoc.id),
     });

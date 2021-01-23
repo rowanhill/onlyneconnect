@@ -23,10 +23,25 @@ export interface QuizSecrets {
     passcode: string;
 }
 
-export interface Question {
-    clueIds: string[];
+export type Four<T> = [T, T, T, T];
+export type Three<T> = [T, T, T];
+export interface ConnectionQuestion {
+    clueIds: Four<string>;
     isRevealed: boolean;
     answerLimit: number|null;
+    type: 'connection';
+}
+export interface SequenceQuestion {
+    clueIds: Three<string>;
+    isRevealed: boolean;
+    answerLimit: number|null;
+    type: 'sequence';
+}
+export type Question = ConnectionQuestion | SequenceQuestion;
+
+export function throwBadQuestionType(question: never): never;
+export function throwBadQuestionType(question: Question) {
+    throw new Error(`Unhandled question type: ${question.type}`);
 }
 
 export interface Clue {

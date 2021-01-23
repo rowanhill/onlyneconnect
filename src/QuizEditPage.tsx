@@ -5,12 +5,12 @@ import firebase from './firebase';
 import { createChangeHandler } from './forms/changeHandler';
 import { useAuth } from './hooks/useAuth';
 import { CollectionQueryData, useCollectionResult } from './hooks/useCollectionResult';
-import { Clue, Question, Quiz, QuizSecrets } from './models';
+import { Clue, Four, Question, Quiz, QuizSecrets, Three, throwBadQuestionType } from './models';
 import { Page } from './Page';
 import { Card } from './Card';
 import { PrimaryButton } from './Button';
 import styles from './QuizEditPage.module.css';
-import { createConnectionQuestion } from './models/quiz';
+import { createConnectionOrSequenceQuestion } from './models/quiz';
 
 interface QuizEditPageProps {
     quizId: string;
@@ -59,10 +59,17 @@ interface EditableClue {
     answerLimit: number | null;
 }
 
-interface EditableQuestion {
+interface EditableConnectionQuestion {
+    type: 'connection';
     answerLimit: number | null;
-    clues: [EditableClue, EditableClue, EditableClue, EditableClue];
+    clues: Four<EditableClue>;
 }
+interface EditableSequenceQuestion {
+    type: 'sequence';
+    answerLimit: number | null;
+    clues: Three<EditableClue>;
+}
+type EditableQuestion = EditableConnectionQuestion | EditableSequenceQuestion;
 
 const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
         quizId: string;
@@ -97,12 +104,25 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
         }
     };
 
-    const addNewQuestion = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const addNewConnectionQuestion = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         setNewQuestion({
+            type: 'connection',
             answerLimit: null,
             clues: [
                 { text: '', answerLimit: 1 },
+                { text: '', answerLimit: 1 },
+                { text: '', answerLimit: 1 },
+                { text: '', answerLimit: 1 },
+            ],
+        });
+    };
+    const addNewSequenceQuestion = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        setNewQuestion({
+            type: 'sequence',
+            answerLimit: null,
+            clues: [
                 { text: '', answerLimit: 1 },
                 { text: '', answerLimit: 1 },
                 { text: '', answerLimit: 1 },
@@ -114,7 +134,16 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
         setNewQuestion(null);
     };
     const saveNewQuestion = (question: EditableQuestion) => {
-        createConnectionQuestion(quizId, question)
+        let promise;
+        switch (question.type) {
+            case 'connection':
+            case 'sequence':
+                promise = createConnectionOrSequenceQuestion(quizId, question);
+                break;
+            default:
+                throwBadQuestionType(question);
+        }
+        promise
             .then(() => setNewQuestion(null))
             .catch((error) => console.error('Failed to create question', error));
     };
@@ -191,12 +220,36 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
 
     const questionsById = Object.fromEntries(questions.map((q) => [q.id, q]));
     const cluesById = Object.fromEntries(clues.map((c) => [c.id, c]));
-    const questionsAndClues = quiz.questionIds
+    const editableQuestionAndIds: { editableQuestion: EditableQuestion; questionId: string; clueIds: string[]; }[] = quiz.questionIds
         .filter((id) => !!questionsById[id] && questionsById[id].data.clueIds.every((id) => !!cluesById[id]))
-        .map((id) => ({
-            question: questionsById[id],
-            clues: questionsById[id].data.clueIds.map((id) => cluesById[id].data) as [Clue, Clue, Clue, Clue],
-        }));
+        .map((id) => {
+            const question = questionsById[id].data;
+            let result;
+            if (question.type === 'connection') {
+                result = {
+                    editableQuestion: {
+                        type: question.type,
+                        answerLimit: question.answerLimit,
+                        clues: question.clueIds.map((id) => cluesById[id].data) as Four<Clue>,
+                    },
+                    questionId: id,
+                    clueIds: question.clueIds,
+                };
+            } else if (question.type === 'sequence') {
+                result = {
+                    editableQuestion: {
+                        type: question.type,
+                        answerLimit: question.answerLimit,
+                        clues: question.clueIds.map((id) => cluesById[id].data) as Three<Clue>,
+                    },
+                    questionId: id,
+                    clueIds: question.clueIds,
+                };
+            } else {
+                throwBadQuestionType(question);
+            }
+            return result;
+        });
 
     const joinQuizUrl = new URL(`/quiz/${quizId}/create-team`, window.location.href);
 
@@ -219,34 +272,37 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
             </Card>
             <div>
                 <h2>Questions</h2>
-                {questionsAndClues.map(({ question, clues }, questionIndex) => (
-                    expandedQuestions[question.id] === true ?
+                {editableQuestionAndIds.map(({ editableQuestion, questionId, clueIds }, questionIndex) => (
+                    expandedQuestions[questionId] === true ?
                         <QuestionForm
-                            key={question.id}
-                            initialQuestion={{ answerLimit: question.data.answerLimit, clues }}
+                            key={questionId}
+                            initialQuestion={editableQuestion}
                             questionNumber={questionIndex + 1}
-                            save={(updatedQ) => updateQuestion(question.id, question.data.clueIds, updatedQ)}
-                            remove={() => deleteQuestion(question.id, question.data.clueIds)}
-                            moveUp={questionIndex > 0 ? () => moveUp(question.id) : undefined}
-                            moveDown={questionIndex < questionsAndClues.length - 1 ? () => moveDown(question.id) : undefined}
-                            collapse={() => collapse(question.id)}
+                            save={(updatedQ) => updateQuestion(questionId, clueIds, updatedQ)}
+                            remove={() => deleteQuestion(questionId, clueIds)}
+                            moveUp={questionIndex > 0 ? () => moveUp(questionId) : undefined}
+                            moveDown={questionIndex < editableQuestionAndIds.length - 1 ? () => moveDown(questionId) : undefined}
+                            collapse={() => collapse(questionId)}
                         /> :
                         <CollapsedQuestion
-                            key={question.id}
-                            question={{ answerLimit: question.data.answerLimit, clues }}
+                            key={questionId}
+                            question={editableQuestion}
                             questionNumber={questionIndex + 1}
-                            expand={() => expand(question.id)}
+                            expand={() => expand(questionId)}
                         />
                 ))}
                 {newQuestion ?
                     <QuestionForm
                         initialQuestion={newQuestion}
-                        questionNumber={questionsAndClues.length + 1}
+                        questionNumber={editableQuestionAndIds.length + 1}
                         save={saveNewQuestion}
                         remove={clearNewQuestion}
                     />
                 :
-                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewQuestion}>Add question</PrimaryButton>
+                    <>
+                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewConnectionQuestion}>Add connection question</PrimaryButton>
+                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewSequenceQuestion}>Add sequence question</PrimaryButton>
+                    </>
                 }
             </div>
         </form>
@@ -287,7 +343,8 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
     const changeClue = (clueIndex: number, clue: EditableClue) => {
         setQuestion({
             ...question,
-            clues: question.clues.map((c, i) => i === clueIndex ? clue : c) as [EditableClue, EditableClue, EditableClue, EditableClue],
+            // Hack: it's a pain to get TS to realise the tuple length remains the same, so we cast as any
+            clues: question.clues.map((c, i) => i === clueIndex ? clue : c) as any,
         });
     };
     const changeAnswerLimit = (e: ChangeEvent<HTMLInputElement>) => {

@@ -13,14 +13,14 @@
 // the project's config changing)
 import * as admin from 'firebase-admin';
 import firebase from 'firebase';
-import { closeLastClue, createConnectionQuestion, createQuiz, revealNextClue, revealNextQuestion } from '../../src/models/quiz';
+import { closeLastClue, createConnectionOrSequenceQuestion, createQuiz, revealNextClue, revealNextQuestion } from '../../src/models/quiz';
 import { markAnswer, submitAnswer } from '../../src/models/answer';
 import { createTeam, joinPlayerToTeam } from '../../src/models/team';
 const cypressFirebasePlugin = require('cypress-firebase').plugin;
 
-export interface CreateConnectionQuestionResult {
+export interface CreateConnectionOrSequenceQuestionResult {
   questionId: string;
-  clueIds: [string, string, string, string];
+  clueIds: string[];
 }
 
 const config: Cypress.PluginConfig = (on, config) => {
@@ -39,8 +39,8 @@ const config: Cypress.PluginConfig = (on, config) => {
       );
     },
 
-    createConnectionQuestion({ quizId, question }) {
-      return createConnectionQuestion(
+    createConnectionOrSequenceQuestion({ quizId, question }) {
+      return createConnectionOrSequenceQuestion(
         quizId,
         question,
         admin.app().firestore() as unknown as firebase.firestore.Firestore,
