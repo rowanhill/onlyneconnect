@@ -53,7 +53,16 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
             acc[answer.data.teamId][answer.data.questionId] = [];
         }
         acc[answer.data.teamId][answer.data.questionId].push(answer);
-        acc[answer.data.teamId][answer.data.questionId].sort((a, b) => a.data.submittedAt.toMillis() - b.data.submittedAt.toMillis());
+        acc[answer.data.teamId][answer.data.questionId].sort((a, b) => {
+            if (!a.data.submittedAt && !b.data.submittedAt) {
+                return 0;
+            } else if (!b.data.submittedAt) {
+                return 1;
+            } else if (!a.data.submittedAt) {
+                return -1;
+            }
+            return a.data.submittedAt.toMillis() - b.data.submittedAt.toMillis();
+        });
         return acc;
     }, {} as { [teamId: string]: { [questionId: string]: CollectionQueryItem<Answer>[] } });
     const questionAnsweredEarlier = (answerMeta: AnswerMeta) => {
