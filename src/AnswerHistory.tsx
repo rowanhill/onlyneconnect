@@ -159,7 +159,7 @@ const AnswerInfo = (props: AnswerInfoProps) => {
     return (
         <div
             key={props.answer.id}
-            className={styles.answer + (props.answer.isValid ? '' : (' ' + styles.invalidAnswer))}
+            className={props.answer.isValid ? styles.answer : styles.invalidAnswer}
             data-cy={`submitted-answer-${props.answer.id}`}
         >
             <div className={styles.answerInfo}>
