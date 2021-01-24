@@ -131,7 +131,7 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
                                 }
                             </div>
                             {isQuizOwner && answerMeta.valid && !questionAnsweredCorrectlyElsewhereByTeam(answerMeta) &&
-                                <div>
+                                <div className={styles.markingButtons}>
                                     <PrimaryButton onClick={() => markCorrect(answerMeta)} disabled={!canBeMarkedCorrect(answerMeta)}>✔️</PrimaryButton>
                                     <PrimaryButton onClick={() => markIncorrect(answerMeta)} disabled={!canBeMarkedIncorrect(answerMeta)}>❌</PrimaryButton>
                                 </div>

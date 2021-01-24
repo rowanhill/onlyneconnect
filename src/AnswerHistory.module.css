@@ -1,6 +1,5 @@
 .answersHistory {
     flex-grow: 1;
-    overflow: auto;
 }
 
 .answer {
@@ -14,4 +13,8 @@
 
 .answerInfo {
     flex-grow: 1;
+}
+
+.markingButtons {
+    flex-shrink: 0;
 }
