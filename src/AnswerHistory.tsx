@@ -67,6 +67,18 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
         });
         return acc;
     }, {} as { [teamId: string]: { [questionId: string]: CollectionQueryItem<Answer>[] } });
+    const hasAnsweredCorrectlyByTeamByQuestion = answersData.reduce((acc, answer) => {
+        if (!acc[answer.data.questionId]) {
+            acc[answer.data.questionId] = {};
+        }
+        if (!acc[answer.data.questionId][answer.data.teamId]) {
+            acc[answer.data.questionId][answer.data.teamId] = false;
+        }
+        if (answer.data.correct === true) {
+            acc[answer.data.questionId][answer.data.teamId] = true;
+        }
+        return acc;
+    }, {} as { [questionId: string] : { [teamId: string]: boolean } });
 
     // True if the team has already answered this question correctly via a different answer
     const questionAnsweredCorrectlyElsewhereByTeam = (answerMeta: AnswerMeta) => {
@@ -77,9 +89,13 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
 
     // True if there are any previously submitted answers that have yet to be marked
     const earlierAnswersAreUnmarked = (answerMeta: AnswerMeta) => {
-        const previousQuestions = answersData
-            .filter((item) => item.data.submittedAt.toMillis() < answerMeta.answer.data.submittedAt.toMillis());
-        return previousQuestions.some((item) => item.data.correct === undefined);
+        const hasAnsweredCorrectlyByTeam = hasAnsweredCorrectlyByTeamByQuestion[answerMeta.answer.data.questionId];
+        const answerSubmittedAtMillis = answerMeta.answer.data.submittedAt.toMillis();
+        return answersData.some((item) => {
+            return item.data.correct === undefined && // Item is umarked...
+                item.data.submittedAt.toMillis() < answerSubmittedAtMillis && // ...and prior to answer...
+                !(hasAnsweredCorrectlyByTeam && hasAnsweredCorrectlyByTeam[item.data.teamId]); // ...and not by a team with correct answer elsewhere...
+        });
     };
 
     const canBeMarkedCorrect = (answerMeta: AnswerMeta) => {
