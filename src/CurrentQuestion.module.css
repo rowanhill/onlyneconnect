@@ -1,5 +1,8 @@
 .questionPanel {
     flex-grow: 1;
+}
+
+.cluesHolder {
     display: flex;
     align-items: center;
     justify-content: space-between;

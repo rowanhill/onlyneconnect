@@ -1,10 +1,10 @@
 import { Card } from './Card';
 import { useCluesContext, useQuestionsContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { CompoundTextClue, Question, TextClue, throwBadQuestionType } from './models';
+import { CompoundTextClue, Question, Quiz, TextClue, throwBadQuestionType } from './models';
 import styles from './CurrentQuestion.module.css';
 
-export const CurrentQuestion = ({ currentQuestionItem }: { currentQuestionItem?: CollectionQueryItem<Question>; }) => {
+export const CurrentQuestion = ({ currentQuestionItem, quiz }: { currentQuestionItem?: CollectionQueryItem<Question>; quiz: Quiz; }) => {
     const { error: questionsError } = useQuestionsContext();
     function inner() {
         if (currentQuestionItem === undefined) {
@@ -13,9 +13,31 @@ export const CurrentQuestion = ({ currentQuestionItem }: { currentQuestionItem?:
         if (questionsError) {
             return <strong>There was an error loading the question! Please try again.</strong>;
         }
-        return <QuestionClues currentQuestionItem={currentQuestionItem} />;
+        const currentQuestionNumber = quiz.questionIds.findIndex((questionId) => questionId === currentQuestionItem.id) + 1;
+        return (
+            <>
+                <h3>Question {currentQuestionNumber}</h3>
+                <QuestionInstructions currentQuestionItem={currentQuestionItem} />
+                <div className={styles.cluesHolder}>
+                    <QuestionClues currentQuestionItem={currentQuestionItem} />
+                </div>
+            </>
+        );
     }
     return <Card className={styles.questionPanel} data-cy="clue-holder">{inner()}</Card>;
+};
+
+const QuestionInstructions = ({ currentQuestionItem }: { currentQuestionItem: CollectionQueryItem<Question>; }) => {
+    switch (currentQuestionItem.data.type) {
+        case 'connection':
+            return <h4>Connection: what links these things?</h4>;
+        case 'sequence':
+            return <h4>Sequence: what comes fourth?</h4>;
+        case 'missing-vowels':
+            return <h4>Missing Vowels: what links these things?</h4>;
+        default:
+            throwBadQuestionType(currentQuestionItem.data);
+    }
 };
 
 const QuestionClues = ({ currentQuestionItem }: { currentQuestionItem: CollectionQueryItem<Question>; }) => {

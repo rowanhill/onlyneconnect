@@ -147,7 +147,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                         {joinTeamUrl && <p>Invite others to your team with this link: {joinTeamUrl.href}</p>}
                         {joinQuizUrl && <p>Invite team captains to your quiz with this link: {joinQuizUrl.href}</p>}
                     </div>
-                    <CurrentQuestion currentQuestionItem={currentQuestionItem} />
+                    <CurrentQuestion currentQuestionItem={currentQuestionItem} quiz={quizData} />
                     {isQuizOwner &&
                         <QuizControls currentQuestionItem={currentQuestionItem} />
                     }

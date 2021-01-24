@@ -3,19 +3,23 @@ import React from 'react';
 import { CluesContext, QuestionsContext } from './contexts/quizPage';
 import { CurrentQuestion } from './CurrentQuestion';
 import { CollectionQueryItem, CollectionQueryResult } from './hooks/useCollectionResult';
-import { Clue, ConnectionQuestion, Four, Question, SequenceQuestion, TextClue, Three } from './models';
+import { Clue, CompoundTextClue, ConnectionQuestion, Four, MissingVowelsQuestion, Question, Quiz, SequenceQuestion, TextClue, Three } from './models';
 
 describe('<CurrentQuestion>', () => {
     const questionId = 'q1';
     function textClue(options: Partial<TextClue> = {}): TextClue {
         return { answerLimit: 1, isRevealed: false, questionId, text: 'Clue text', type: 'text', ...options };
     }
+    function compoundTextClue(options: Partial<CompoundTextClue>): CompoundTextClue {
+        return { answerLimit: null, isRevealed: false, questionId, texts: ['1', '2', '3', '4'], type: 'compound-text', ...options };
+    }
 
     interface CurrentQuestionWithProvidersProps {
         question: CollectionQueryItem<Question>;
+        quiz?: Quiz;
         visibleClues: CollectionQueryItem<Clue>[];
     }
-    function CurrentQuestionWithProviders({ question, visibleClues }: CurrentQuestionWithProvidersProps) {
+    function CurrentQuestionWithProviders({ question, quiz, visibleClues }: CurrentQuestionWithProvidersProps) {
         const questionContext: CollectionQueryResult<Question> = {
             loading: false,
             error: undefined,
@@ -26,10 +30,11 @@ describe('<CurrentQuestion>', () => {
             error: undefined,
             data: visibleClues,
         };
+        const defaultedQuiz = quiz || { questionIds: question ? [question.id] : [] } as Quiz;
         return (
             <QuestionsContext.Provider value={questionContext}>
             <CluesContext.Provider value={cluesContext}>
-                <CurrentQuestion currentQuestionItem={question} />
+                <CurrentQuestion currentQuestionItem={question} quiz={defaultedQuiz} />
             </CluesContext.Provider>
             </QuestionsContext.Provider>
         );
@@ -41,8 +46,17 @@ describe('<CurrentQuestion>', () => {
     });
 
     it('shows a waiting message when no clues are revealed', () => {
-        render(<CurrentQuestionWithProviders question={'dummy q' as any} visibleClues={[]} />);
+        render(<CurrentQuestionWithProviders question={{ data: { type: 'connection' } } as any} visibleClues={[]} />);
         expect(screen.queryByText(/waiting for question to start/i)).toBeInTheDocument();
+    });
+
+    it('shows the question number as a title', () => {
+        render(<CurrentQuestionWithProviders
+            question={{ id: '123', data: { type: 'connection' } } as any}
+            quiz={{ questionIds: ['abc', '123', '456']} as Quiz}
+            visibleClues={[]}
+        />);
+        expect(screen.queryByText(/Question 2/i)).toBeInTheDocument();
     });
 
     describe('when the current question is a connection-type question', () => {
@@ -64,6 +78,11 @@ describe('<CurrentQuestion>', () => {
                     clueIds: clues.map(c => c.id) as Four<string>,
                 },
             };
+        });
+
+        it('shows an instruction', () => {
+            render(<CurrentQuestionWithProviders question={question} visibleClues={[]} />);
+            expect(screen.queryByText(/Connection: what links these things\?/i)).toBeInTheDocument();
         });
 
         it.each([[1], [2], [3], [4]])('shows all %i revealed clues', (numRevealed) => {
@@ -103,6 +122,11 @@ describe('<CurrentQuestion>', () => {
             };
         });
 
+        it('shows an instruction', () => {
+            render(<CurrentQuestionWithProviders question={question} visibleClues={[]} />);
+            expect(screen.queryByText(/Sequence: what comes fourth\?/i)).toBeInTheDocument();
+        });
+
         it.each([[1], [2]])('shows all %i revealed clues', (numRevealed) => {
             const visibleClues = clues.slice(0, numRevealed);
             for (const clue of visibleClues) {
@@ -133,6 +157,30 @@ describe('<CurrentQuestion>', () => {
                 expect(clueElements[index]).toHaveTextContent(clue.data.text);
             }
             expect(screen.getByText('?')).toBeInTheDocument();
+        });
+    });
+
+    describe('when the current question is a missing-vowels type question', () => {
+        let clue: CollectionQueryItem<CompoundTextClue>;
+        let question: CollectionQueryItem<MissingVowelsQuestion>;
+        beforeEach(() => {
+            clue = {
+                id: 'c1', data: compoundTextClue({ texts: ['Clue: A', 'Clue: B', 'Clue: C', 'Clue: D']})
+            };
+            question = {
+                id: questionId,
+                data: {
+                    type: 'missing-vowels',
+                    answerLimit: null,
+                    isRevealed: false,
+                    clueId: clue.id,
+                },
+            };
+        });
+
+        it('shows an instruction', () => {
+            render(<CurrentQuestionWithProviders question={question} visibleClues={[]} />);
+            expect(screen.queryByText(/Missing vowels: what links these things\?/i)).toBeInTheDocument();
         });
     });
 });

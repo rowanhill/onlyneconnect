@@ -7,6 +7,6 @@
     margin-top: 2em;
 }
 
-.card > h2 {
+.card > h2, .card > h3 {
     margin-top: 0;
 }
