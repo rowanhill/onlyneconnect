@@ -1,14 +1,57 @@
-import { Question, throwBadQuestionType } from './models';
+import { CollectionQueryItem } from './hooks/useCollectionResult';
+import { Answer, Question, throwBadQuestionType } from './models';
+import { AnswerUpdate } from './models/answer';
 
-export const calculateScore = (question: Question, clueIndex: number) => {
+const firstMissingVowelsScores = [4, 3, 3, 2, 2, 2];
+const findPointsForNthCorrectMissingVowelsAnswer = (n: number) => {
+    if (n < firstMissingVowelsScores.length) {
+        return firstMissingVowelsScores[n];
+    } else {
+        return 1;
+    }
+}
+
+export const calculateUpdatedScores = (
+    answer: CollectionQueryItem<Answer>,
+    correct: boolean,
+    question: Question,
+    clueIndex: number,
+    answers: CollectionQueryItem<Answer>[],
+): AnswerUpdate[] => {
     switch (question.type) {
         case 'connection':
         case 'sequence':
-            if (clueIndex === 0) {
-                return 5;
-            } else {
-                return 4 - clueIndex;
+            if (!correct) {
+                return [{ answerId: answer.id, score: 0, correct }];
             }
+            if (clueIndex === 0) {
+                return [{ answerId: answer.id, score: 5, correct }];
+            } else {
+                return [{ answerId: answer.id, score: 4 - clueIndex, correct }];
+            }
+        case 'missing-vowels':
+            const result = [];
+            let alteredAnswerHasBeenSeen = false;
+            let numCorrectAnswers = 0;
+            for (const answerItem of answers) {
+                if (answerItem.id === answer.id) {
+                    alteredAnswerHasBeenSeen = true;
+                    if (correct) {
+                        const newScore = findPointsForNthCorrectMissingVowelsAnswer(numCorrectAnswers);
+                        result.push({ answerId: answerItem.id, score: newScore, correct });
+                        numCorrectAnswers++;
+                    } else {
+                        result.push({ answerId: answerItem.id, score: 0, correct });
+                    }
+                } else if (answerItem.data.correct === true) {
+                    if (alteredAnswerHasBeenSeen) {
+                        const newScore = findPointsForNthCorrectMissingVowelsAnswer(numCorrectAnswers);
+                        result.push({ answerId: answerItem.id, score: newScore });
+                    }
+                    numCorrectAnswers++;
+                }
+            }
+            return result;
         default:
             throwBadQuestionType(question);
     }

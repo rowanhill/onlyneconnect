@@ -1,7 +1,7 @@
 import { Card } from './Card';
 import { useCluesContext, useQuestionsContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { Clue, Question, throwBadQuestionType } from './models';
+import { CompoundTextClue, Question, TextClue, throwBadQuestionType } from './models';
 import styles from './CurrentQuestion.module.css';
 
 export const CurrentQuestion = ({ currentQuestionItem }: { currentQuestionItem?: CollectionQueryItem<Question>; }) => {
@@ -31,25 +31,30 @@ const QuestionClues = ({ currentQuestionItem }: { currentQuestionItem: Collectio
         return <>Waiting for question to start...</>;
     }
     const questionCluesById = Object.fromEntries(questionClues.map((clue) => [clue.id, clue]));
-    const orderedClues = currentQuestionItem.data.clueIds
-        .map((id) => questionCluesById[id])
-        .filter((clue) => !!clue);
 
     switch (currentQuestionItem.data.type) {
         case 'connection':
-            return (<ConnectionClues clues={orderedClues} />);
         case 'sequence':
-            return (<SequenceClues clues={orderedClues} />);
+            const orderedClues = currentQuestionItem.data.clueIds
+                .map((id) => questionCluesById[id])
+                .filter((clue) => !!clue);
+            if (currentQuestionItem.data.type === 'connection') {
+                return (<ConnectionClues clues={orderedClues as Array<CollectionQueryItem<TextClue>>} />);
+            } else {
+                return (<SequenceClues clues={orderedClues as Array<CollectionQueryItem<TextClue>>} />);
+            }
+        case 'missing-vowels':
+            return (<MissingVowelsClues clue={questionCluesById[currentQuestionItem.data.clueId] as CollectionQueryItem<CompoundTextClue>} />)
         default:
             throwBadQuestionType(currentQuestionItem.data);
     }
 };
 
-const ConnectionClues = ({ clues }: { clues: Array<CollectionQueryItem<Clue>> }) => {
+const ConnectionClues = ({ clues }: { clues: Array<CollectionQueryItem<TextClue>> }) => {
     return (
         <>
         {clues.map((clue, i) => (
-            <VisibleClue key={clue.id} clue={clue} index={i} />
+            <VisibleClue key={clue.id} isRevealed={clue.data.isRevealed} text={clue.data.text} index={i} />
         ))}
         {arrayUpTo(4 - clues.length).map((n) => (
             <HiddenClue key={n} />
@@ -58,11 +63,11 @@ const ConnectionClues = ({ clues }: { clues: Array<CollectionQueryItem<Clue>> })
     );
 };
 
-const SequenceClues = ({ clues }: { clues: Array<CollectionQueryItem<Clue>> }) => {
+const SequenceClues = ({ clues }: { clues: Array<CollectionQueryItem<TextClue>> }) => {
     return (
         <>
         {clues.map((clue, i) => (
-            <VisibleClue key={clue.id} clue={clue} index={i} />
+            <VisibleClue key={clue.id} isRevealed={clue.data.isRevealed} text={clue.data.text} index={i} />
         ))}
         {clues.length === 3 && <LastInSequenceClue allOtherCluesRevealed={!clues.some((c) => !c.data.isRevealed)} />}
         {clues.length < 3 && arrayUpTo(4 - clues.length).map((n) => (
@@ -72,13 +77,23 @@ const SequenceClues = ({ clues }: { clues: Array<CollectionQueryItem<Clue>> }) =
     );
 };
 
-const VisibleClue = ({ clue, index }: { clue: CollectionQueryItem<Clue>; index: number; }) => {
+const MissingVowelsClues = ({ clue }: { clue: CollectionQueryItem<CompoundTextClue>; }) => {
+    return (
+        <>
+            {clue.data.texts.map((text, i) => 
+                <VisibleClue key={i} isRevealed={clue.data.isRevealed} text={text} index={i} />
+            )}
+        </>
+    );
+};
+
+const VisibleClue = ({ isRevealed, text, index }: { isRevealed: boolean; text: string; index: number; }) => {
     return (
         <div
-            className={clue.data.isRevealed ? styles.revealedClue : styles.unrevealedClue}
-            data-cy={clue.data.isRevealed ? `revealed-clue-${index}` : `unrevealed-clue-${index}`}
+            className={isRevealed ? styles.revealedClue : styles.unrevealedClue}
+            data-cy={isRevealed ? `revealed-clue-${index}` : `unrevealed-clue-${index}`}
         >
-            {clue.data.isRevealed ? clue.data.text : `(${clue.data.text})`}
+            {isRevealed ? text : `(${text})`}
         </div>
     );
 };

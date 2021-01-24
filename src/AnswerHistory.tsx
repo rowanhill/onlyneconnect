@@ -3,9 +3,9 @@ import { PrimaryButton } from './Button';
 import { useAnswersContext, useCluesContext, useQuestionsContext, useQuizContext, useTeamsContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
 import { Answer, Question } from './models';
-import { markAnswer } from './models/answer';
+import { AnswerUpdate, updateAnswers } from './models/answer';
 import styles from './AnswerHistory.module.css';
-import { calculateScore } from './answerScoreCalculator';
+import { calculateUpdatedScores } from './answerScoreCalculator';
 
 interface AnswerMeta {
     answer: CollectionQueryItem<Answer>;
@@ -38,7 +38,9 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
             answer.data.submittedAt.toMillis() >= clue.data.revealedAt.toMillis() &&
             (!clue.data.closedAt || answer.data.submittedAt.toMillis() <= clue.data.closedAt.toMillis());
         const question = questionsById[answer.data.questionId];
-        const clueIndex = question.data.clueIds.indexOf(answer.data.clueId);
+        const clueIndex = (question.data.type === 'connection' || question.data.type === 'sequence') ? 
+            question.data.clueIds.indexOf(answer.data.clueId) :
+            0;
         acc[answer.data.questionId].push({ answer, valid, clueIndex, question: question.data });
         return acc;
     }, {} as { [id: string]: AnswerMeta[]});
@@ -65,39 +67,50 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
         });
         return acc;
     }, {} as { [teamId: string]: { [questionId: string]: CollectionQueryItem<Answer>[] } });
-    const questionAnsweredEarlier = (answerMeta: AnswerMeta) => {
+
+    // True if the team has already answered this question correctly via a different answer
+    const questionAnsweredCorrectlyElsewhereByTeam = (answerMeta: AnswerMeta) => {
         const answersByQuestion = answersByQuestionByTeam[answerMeta.answer.data.teamId];
         const answers = answersByQuestion[answerMeta.answer.data.questionId];
-        for (const answer of answers) {
-            if (answer.id === answerMeta.answer.id) {
-                return false;
-            } else if (answer.data.correct === true) {
-                return true;
-            }
-        }
-        return false;
+        return answers.some((a) => a.data.correct === true && a.id !== answerMeta.answer.id);
+    }
+
+    // True if there are any previously submitted answers that have yet to be marked
+    const earlierAnswersAreUnmarked = (answerMeta: AnswerMeta) => {
+        const previousQuestions = answersData
+            .filter((item) => item.data.submittedAt.toMillis() < answerMeta.answer.data.submittedAt.toMillis());
+        return previousQuestions.some((item) => item.data.correct === undefined);
     };
-    const markAnswerWithScoreAndCorrect = (answerMeta: AnswerMeta, score: number, correct: boolean) => {
-        if (!answerMeta.valid) {
-            console.error(`Tried to mark invalid question as ${correct ? 'correct' : 'incorrect'} with ${score} points`, answerMeta);
-            return;
+
+    const canBeMarkedCorrect = (answerMeta: AnswerMeta) => {
+        if (answerMeta.answer.data.correct === true) {
+            return false;
         }
-        markAnswer(
-            quizId,
-            answerMeta.answer.id,
-            answerMeta.answer.data.teamId,
-            correct,
-            score,
-        ).catch((error) => {
-            console.error(`Error when marking answer ${answerMeta.answer.id} as ${correct ? 'correct' : 'incorrect'} with ${score} points`, error);
-        });
+        if (answerMeta.question.type === 'missing-vowels' && earlierAnswersAreUnmarked(answerMeta)) {
+            return false;
+        }
+        return true;
+    };
+    const canBeMarkedIncorrect = (answerMeta: AnswerMeta) => {
+        if (answerMeta.answer.data.correct === false) {
+            return false;
+        }
+        return true;
+    }
+
+    const updateAnswerScoresAndCorrectFlags = (answerUpdates: AnswerUpdate[]) => {
+        updateAnswers(quizId, answerUpdates)
+            .catch((error) => {
+                console.error('Error when updating answers', error);
+            });
     };
     const markCorrect = (answerMeta: AnswerMeta) => {
-        const score = calculateScore(answerMeta.question, answerMeta.clueIndex);
-        markAnswerWithScoreAndCorrect(answerMeta, score, true);
+        const updates = calculateUpdatedScores(answerMeta.answer, true, answerMeta.question, answerMeta.clueIndex, answersData);
+        updateAnswerScoresAndCorrectFlags(updates);
     };
     const markIncorrect = (answerMeta: AnswerMeta) => {
-        markAnswerWithScoreAndCorrect(answerMeta, 0, false);
+        const updates = calculateUpdatedScores(answerMeta.answer, false, answerMeta.question, answerMeta.clueIndex, answersData);
+        updateAnswerScoresAndCorrectFlags(updates);
     };
     return (
         <div className={styles.answersHistory} data-cy="answers-history">
@@ -117,10 +130,10 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
                                     <>({answerMeta.answer.data.points !== undefined ? answerMeta.answer.data.points : 'unscored'})</>
                                 }
                             </div>
-                            {isQuizOwner && answerMeta.valid && !questionAnsweredEarlier(answerMeta) &&
+                            {isQuizOwner && answerMeta.valid && !questionAnsweredCorrectlyElsewhereByTeam(answerMeta) &&
                                 <div>
-                                    {answerMeta.answer.data.correct !== true && <PrimaryButton onClick={() => markCorrect(answerMeta)}>✔️</PrimaryButton>}
-                                    {answerMeta.answer.data.correct !== false && <PrimaryButton onClick={() => markIncorrect(answerMeta)}>❌</PrimaryButton>}
+                                    <PrimaryButton onClick={() => markCorrect(answerMeta)} disabled={!canBeMarkedCorrect(answerMeta)}>✔️</PrimaryButton>
+                                    <PrimaryButton onClick={() => markIncorrect(answerMeta)} disabled={!canBeMarkedIncorrect(answerMeta)}>❌</PrimaryButton>
                                 </div>
                             }
                         </div>

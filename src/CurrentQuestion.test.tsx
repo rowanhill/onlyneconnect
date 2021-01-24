@@ -3,12 +3,12 @@ import React from 'react';
 import { CluesContext, QuestionsContext } from './contexts/quizPage';
 import { CurrentQuestion } from './CurrentQuestion';
 import { CollectionQueryItem, CollectionQueryResult } from './hooks/useCollectionResult';
-import { Clue, ConnectionQuestion, Four, Question, SequenceQuestion, Three } from './models';
+import { Clue, ConnectionQuestion, Four, Question, SequenceQuestion, TextClue, Three } from './models';
 
 describe('<CurrentQuestion>', () => {
     const questionId = 'q1';
-    function clue(options: Partial<Clue> = {}): Clue {
-        return { answerLimit: 1, isRevealed: false, questionId, text: 'Clue text', ...options };
+    function textClue(options: Partial<TextClue> = {}): TextClue {
+        return { answerLimit: 1, isRevealed: false, questionId, text: 'Clue text', type: 'text', ...options };
     }
 
     interface CurrentQuestionWithProvidersProps {
@@ -47,13 +47,13 @@ describe('<CurrentQuestion>', () => {
 
     describe('when the current question is a connection-type question', () => {
         let question: CollectionQueryItem<ConnectionQuestion>;
-        let clues: Four<CollectionQueryItem<Clue>>;
+        let clues: Four<CollectionQueryItem<TextClue>>;
         beforeEach(() => {
             clues = [
-                { id: 'c1', data: clue({ text: 'Clue: ABC' }) },
-                { id: 'c2', data: clue({ text: 'Clue: DEF' }) },
-                { id: 'c3', data: clue({ text: 'Clue: GHI' }) },
-                { id: 'c4', data: clue({ text: 'Clue: JKL' }) },
+                { id: 'c1', data: textClue({ text: 'Clue: ABC' }) },
+                { id: 'c2', data: textClue({ text: 'Clue: DEF' }) },
+                { id: 'c3', data: textClue({ text: 'Clue: GHI' }) },
+                { id: 'c4', data: textClue({ text: 'Clue: JKL' }) },
             ];
             question = {
                 id: questionId,
@@ -85,12 +85,12 @@ describe('<CurrentQuestion>', () => {
 
     describe('when the current question is a sequence-type question', () => {
         let question: CollectionQueryItem<SequenceQuestion>;
-        let clues: Three<CollectionQueryItem<Clue>>;
+        let clues: Three<CollectionQueryItem<TextClue>>;
         beforeEach(() => {
             clues = [
-                { id: 'c1', data: clue({ text: 'Clue: ABC' }) },
-                { id: 'c2', data: clue({ text: 'Clue: DEF' }) },
-                { id: 'c3', data: clue({ text: 'Clue: GHI' }) },
+                { id: 'c1', data: textClue({ text: 'Clue: ABC' }) },
+                { id: 'c2', data: textClue({ text: 'Clue: DEF' }) },
+                { id: 'c3', data: textClue({ text: 'Clue: GHI' }) },
             ];
             question = {
                 id: questionId,

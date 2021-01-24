@@ -10,7 +10,10 @@ import { Page } from './Page';
 import { Card } from './Card';
 import { PrimaryButton } from './Button';
 import styles from './QuizEditPage.module.css';
-import { createConnectionOrSequenceQuestion } from './models/quiz';
+import {
+    CompoundClueSpec, ConnectionQuestionSpec, createConnectionOrSequenceQuestion, createMissingVowelsQuestion,
+    MissingVowelsQuestionSpec, SequenceQuestionSpec, TextClueSpec,
+} from './models/quiz';
 
 interface QuizEditPageProps {
     quizId: string;
@@ -54,22 +57,18 @@ export const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
     return <Page title={quizData ? `Edit ${quizData.name}` : 'Edit quiz'}>{inner()}</Page>;
 };
 
-interface EditableClue {
-    text: string;
-    answerLimit: number | null;
-}
+type ClueSpec = TextClueSpec | CompoundClueSpec;
+type QuestionSpec = ConnectionQuestionSpec | SequenceQuestionSpec | MissingVowelsQuestionSpec;
 
-interface EditableConnectionQuestion {
-    type: 'connection';
-    answerLimit: number | null;
-    clues: Four<EditableClue>;
-}
-interface EditableSequenceQuestion {
-    type: 'sequence';
-    answerLimit: number | null;
-    clues: Three<EditableClue>;
-}
-type EditableQuestion = EditableConnectionQuestion | EditableSequenceQuestion;
+function getClues(questionSpec: QuestionSpec): ClueSpec[] {
+    if (questionSpec.type === 'connection' || questionSpec.type === 'sequence') {
+        return questionSpec.clues;
+    } else if (questionSpec.type === 'missing-vowels') {
+        return [questionSpec.clue];
+    } else {
+        throwBadQuestionType(questionSpec);
+    }
+} 
 
 const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
         quizId: string;
@@ -83,7 +82,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
     const [passcode, setPasscode] = useState(secrets.passcode);
     const [isSubmittingQuiz, setIsSubmittingQuiz] = useState(false);
     const [isSubmittingSecrets, setIsSubmittingSecrets] = useState(false);
-    const [newQuestion, setNewQuestion] = useState<EditableQuestion|null>(null);
+    const [newQuestion, setNewQuestion] = useState<QuestionSpec|null>(null);
     const [expandedQuestions, setExpandedQuestions] = useState<{ [questionId: string]: true }>({});
 
     const submit = (e: FormEvent<HTMLFormElement>) => {
@@ -110,10 +109,10 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
             type: 'connection',
             answerLimit: null,
             clues: [
-                { text: '', answerLimit: 1 },
-                { text: '', answerLimit: 1 },
-                { text: '', answerLimit: 1 },
-                { text: '', answerLimit: 1 },
+                { text: '', answerLimit: 1, type: 'text' },
+                { text: '', answerLimit: 1, type: 'text' },
+                { text: '', answerLimit: 1, type: 'text' },
+                { text: '', answerLimit: 1, type: 'text' },
             ],
         });
     };
@@ -123,22 +122,33 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
             type: 'sequence',
             answerLimit: null,
             clues: [
-                { text: '', answerLimit: 1 },
-                { text: '', answerLimit: 1 },
-                { text: '', answerLimit: 1 },
+                { text: '', answerLimit: 1, type: 'text' },
+                { text: '', answerLimit: 1, type: 'text' },
+                { text: '', answerLimit: 1, type: 'text' },
             ],
+        });
+    };
+    const addNewMissingVowelsQuestion = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        setNewQuestion({
+            type: 'missing-vowels',
+            answerLimit: 5,
+            clue: { texts: ['', '', '', ''], answerLimit: null, type: 'compound-text' },
         });
     };
     const clearNewQuestion = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         setNewQuestion(null);
     };
-    const saveNewQuestion = (question: EditableQuestion) => {
-        let promise;
+    const saveNewQuestion = (question: QuestionSpec) => {
+        let promise: Promise<any>;
         switch (question.type) {
             case 'connection':
             case 'sequence':
                 promise = createConnectionOrSequenceQuestion(quizId, question);
+                break;
+            case 'missing-vowels':
+                promise = createMissingVowelsQuestion(quizId, question);
                 break;
             default:
                 throwBadQuestionType(question);
@@ -148,25 +158,43 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
             .catch((error) => console.error('Failed to create question', error));
     };
 
-    const updateQuestion = (questionId: string, clueIds: string[], question: EditableQuestion) => {
+    const updateQuestion = (oldSpec: QuestionSpec, newSpec: QuestionSpec) => {
+        if (oldSpec.id === undefined) {
+            throw new Error('Tried to update a question without an id');
+        }
+        if (oldSpec.type !== newSpec.type) {
+            throw new Error(`Tried to update a question from type ${oldSpec.type} to ${newSpec.type}`);
+        }
+        const questionId = oldSpec.id;
         const batch = db.batch();
         batch.update(db.doc(`quizzes/${quizId}/questions/${questionId}`), {
-            answerLimit: question.answerLimit
+            answerLimit: newSpec.answerLimit
         });
-        for (let i=0; i < clueIds.length; i++) {
-            const clue = question.clues[i];
-            const clueId = clueIds[i];
-            batch.update(db.doc(`quizzes/${quizId}/clues/${clueId}`), clue);
+        const clues = getClues(newSpec);
+        for (let i=0; i < clues.length; i++) {
+            const clue = clues[i];
+            if (clue.id === undefined) {
+                throw new Error('Tried to update clue without id');
+            }
+            batch.update(db.doc(`quizzes/${quizId}/clues/${clue.id}`), clue);
         }
         batch.commit()
             .catch((error) => console.error('Failed to update question', error));
     };
-    const deleteQuestion = (questionId: string, clueIds: string[]) => {
+    const deleteQuestion = (questionSpec: QuestionSpec) => {
+        if (questionSpec.id === undefined) {
+            throw new Error('Tried to delete a question without an id');
+        }
         const batch = db.batch();
-        batch.delete(db.doc(`quizzes/${quizId}/questions/${questionId}`));
-        clueIds.forEach((clueId) => batch.delete(db.doc(`quizzes/${quizId}/clues/${clueId}`)));
+        batch.delete(db.doc(`quizzes/${quizId}/questions/${questionSpec.id}`));
+        for (const clue of getClues(questionSpec)) {
+            if (clue.id === undefined) {
+                throw new Error('Tried to delete clue without id');
+            }
+            batch.delete(db.doc(`quizzes/${quizId}/clues/${clue.id}`));
+        }
         batch.update(db.doc(`quizzes/${quizId}`), {
-            questionIds: quiz.questionIds.filter((id) => id !== questionId),
+            questionIds: quiz.questionIds.filter((id) => id !== questionSpec.id),
         });
         batch.commit()
             .catch((error) => console.error('Failed to delete question', error));
@@ -220,31 +248,77 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
 
     const questionsById = Object.fromEntries(questions.map((q) => [q.id, q]));
     const cluesById = Object.fromEntries(clues.map((c) => [c.id, c]));
-    const editableQuestionAndIds: { editableQuestion: EditableQuestion; questionId: string; clueIds: string[]; }[] = quiz.questionIds
-        .filter((id) => !!questionsById[id] && questionsById[id].data.clueIds.every((id) => !!cluesById[id]))
+    const questionSpecs: QuestionSpec[] = quiz.questionIds
+        .filter((id) => {
+            const question = questionsById[id];
+            if (!question) {
+                return false;
+            }
+            let result;
+            if (question.data.type === 'connection' || question.data.type === 'sequence') {
+                result = question.data.clueIds.every((id) => !!cluesById[id]);
+            } else if (question.data.type === 'missing-vowels') {
+                result = !!cluesById[question.data.clueId];
+            } else {
+                throwBadQuestionType(question.data);
+            }
+            return result;
+        })
         .map((id) => {
             const question = questionsById[id].data;
             let result;
             if (question.type === 'connection') {
                 result = {
-                    editableQuestion: {
-                        type: question.type,
-                        answerLimit: question.answerLimit,
-                        clues: question.clueIds.map((id) => cluesById[id].data) as Four<Clue>,
-                    },
-                    questionId: id,
-                    clueIds: question.clueIds,
+                    id,
+                    type: question.type,
+                    answerLimit: question.answerLimit,
+                    clues: question.clueIds.map((cid) => {
+                        const clue = cluesById[cid];
+                        if (!clue) {
+                            throw new Error(`Could not find clue ${cid} referenced by question ${id}`);
+                        }
+                        if (clue.data.type !== 'text') {
+                            throw new Error(`Expected a text clue on a connection question, but clue ${cid} is a ${clue.data.type}`);
+                        }
+                        return { id: cid, answerLimit: clue.data.answerLimit, text: clue.data.text, type: 'text' };
+                    }) as Four<TextClueSpec>,
                 };
             } else if (question.type === 'sequence') {
                 result = {
-                    editableQuestion: {
-                        type: question.type,
-                        answerLimit: question.answerLimit,
-                        clues: question.clueIds.map((id) => cluesById[id].data) as Three<Clue>,
-                    },
-                    questionId: id,
-                    clueIds: question.clueIds,
+                    id,
+                    type: question.type,
+                    answerLimit: question.answerLimit,
+                    clues: question.clueIds.map((cid) => {
+                        const clue = cluesById[cid];
+                        if (!clue) {
+                            throw new Error(`Could not find clue ${cid} referenced by question ${id}`);
+                        }
+                        if (clue.data.type !== 'text') {
+                            throw new Error(`Expected a text clue on a sequence question, but clue ${cid} is a ${clue.data.type}`);
+                        }
+                        return { id: cid, answerLimit: clue.data.answerLimit, text: clue.data.text, type: 'text' };
+                    }) as Three<TextClueSpec>,
                 };
+            } else if (question.type === 'missing-vowels') {
+                const clueItem = cluesById[question.clueId];
+                if (!clueItem) {
+                    throw new Error(`Could not find clue ${question.clueId} referenced by question ${id}`);
+                }
+                if (clueItem.data.type !== 'compound-text') {
+                    throw new Error(`Expected a compound-text clue on a missing-vowels question, but clue ${question.clueId} is a ${clueItem.data.type}`);
+                }
+                const clueSpec: CompoundClueSpec = {
+                    id: question.clueId,
+                    answerLimit: clueItem.data.answerLimit,
+                    texts: clueItem.data.texts,
+                    type: 'compound-text',
+                };
+                result = {
+                    id,
+                    type: question.type,
+                    answerLimit: question.answerLimit,
+                    clue: clueSpec,
+                }
             } else {
                 throwBadQuestionType(question);
             }
@@ -272,29 +346,29 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
             </Card>
             <div>
                 <h2>Questions</h2>
-                {editableQuestionAndIds.map(({ editableQuestion, questionId, clueIds }, questionIndex) => (
-                    expandedQuestions[questionId] === true ?
+                {questionSpecs.map((questionSpec, questionIndex) => (
+                    expandedQuestions[questionSpec.id!] === true ?
                         <QuestionForm
-                            key={questionId}
-                            initialQuestion={editableQuestion}
+                            key={questionSpec.id!}
+                            initialQuestion={questionSpec}
                             questionNumber={questionIndex + 1}
-                            save={(updatedQ) => updateQuestion(questionId, clueIds, updatedQ)}
-                            remove={() => deleteQuestion(questionId, clueIds)}
-                            moveUp={questionIndex > 0 ? () => moveUp(questionId) : undefined}
-                            moveDown={questionIndex < editableQuestionAndIds.length - 1 ? () => moveDown(questionId) : undefined}
-                            collapse={() => collapse(questionId)}
+                            save={(updatedQ) => updateQuestion(questionSpec, updatedQ)}
+                            remove={() => deleteQuestion(questionSpec)}
+                            moveUp={questionIndex > 0 ? () => moveUp(questionSpec.id!) : undefined}
+                            moveDown={questionIndex < questionSpecs.length - 1 ? () => moveDown(questionSpec.id!) : undefined}
+                            collapse={() => collapse(questionSpec.id!)}
                         /> :
                         <CollapsedQuestion
-                            key={questionId}
-                            question={editableQuestion}
+                            key={questionSpec.id!}
+                            question={questionSpec}
                             questionNumber={questionIndex + 1}
-                            expand={() => expand(questionId)}
+                            expand={() => expand(questionSpec.id!)}
                         />
                 ))}
                 {newQuestion ?
                     <QuestionForm
                         initialQuestion={newQuestion}
-                        questionNumber={editableQuestionAndIds.length + 1}
+                        questionNumber={questionSpecs.length + 1}
                         save={saveNewQuestion}
                         remove={clearNewQuestion}
                     />
@@ -302,6 +376,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
                     <>
                     <PrimaryButton className={styles.addQuestionButton} onClick={addNewConnectionQuestion}>Add connection question</PrimaryButton>
                     <PrimaryButton className={styles.addQuestionButton} onClick={addNewSequenceQuestion}>Add sequence question</PrimaryButton>
+                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewMissingVowelsQuestion}>Add missing vowels question</PrimaryButton>
                     </>
                 }
             </div>
@@ -311,7 +386,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
 };
 
 interface CollapsedQuestionProps {
-    question: EditableQuestion;
+    question: QuestionSpec;
     questionNumber: number;
     expand: () => void;
 }
@@ -323,16 +398,16 @@ const CollapsedQuestion = ({ question, questionNumber, expand }: CollapsedQuesti
                 <PrimaryButton onClick={expand}>➕</PrimaryButton>
             </h3>
             <p>
-                {question.clues.map((c) => c.text).join(' | ')}
+                {(question.type === 'missing-vowels' ? question.clue.texts : question.clues.map((c) => c.text)).join(' | ')}
             </p>
         </Card>
     );
 }
 
 interface QuestionFormProps {
-    initialQuestion: EditableQuestion;
+    initialQuestion: QuestionSpec;
     questionNumber: number;
-    save?: (question: EditableQuestion) => void;
+    save?: (question: QuestionSpec) => void;
     remove: (e: React.MouseEvent<HTMLButtonElement>) => void;
     moveUp?: () => void;
     moveDown?: () => void;
@@ -340,12 +415,23 @@ interface QuestionFormProps {
 }
 const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, moveDown, collapse }: QuestionFormProps) => {
     const [question, setQuestion] = useState(initialQuestion);
-    const changeClue = (clueIndex: number, clue: EditableClue) => {
+    const changeTextClue = (clueIndex: number, clue: TextClueSpec) => {
+        if (question.type !== 'connection' && question.type !== 'sequence') {
+            throw new Error(`Tried to update a text clue, but parent question is of type ${question.type}`);
+        }
+        const q = question as ConnectionQuestionSpec|SequenceQuestionSpec;
         setQuestion({
-            ...question,
+            ...q,
             // Hack: it's a pain to get TS to realise the tuple length remains the same, so we cast as any
-            clues: question.clues.map((c, i) => i === clueIndex ? clue : c) as any,
+            clues: q.clues.map((c, i) => i === clueIndex ? clue : c) as any,
         });
+    };
+    const changeCompoundClue = (clue: CompoundClueSpec) => {
+        if (question.type !== 'missing-vowels') {
+            throw new Error(`Tried to update a compound-text clue, but parent question is of type ${question.type}`);
+        }
+        const q = question as MissingVowelsQuestionSpec;
+        setQuestion({ ...q, clue });
     };
     const changeAnswerLimit = (e: ChangeEvent<HTMLInputElement>) => {
         setQuestion({
@@ -364,18 +450,38 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
                 {collapse && <PrimaryButton onClick={collapse}>➖</PrimaryButton>}
             </h3>
             <p className={styles.row}>
+                <label>Question type</label>
+                <span>
+                    <QuestionTypeName question={question} />
+                </span>
+            </p>
+            <p className={styles.row}>
                 <label>Question answer limit</label>
                 <input type="number" value={question.answerLimit || ''} placeholder="No limit" onChange={changeAnswerLimit} />
             </p>
             <h4>Clues</h4>
-            {question.clues.map((clue, clueIndex) => (
-                <ClueForm key={clueIndex} clueNumber={clueIndex + 1} clue={clue} onChange={(c) => changeClue(clueIndex, c)} />
+            {getClues(question).map((clue, clueIndex) => (
+                clue.type === 'text' ?
+                    <TextClueForm key={clueIndex} clueNumber={clueIndex + 1} clue={clue} onChange={(c) => changeTextClue(clueIndex, c)} /> :
+                    <CompoundTextClueForm key={clueIndex} clue={clue} onChange={changeCompoundClue} />
             ))}
         </Card>
     );
 };
 
-const ClueForm = ({ clueNumber, clue, onChange }: { clueNumber: number; clue: EditableClue; onChange: (clue: EditableClue) => void; }) => {
+const QuestionTypeName = ({ question }: { question: QuestionSpec }) => {
+    if (question.type === 'connection') {
+        return <>Connection</>;
+    } else if (question.type === 'sequence') {
+        return <>Sequence</>;
+    } else if (question.type === 'missing-vowels') {
+        return <>Missing Vowels</>;
+    } else {
+        throwBadQuestionType(question);
+    }
+};
+
+const TextClueForm = ({ clueNumber, clue, onChange }: { clueNumber: number; clue: TextClueSpec; onChange: (clue: TextClueSpec) => void; }) => {
     const changeText = (e: ChangeEvent<HTMLInputElement>) => {
         onChange({
             ...clue,
@@ -402,3 +508,33 @@ const ClueForm = ({ clueNumber, clue, onChange }: { clueNumber: number; clue: Ed
         </>
     );
 };
+
+const CompoundTextClueForm = ({ clue, onChange }: { clue: CompoundClueSpec; onChange: (clue: CompoundClueSpec) => void; }) => {
+    const changeText = (textIndex: number) =>
+        (e: ChangeEvent<HTMLInputElement>) => {
+            onChange({
+                ...clue,
+                texts: clue.texts.map((oldText, i) => i === textIndex ? e.target.value : oldText) as Four<string>,
+            });
+        };
+    const changeAnswerLimit = (e: ChangeEvent<HTMLInputElement>) => {
+        onChange({
+            ...clue,
+            answerLimit: e.target.valueAsNumber,
+        });
+    };
+    return (
+        <>
+        {clue.texts.map((text, i) =>
+            <p key={i} className={styles.row}>
+                <label className={styles.cluePropLabel}>Clue {i + 1} text</label>
+                <input type="text" value={text} onChange={changeText(i)} />
+            </p>
+        )}
+        <p className={styles.row + ' ' + styles.clueRow}>
+            <label className={styles.cluePropLabel}>Clue answer limit</label>
+            <input type="number" value={clue.answerLimit || ''} placeholder="No limit" onChange={changeAnswerLimit} />
+        </p>
+        </>
+    );
+}

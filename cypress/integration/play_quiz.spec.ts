@@ -1,10 +1,10 @@
-import { ConnectionQuestionSpec, SequenceQuestionSpec } from "../../src/models/quiz";
-import { CreateConnectionOrSequenceQuestionResult } from "../plugins";
+import { ConnectionQuestionSpec, MissingVowelsQuestionSpec, SequenceQuestionSpec } from "../../src/models/quiz";
+import { CreateConnectionOrSequenceQuestionResult, CreateMissingVowelsQuestionResult } from "../plugins";
 
 describe('The quiz page', () => {
     let quizId: string;
     let teamId: string;
-    let questionAndClueIds: Array<CreateConnectionOrSequenceQuestionResult>;
+    let questionAndClueIds: [CreateConnectionOrSequenceQuestionResult, CreateConnectionOrSequenceQuestionResult, CreateMissingVowelsQuestionResult];
     beforeEach(() => {
         cy.login();
         cy.task<string>('createQuiz', {
@@ -18,10 +18,10 @@ describe('The quiz page', () => {
                 type: 'connection',
                 answerLimit: null,
                 clues: [
-                    { answerLimit: 1, text: 'Q1 C1' },
-                    { answerLimit: 1, text: 'Q1 C2' },
-                    { answerLimit: 1, text: 'Q1 C3' },
-                    { answerLimit: 1, text: 'Q1 C4' },
+                    { answerLimit: 1, text: 'Q1 C1', type: 'text' },
+                    { answerLimit: 1, text: 'Q1 C2', type: 'text' },
+                    { answerLimit: 1, text: 'Q1 C3', type: 'text' },
+                    { answerLimit: 1, text: 'Q1 C4', type: 'text' },
                 ],
             };
             return cy.task<CreateConnectionOrSequenceQuestionResult>('createConnectionOrSequenceQuestion', {
@@ -29,19 +29,30 @@ describe('The quiz page', () => {
                 question: question1,
             });
         }).then((ids) => {
-            questionAndClueIds = [ids];
+            questionAndClueIds = [ids] as any;
             const question2: SequenceQuestionSpec = {
                 type: 'sequence',
                 answerLimit: null,
                 clues: [
-                    { answerLimit: 1, text: 'Q2 C1' },
-                    { answerLimit: 1, text: 'Q2 C2' },
-                    { answerLimit: 1, text: 'Q2 C3' },
+                    { answerLimit: 1, text: 'Q2 C1', type: 'text' },
+                    { answerLimit: 1, text: 'Q2 C2', type: 'text' },
+                    { answerLimit: 1, text: 'Q2 C3', type: 'text' },
                 ],
             };
             return cy.task<CreateConnectionOrSequenceQuestionResult>('createConnectionOrSequenceQuestion', {
                 quizId,
                 question: question2,
+            });
+        }).then((ids) => {
+            questionAndClueIds.push(ids);
+            const question3: MissingVowelsQuestionSpec = {
+                type: 'missing-vowels',
+                answerLimit: null,
+                clue: { answerLimit: null, texts: ['Q3 C1', 'Q3 C2', 'Q3 C3', 'Q3 C4'], type: 'compound-text' },
+            };
+            return cy.task<CreateMissingVowelsQuestionResult>('createMissingVowelsQuestion', {
+                quizId,
+                question: question3,
             });
         }).then((ids) => {
             questionAndClueIds.push(ids);
@@ -91,7 +102,7 @@ describe('The quiz page', () => {
         answerSubmit().should('not.exist');
         scoreboard().contains('Universally Challenged: 0');
 
-        // Owner starts first question
+        // Owner starts first question (connection)
         let questionId = questionAndClueIds[0].questionId;
         let clueIds = questionAndClueIds[0].clueIds;
         cy.task('revealNextQuestion', { quizId, nextQuestionId: questionId });
@@ -110,7 +121,7 @@ describe('The quiz page', () => {
 
         // Owner marks answer incorrect
         cy.get('@answerId').then((answerId) => {
-            cy.task('markAnswer', { quizId, answerId, teamId, correct: false, score: 0 });
+            cy.task('updateAnswers', { quizId, answerUpdates: [{answerId, correct: false, score: 0}] });
         });
         answersHistory().contains('First answer (0)');
         scoreboard().contains('Universally Challenged: 0');
@@ -131,24 +142,32 @@ describe('The quiz page', () => {
 
         // Owner marks answer at clue 2 correct
         cy.get('@answerId').then((answerId) => {
-            cy.task('markAnswer', { quizId, answerId, teamId, correct: true, score: 4 });
+            cy.task('updateAnswers', { quizId, answerUpdates: [{answerId, teamId, correct: true, score: 4}] });
         });
         answersHistory().contains('Second answer (4)');
         scoreboard().contains('Universally Challenged: 4');
 
-        // Owner shows next question
+        // Owner shows next question (sequence)
         questionId = questionAndClueIds[1].questionId;
         cy.task('revealNextQuestion', { quizId, nextQuestionId: questionId, currentClueId: clueIds[3] });
         clueIds = questionAndClueIds[1].clueIds;
         cy.contains('Waiting for question to start');
         expectRevealedCluesToBe([]);
 
-        // Onwer shows clues and ends quiz
+        // Onwer shows remainign Q2 clues
         cy.task('revealNextClue', { quizId, nextClueId: clueIds[0] });
         cy.task('revealNextClue', { quizId, nextClueId: clueIds[1], currentClueId: clueIds[0] });
         cy.task('revealNextClue', { quizId, nextClueId: clueIds[2], currentClueId: clueIds[1] });
         expectRevealedCluesToBe(['Q2 C1', 'Q2 C2', 'Q2 C3']);
         finalClue().should('contain.text', '?');
+
+        // Owner shows next question (missing vowels)
+        questionId = questionAndClueIds[2].questionId;
+        cy.task('revealNextQuestion', { quizId, nextQuestionId: questionId, currentClueId: clueIds[2] });
+        cy.task('revealNextClue', { quizId, nextClueId: questionAndClueIds[2].clueId });
+        expectRevealedCluesToBe(['Q3 C1', 'Q3 C2', 'Q3 C3', 'Q3 C4']);
+
+        // Owner ends the quiz
         cy.task('closeLastClue', { quizId, currentClueId: clueIds[2] });
     });
 
@@ -222,19 +241,22 @@ describe('The quiz page', () => {
                 text: 'Answer text',
             }).then((id) => {
                 cy.wrap(id).as('firstAnswerId');
-            });;
-            answersHistory().contains('✔️');
-            answersHistory().contains('❌');
+            });
 
-            // Mark correct
-            answersHistory().contains('✔️').click();
-            answersHistory().contains('✔️').should('not.exist');
-            answersHistory().contains('❌').should('exist');
+            cy.get('@firstAnswerId').then((answerId) => {
+                submittedAnswer(answerId).contains('✔️').should('not.be.disabled');
+                submittedAnswer(answerId).contains('❌').should('not.be.disabled');
 
-            // Mark incorrect
-            answersHistory().contains('❌').click();
-            answersHistory().contains('❌').should('not.exist');
-            answersHistory().contains('✔️').should('exist');
+                // Mark correct
+                submittedAnswer(answerId).contains('✔️').click();
+                submittedAnswer(answerId).contains('✔️').should('be.disabled');
+                submittedAnswer(answerId).contains('❌').should('not.be.disabled');
+
+                // Mark incorrect
+                submittedAnswer(answerId).contains('❌').click();
+                submittedAnswer(answerId).contains('❌').should('be.disabled');
+                submittedAnswer(answerId).contains('✔️').should('not.be.disabled');
+            });
 
             // Show next clue and captain submits another answer
             quizControls().contains('Next clue').click();
@@ -248,13 +270,27 @@ describe('The quiz page', () => {
                 cy.wrap(id).as('secondAnswerId');
             });
             cy.get('@secondAnswerId').then((answerId) => {
-                submittedAnswer(answerId).contains('✔️');
-                submittedAnswer(answerId).contains('❌');
+                submittedAnswer(answerId).contains('✔️').should('not.be.disabled');
+                submittedAnswer(answerId).contains('❌').should('not.be.disabled');
             });
+
+            // Marks first answer correct, second answer buttons go away
             cy.get('@firstAnswerId').then((answerId) => {
                 submittedAnswer(answerId).contains('✔️').click();
             });
             cy.get('@secondAnswerId').then((answerId) => {
+                submittedAnswer(answerId).contains('✔️').should('not.exist');
+                submittedAnswer(answerId).contains('❌').should('not.exist');
+            });
+
+            // Marks first answer incorrect then second answer correct, first answer buttons go away
+            cy.get('@firstAnswerId').then((answerId) => {
+                submittedAnswer(answerId).contains('❌').click();
+            });
+            cy.get('@secondAnswerId').then((answerId) => {
+                submittedAnswer(answerId).contains('✔️').click();
+            });
+            cy.get('@firstAnswerId').then((answerId) => {
                 submittedAnswer(answerId).contains('✔️').should('not.exist');
                 submittedAnswer(answerId).contains('❌').should('not.exist');
             });

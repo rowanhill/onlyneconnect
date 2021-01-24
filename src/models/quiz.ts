@@ -1,5 +1,6 @@
-import firebase from 'firebase';
-import { Four, Three } from '.';
+import firebase from 'firebase/app';
+import 'firebase/firestore';
+import { CompoundTextClue, Four, MissingVowelsQuestion, Three } from '.';
 
 export const createQuiz = (
     quizName: string,
@@ -15,24 +16,39 @@ export const createQuiz = (
     return batch.commit().then(() => secretsDoc.id);
 };
 
-export interface ClueSpec {
+export interface TextClueSpec {
     id?: string;
     text: string;
     answerLimit: number | null;
+    type: 'text';
+}
+
+export interface CompoundClueSpec {
+    id?: string;
+    texts: Four<string>;
+    answerLimit: number | null;
+    type: 'compound-text';
 }
 
 export interface ConnectionQuestionSpec {
     id?: string;
     answerLimit: number | null;
-    clues: Four<ClueSpec>;
+    clues: Four<TextClueSpec>;
     type: 'connection';
 }
 
 export interface SequenceQuestionSpec {
     id?: string;
     answerLimit: number | null;
-    clues: Three<ClueSpec>;
+    clues: Three<TextClueSpec>;
     type: 'sequence';
+}
+
+export interface MissingVowelsQuestionSpec {
+    id?: string;
+    answerLimit: number | null;
+    clue: CompoundClueSpec;
+    type: 'missing-vowels';
 }
 
 export const createConnectionOrSequenceQuestion = (
@@ -61,6 +77,7 @@ export const createConnectionOrSequenceQuestion = (
             isRevealed: false,
             text: clue.text,
             answerLimit: clue.answerLimit,
+            type: 'text',
         });
     }
     batch.update(quizDoc, {
@@ -68,6 +85,39 @@ export const createConnectionOrSequenceQuestion = (
     });
     
     return batch.commit().then(() => ({ questionId: questionDoc.id, clueIds }));
+};
+
+export const createMissingVowelsQuestion = (
+    quizId: string,
+    question: MissingVowelsQuestionSpec,
+    db: firebase.firestore.Firestore = firebase.app().firestore(),
+    arrayUnion = firebase.firestore.FieldValue.arrayUnion,
+) => {
+    const batch = db.batch();
+
+    const quizDoc = db.doc(`quizzes/${quizId}`);
+    const clueDoc = db.collection(`quizzes/${quizId}/clues`).doc();
+
+    const questionDoc = db.collection(`quizzes/${quizId}/questions`).doc();
+    batch.set<MissingVowelsQuestion>(questionDoc as any, {
+        type: question.type,
+        answerLimit: question.answerLimit,
+        isRevealed: false,
+        clueId: clueDoc.id,
+    });
+
+    batch.set<CompoundTextClue>(clueDoc as any, {
+        questionId: questionDoc.id,
+        isRevealed: false,
+        texts: question.clue.texts,
+        answerLimit: question.clue.answerLimit,
+        type: question.clue.type,
+    });
+    batch.update(quizDoc, {
+        questionIds: arrayUnion(questionDoc.id),
+    });
+    
+    return batch.commit().then(() => ({ questionId: questionDoc.id, clueId: clueDoc.id }));
 };
 
 export const revealNextClue = (

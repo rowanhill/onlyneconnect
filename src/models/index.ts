@@ -1,4 +1,5 @@
-import firebase from 'firebase';
+import firebase from 'firebase/app';
+import 'firebase/firestore';
 
 export interface Team {
     name: string;
@@ -37,14 +38,21 @@ export interface SequenceQuestion {
     answerLimit: number|null;
     type: 'sequence';
 }
-export type Question = ConnectionQuestion | SequenceQuestion;
+export interface MissingVowelsQuestion {
+    clueId: string;
+    isRevealed: boolean;
+    answerLimit: number|null;
+    type: 'missing-vowels';
+}
+export type Question = ConnectionQuestion | SequenceQuestion | MissingVowelsQuestion;
 
 export function throwBadQuestionType(question: never): never;
 export function throwBadQuestionType(question: Question) {
     throw new Error(`Unhandled question type: ${question.type}`);
 }
 
-export interface Clue {
+export interface TextClue {
+    type: 'text';
     questionId: string;
     isRevealed: boolean;
     text: string;
@@ -52,6 +60,16 @@ export interface Clue {
     revealedAt?: firebase.firestore.Timestamp;
     closedAt?: firebase.firestore.Timestamp;
 }
+export interface CompoundTextClue {
+    type: 'compound-text';
+    questionId: string;
+    isRevealed: boolean;
+    texts: Four<string>;
+    answerLimit: number|null;
+    revealedAt?: firebase.firestore.Timestamp;
+    closedAt?: firebase.firestore.Timestamp;
+}
+export type Clue = TextClue | CompoundTextClue;
 
 export interface Answer {
     questionId: string;

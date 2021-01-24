@@ -13,14 +13,19 @@
 // the project's config changing)
 import * as admin from 'firebase-admin';
 import firebase from 'firebase';
-import { closeLastClue, createConnectionOrSequenceQuestion, createQuiz, revealNextClue, revealNextQuestion } from '../../src/models/quiz';
-import { markAnswer, submitAnswer } from '../../src/models/answer';
+import { closeLastClue, createConnectionOrSequenceQuestion, createMissingVowelsQuestion, createQuiz, revealNextClue, revealNextQuestion } from '../../src/models/quiz';
+import { submitAnswer, updateAnswers } from '../../src/models/answer';
 import { createTeam, joinPlayerToTeam } from '../../src/models/team';
 const cypressFirebasePlugin = require('cypress-firebase').plugin;
 
 export interface CreateConnectionOrSequenceQuestionResult {
   questionId: string;
   clueIds: string[];
+}
+
+export interface CreateMissingVowelsQuestionResult {
+  questionId: string;
+  clueId: string;
 }
 
 const config: Cypress.PluginConfig = (on, config) => {
@@ -45,6 +50,15 @@ const config: Cypress.PluginConfig = (on, config) => {
         question,
         admin.app().firestore() as unknown as firebase.firestore.Firestore,
         admin.firestore.FieldValue.arrayUnion as unknown as typeof firebase.firestore.FieldValue.arrayUnion,
+      );
+    },
+
+    createMissingVowelsQuestion({ quizId, question }) {
+      return createMissingVowelsQuestion(
+        quizId,
+        question,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
+        admin.firestore.FieldValue.arrayUnion,
       );
     },
 
@@ -89,15 +103,12 @@ const config: Cypress.PluginConfig = (on, config) => {
       );
     },
 
-    markAnswer({ quizId, answerId, teamId, correct, score }) {
-      return markAnswer(
+    updateAnswers({ quizId, answerUpdates }) {
+      return updateAnswers(
         quizId,
-        answerId,
-        teamId,
-        correct,
-        score,
+        answerUpdates,
         admin.app().firestore() as unknown as firebase.firestore.Firestore,
-        admin.firestore.FieldValue.increment as typeof firebase.firestore.FieldValue.increment,
+        admin.firestore.FieldValue.increment,
       );
     },
 
