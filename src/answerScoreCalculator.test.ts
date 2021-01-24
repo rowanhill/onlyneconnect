@@ -10,12 +10,12 @@ describe('calculateUpdatedScores', () => {
         it.each(
             [[5, 0], [3, 1], [2, 2], [1, 3]]
         )('returns one update with a score of %i for the correctly answered question on clue index %i', (expectedScore, clueIndex) => {
-            const updates = calculateUpdatedScores(answer, true, question, clueIndex, [answer]);
+            const updates = calculateUpdatedScores(answer.id, true, question, clueIndex, [answer]);
             expect(updates).toEqual([{ answerId: '123', score: expectedScore, correct: true }]);
         });
 
         it('returns one update with a score of 0 for the incorrectly answered question', () => {
-            const updates = calculateUpdatedScores(answer, false, question, 0, [answer]);
+            const updates = calculateUpdatedScores(answer.id, false, question, 0, [answer]);
             expect(updates).toEqual([{ answerId: '123', score: 0, correct: false }]);
         });
     });
@@ -27,12 +27,12 @@ describe('calculateUpdatedScores', () => {
         it.each(
             [[5, 0], [3, 1], [2, 2], [1, 3]]
         )('returns one update with a score of %i for a correct answer with %i previous correct answers', (expectedScore, clueIndex) => {
-            const updates = calculateUpdatedScores(answer, true, question, clueIndex, [answer]);
+            const updates = calculateUpdatedScores(answer.id, true, question, clueIndex, [answer]);
             expect(updates).toEqual([{ answerId: '123', score: expectedScore, correct: true }]);
         });
 
         it('returns one update with a score of 0 for the incorrectly answered question', () => {
-            const updates = calculateUpdatedScores(answer, false, question, 0, [answer]);
+            const updates = calculateUpdatedScores(answer.id, false, question, 0, [answer]);
             expect(updates).toEqual([{ answerId: '123', score: 0, correct: false }]);
         });
     });
@@ -54,12 +54,12 @@ describe('calculateUpdatedScores', () => {
                     answers.push({ id: 'other-correct-' + i, data: { correct: true } as any });
                 }
                 answers.push(answer);
-                const updates = calculateUpdatedScores(answer, true, question, 0, answers);
+                const updates = calculateUpdatedScores(answer.id, true, question, 0, answers);
                 expect(updates).toEqual([{ answerId: '123', score: expectedScore, correct: true }]);
             });
     
             it('returns one update with a score of 0 for the incorrectly answered question', () => {
-                const updates = calculateUpdatedScores(answer, false, question, 0, [answer]);
+                const updates = calculateUpdatedScores(answer.id, false, question, 0, [answer]);
                 expect(updates).toEqual([{ answerId: '123', score: 0, correct: false }]);
             });
         });
@@ -74,7 +74,7 @@ describe('calculateUpdatedScores', () => {
                 { id: 'other-4', data: { correct: true, score: 3 } as any },
                 { id: 'other-5', data: { correct: true, score: 3 } as any },
             ];
-            const updates = calculateUpdatedScores(answer, true, question, 0, answers);
+            const updates = calculateUpdatedScores(answer.id, true, question, 0, answers);
             expect(updates).toEqual([
                 { answerId: '123', score: 4, correct: true },
                 { answerId: 'other-2', score: 3 },
@@ -95,7 +95,7 @@ describe('calculateUpdatedScores', () => {
                 { id: 'other-4', data: { correct: true, score: 3 } as any },
                 { id: 'other-5', data: { correct: true, score: 2 } as any },
             ];
-            const updates = calculateUpdatedScores(answer, false, question, 0, answers);
+            const updates = calculateUpdatedScores(answer.id, false, question, 0, answers);
             expect(updates).toEqual([
                 { answerId: '123', score: 0, correct: false },
                 { answerId: 'other-2', score: 4 },

@@ -12,7 +12,7 @@ const findPointsForNthCorrectMissingVowelsAnswer = (n: number) => {
 }
 
 export const calculateUpdatedScores = (
-    answer: CollectionQueryItem<Answer>,
+    answerId: string,
     correct: boolean,
     question: Question,
     clueIndex: number,
@@ -22,19 +22,19 @@ export const calculateUpdatedScores = (
         case 'connection':
         case 'sequence':
             if (!correct) {
-                return [{ answerId: answer.id, score: 0, correct }];
+                return [{ answerId: answerId, score: 0, correct }];
             }
             if (clueIndex === 0) {
-                return [{ answerId: answer.id, score: 5, correct }];
+                return [{ answerId: answerId, score: 5, correct }];
             } else {
-                return [{ answerId: answer.id, score: 4 - clueIndex, correct }];
+                return [{ answerId: answerId, score: 4 - clueIndex, correct }];
             }
         case 'missing-vowels':
             const result = [];
             let alteredAnswerHasBeenSeen = false;
             let numCorrectAnswers = 0;
             for (const answerItem of answers) {
-                if (answerItem.id === answer.id) {
+                if (answerItem.id === answerId) {
                     alteredAnswerHasBeenSeen = true;
                     if (correct) {
                         const newScore = findPointsForNthCorrectMissingVowelsAnswer(numCorrectAnswers);

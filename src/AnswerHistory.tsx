@@ -2,17 +2,10 @@ import React from 'react';
 import { PrimaryButton } from './Button';
 import { useAnswersContext, useCluesContext, useQuestionsContext, useQuizContext, useTeamsContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { Answer, Question } from './models';
+import { Answer, Clue, Question } from './models';
 import { AnswerUpdate, updateAnswers } from './models/answer';
 import styles from './AnswerHistory.module.css';
 import { calculateUpdatedScores } from './answerScoreCalculator';
-
-interface AnswerMeta {
-    answer: CollectionQueryItem<Answer>;
-    valid: boolean;
-    clueIndex: number;
-    question: Question;
-}
 
 export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
     const { quizId, quiz } = useQuizContext();
@@ -27,92 +20,15 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
         return <div className={styles.answersHistory}></div>;
     }
     const cluesById = Object.fromEntries(cluesData.map((clue) => [clue.id, clue]));
-    const questionsById = Object.fromEntries(questionsData.map((question) => [question.id, question]));
-    const teamsById = isQuizOwner && teamsData ? Object.fromEntries(teamsData.map((team) => [team.id, team])) : {};
-    const answerMetasByQuestionId = answersData.reduce((acc, answer) => {
+    const questionsById = Object.fromEntries(questionsData.map((question) => [question.id, question.data]));
+    const teamNamesById = isQuizOwner && teamsData ? Object.fromEntries(teamsData.map((team) => [team.id, team.data.name])) : {};
+    const answersByQuestionId = answersData.reduce((acc, answer) => {
         if (!acc[answer.data.questionId]) {
             acc[answer.data.questionId] = [];
         }
-        const clue = cluesById[answer.data.clueId];
-        const valid = clue && !!answer.data.submittedAt && !!clue.data.revealedAt &&
-            answer.data.submittedAt.toMillis() >= clue.data.revealedAt.toMillis() &&
-            (!clue.data.closedAt || answer.data.submittedAt.toMillis() <= clue.data.closedAt.toMillis());
-        const question = questionsById[answer.data.questionId];
-        const clueIndex = (question.data.type === 'connection' || question.data.type === 'sequence') ? 
-            question.data.clueIds.indexOf(answer.data.clueId) :
-            0;
-        acc[answer.data.questionId].push({ answer, valid, clueIndex, question: question.data });
+        acc[answer.data.questionId].push(answer);
         return acc;
-    }, {} as { [id: string]: AnswerMeta[]});
-    const answerGroups = quiz.questionIds
-        .map((id) => ({ questionId: id, answerMetas: answerMetasByQuestionId[id] }))
-        .filter((group) => !!group.answerMetas);
-    const answersByQuestionByTeam = answersData.reduce((acc, answer) => {
-        if (!acc[answer.data.teamId]) {
-            acc[answer.data.teamId] = {};
-        }
-        if (!acc[answer.data.teamId][answer.data.questionId]) {
-            acc[answer.data.teamId][answer.data.questionId] = [];
-        }
-        acc[answer.data.teamId][answer.data.questionId].push(answer);
-        acc[answer.data.teamId][answer.data.questionId].sort((a, b) => {
-            if (!a.data.submittedAt && !b.data.submittedAt) {
-                return 0;
-            } else if (!b.data.submittedAt) {
-                return 1;
-            } else if (!a.data.submittedAt) {
-                return -1;
-            }
-            return a.data.submittedAt.toMillis() - b.data.submittedAt.toMillis();
-        });
-        return acc;
-    }, {} as { [teamId: string]: { [questionId: string]: CollectionQueryItem<Answer>[] } });
-    const hasAnsweredCorrectlyByTeamByQuestion = answersData.reduce((acc, answer) => {
-        if (!acc[answer.data.questionId]) {
-            acc[answer.data.questionId] = {};
-        }
-        if (!acc[answer.data.questionId][answer.data.teamId]) {
-            acc[answer.data.questionId][answer.data.teamId] = false;
-        }
-        if (answer.data.correct === true) {
-            acc[answer.data.questionId][answer.data.teamId] = true;
-        }
-        return acc;
-    }, {} as { [questionId: string] : { [teamId: string]: boolean } });
-
-    // True if the team has already answered this question correctly via a different answer
-    const questionAnsweredCorrectlyElsewhereByTeam = (answerMeta: AnswerMeta) => {
-        const answersByQuestion = answersByQuestionByTeam[answerMeta.answer.data.teamId];
-        const answers = answersByQuestion[answerMeta.answer.data.questionId];
-        return answers.some((a) => a.data.correct === true && a.id !== answerMeta.answer.id);
-    }
-
-    // True if there are any previously submitted answers that have yet to be marked
-    const earlierAnswersAreUnmarked = (answerMeta: AnswerMeta) => {
-        const hasAnsweredCorrectlyByTeam = hasAnsweredCorrectlyByTeamByQuestion[answerMeta.answer.data.questionId];
-        const answerSubmittedAtMillis = answerMeta.answer.data.submittedAt.toMillis();
-        return answersData.some((item) => {
-            return item.data.correct === undefined && // Item is umarked...
-                item.data.submittedAt.toMillis() < answerSubmittedAtMillis && // ...and prior to answer...
-                !(hasAnsweredCorrectlyByTeam && hasAnsweredCorrectlyByTeam[item.data.teamId]); // ...and not by a team with correct answer elsewhere...
-        });
-    };
-
-    const canBeMarkedCorrect = (answerMeta: AnswerMeta) => {
-        if (answerMeta.answer.data.correct === true) {
-            return false;
-        }
-        if (answerMeta.question.type === 'missing-vowels' && earlierAnswersAreUnmarked(answerMeta)) {
-            return false;
-        }
-        return true;
-    };
-    const canBeMarkedIncorrect = (answerMeta: AnswerMeta) => {
-        if (answerMeta.answer.data.correct === false) {
-            return false;
-        }
-        return true;
-    }
+    }, {} as { [questionId: string]: CollectionQueryItem<Answer>[] });
 
     const updateAnswerScoresAndCorrectFlags = (answerUpdates: AnswerUpdate[]) => {
         updateAnswers(quizId, answerUpdates)
@@ -120,42 +36,145 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
                 console.error('Error when updating answers', error);
             });
     };
-    const markCorrect = (answerMeta: AnswerMeta) => {
-        const updates = calculateUpdatedScores(answerMeta.answer, true, answerMeta.question, answerMeta.clueIndex, answersData);
-        updateAnswerScoresAndCorrectFlags(updates);
-    };
-    const markIncorrect = (answerMeta: AnswerMeta) => {
-        const updates = calculateUpdatedScores(answerMeta.answer, false, answerMeta.question, answerMeta.clueIndex, answersData);
-        updateAnswerScoresAndCorrectFlags(updates);
-    };
+
     return (
         <div className={styles.answersHistory} data-cy="answers-history">
-            {answerGroups.map((answerGroup, groupIndex) => (
-                <div key={answerGroup.questionId}>
-                    <h3>Question {groupIndex + 1}</h3>
-                    {answerGroup.answerMetas.map((answerMeta) => (
-                        <div
-                            key={answerMeta.answer.id}
-                            className={styles.answer + (answerMeta.valid ? '' : (' ' + styles.invalidAnswer))}
-                            data-cy={`submitted-answer-${answerMeta.answer.id}`}
-                        >
-                            <div className={styles.answerInfo}>
-                                {isQuizOwner && teamsById[answerMeta.answer.data.teamId] && <>{teamsById[answerMeta.answer.data.teamId].data.name}:<br/></>}
-                                {answerMeta.answer.data.text}{' '}
-                                {(answerMeta.answer.data.points !== undefined || !isQuizOwner) &&
-                                    <>({answerMeta.answer.data.points !== undefined ? answerMeta.answer.data.points : 'unscored'})</>
-                                }
-                            </div>
-                            {isQuizOwner && answerMeta.valid && !questionAnsweredCorrectlyElsewhereByTeam(answerMeta) &&
-                                <div className={styles.markingButtons}>
-                                    <PrimaryButton onClick={() => markCorrect(answerMeta)} disabled={!canBeMarkedCorrect(answerMeta)}>✔️</PrimaryButton>
-                                    <PrimaryButton onClick={() => markIncorrect(answerMeta)} disabled={!canBeMarkedIncorrect(answerMeta)}>❌</PrimaryButton>
-                                </div>
-                            }
-                        </div>
-                    ))}
-                </div>
+            {quiz.questionIds.map((questionId, groupIndex) => (
+                <AnswersForQuestion
+                    key={questionId}
+                    questionNumber={groupIndex + 1}
+                    isQuizOwner={isQuizOwner}
+                    question={questionsById[questionId]}
+                    questionAnswers={answersByQuestionId[questionId] || []}
+                    cluesById={cluesById}
+                    teamNamesById={teamNamesById}
+                    updateAnswerScoresAndCorrectFlags={updateAnswerScoresAndCorrectFlags}
+                />
             ))}
+        </div>
+    );
+};
+
+interface AnswersForQuestionProps {
+    questionNumber: number;
+    isQuizOwner: boolean;
+    question: Question;
+    questionAnswers: CollectionQueryItem<Answer>[];
+    cluesById: { [clueId: string]: CollectionQueryItem<Clue>; };
+    teamNamesById: { [teamId: string]: string; }
+    updateAnswerScoresAndCorrectFlags: (updates: AnswerUpdate[]) => void;
+}
+const AnswersForQuestion = (props: AnswersForQuestionProps) => {
+    if (props.questionAnswers.length === 0) {
+        return null;
+    }
+
+    const markCorrect = (answerId: string, clueIndex: number) => {
+        const updates = calculateUpdatedScores(answerId, true, props.question, clueIndex, props.questionAnswers);
+        props.updateAnswerScoresAndCorrectFlags(updates);
+    };
+    const markIncorrect = (answerId: string, clueIndex: number) => {
+        const updates = calculateUpdatedScores(answerId, false, props.question, clueIndex, props.questionAnswers);
+        props.updateAnswerScoresAndCorrectFlags(updates);
+    };
+
+    const hasAnsweredCorrectlyByTeam = Object.fromEntries(
+        props.questionAnswers
+            .filter((answerItem) => answerItem.data.correct === true)
+            .map((answerItem) => [answerItem.data.teamId, true])
+    );
+    const earlierAnswersAreUnmarked = (submittedAtMillis: number) => {
+        return props.questionAnswers.some((item) => {
+            return item.data.correct === undefined && // Item is umarked...
+                item.data.submittedAt.toMillis() < submittedAtMillis && // ...and prior to answer...
+                hasAnsweredCorrectlyByTeam[item.data.teamId] !== true; // ...and not by a team with correct answer elsewhere...
+        });
+    };
+
+    const answerInfoProps = props.questionAnswers.map((answerItem) => {
+        const clue = props.cluesById[answerItem.data.clueId];
+        const valid = clue && !!answerItem.data.submittedAt && !!clue.data.revealedAt &&
+            answerItem.data.submittedAt.toMillis() >= clue.data.revealedAt.toMillis() &&
+            (!clue.data.closedAt || answerItem.data.submittedAt.toMillis() <= clue.data.closedAt.toMillis());
+
+        const clueIndex = (props.question.type === 'connection' || props.question.type === 'sequence') ? 
+            props.question.clueIds.indexOf(answerItem.data.clueId) :
+            0;
+
+        const canBeMarkedCorrect = answerItem.data.correct !== true &&
+            !(props.question.type === 'missing-vowels' && earlierAnswersAreUnmarked(answerItem.data.submittedAt.toMillis()));
+        const canBeMarkedIncorrect = answerItem.data.correct !== false;
+        const buttonsAreVisible = props.isQuizOwner && valid && !props.questionAnswers
+            .some((a) => a.data.correct === true && a.data.teamId === answerItem.data.teamId && a.id !== answerItem.id);
+        return {
+            answerInfo: {
+                id: answerItem.id,
+                text: answerItem.data.text,
+                isValid: valid,
+                points: answerItem.data.points,
+                teamName: props.teamNamesById[answerItem.data.teamId],
+            },
+            rest: {
+                canBeMarkedCorrect,
+                canBeMarkedIncorrect,
+                buttonsAreVisible
+            },
+            clueIndex,
+        }
+    });
+
+    return (
+        <div>
+            <h3>Question {props.questionNumber}</h3>
+            {answerInfoProps.map((infoProps) => (
+                <AnswerInfo
+                    key={infoProps.answerInfo.id}
+                    answer={infoProps.answerInfo}
+                    {...infoProps.rest}
+                    isQuizOwner={props.isQuizOwner}
+                    markCorrect={() => markCorrect(infoProps.answerInfo.id, infoProps.clueIndex)}
+                    markIncorrect={() => markIncorrect(infoProps.answerInfo.id, infoProps.clueIndex)}
+                />
+            ))}
+        </div>
+    );
+};
+
+interface AnswerInfoProps {
+    answer: {
+        id: string;
+        text: string;
+        isValid: boolean;
+        points?: number;
+        teamName?: string;
+    };
+    isQuizOwner: boolean;
+    buttonsAreVisible: boolean;
+    canBeMarkedCorrect: boolean;
+    canBeMarkedIncorrect: boolean;
+    markCorrect: () => void;
+    markIncorrect: () => void;
+}
+const AnswerInfo = (props: AnswerInfoProps) => {
+    return (
+        <div
+            key={props.answer.id}
+            className={styles.answer + (props.answer.isValid ? '' : (' ' + styles.invalidAnswer))}
+            data-cy={`submitted-answer-${props.answer.id}`}
+        >
+            <div className={styles.answerInfo}>
+                {props.isQuizOwner && props.answer.teamName && <>{props.answer.teamName}:<br/></>}
+                {props.answer.text}{' '}
+                {(props.answer.points !== undefined || !props.isQuizOwner) &&
+                    <>({props.answer.points !== undefined ? props.answer.points : 'unscored'})</>
+                }
+            </div>
+            {props.buttonsAreVisible &&
+                <div className={styles.markingButtons}>
+                    <PrimaryButton onClick={props.markCorrect} disabled={!props.canBeMarkedCorrect}>✔️</PrimaryButton>
+                    <PrimaryButton onClick={props.markIncorrect} disabled={!props.canBeMarkedIncorrect}>❌</PrimaryButton>
+                </div>
+            }
         </div>
     );
 };
