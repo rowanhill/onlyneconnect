@@ -64,7 +64,7 @@ interface AnswersForQuestionProps {
     teamNamesById: { [teamId: string]: string; }
     updateAnswerScoresAndCorrectFlags: (updates: AnswerUpdate[]) => void;
 }
-const AnswersForQuestion = (props: AnswersForQuestionProps) => {
+export const AnswersForQuestion = (props: AnswersForQuestionProps) => {
     if (props.questionAnswers.length === 0) {
         return null;
     }
