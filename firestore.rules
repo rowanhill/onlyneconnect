@@ -68,6 +68,14 @@ service cloud.firestore {
       match /clues/{clue} {
         allow create, update, delete: if quizOwner(quiz);
         allow get, list: if currentQuestionOrClueVisibleToPlayer(quiz) || quizOwner(quiz);
+
+        match /wallInProgress/{teamId} {
+          // Only the team captain can create or update a team's in-progress wall answer
+          allow create, update: if request.auth != null && teamCaptain(quiz, teamId, request.auth.uid);
+          // Anyone on the team can read it
+          allow get: if authedAndTeamMember(quiz, teamId);
+          // (Nobody can delete, to avoid players deleting after finding some groups and starting again)
+        }
       }
 
       match /clueSecrets/{clue} {

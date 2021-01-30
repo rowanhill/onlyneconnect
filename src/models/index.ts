@@ -127,3 +127,7 @@ export interface WallAnswer {
 }
 
 export type Answer = SimpleAnswer | WallAnswer;
+
+export interface WallInProgress {
+    selectedIndexes: number[];
+}

@@ -22,16 +22,6 @@
     background-color: var(--standard);
 }
 
-.clickableClue {
-    cursor: pointer;
-}
-
-.clickableClue:hover {
-    --lowlight: var(--mid-blue-lowlight);
-    --standard: var(--mid-blue);
-    --highlight: var(--mid-blue-highlight);
-}
-
 .hiddenClue {
     composes: clue;
     visibility: hidden;

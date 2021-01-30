@@ -1,24 +1,26 @@
 import React from 'react';
 import styles from './Clues.module.css';
 
-export const VisibleClue = ({ isRevealed, text, index, className, isClickable }: {
+export const VisibleClue = ({ isRevealed, text, index, className, onClick }: {
     isRevealed: boolean;
     text: string;
     index: number;
     className?: string;
-    isClickable?: boolean;
+    onClick?: () => void;
 }) => {
     const cn = className || styles.connectionOrSequenceClue;
     return isRevealed ?
-        <RevealedClue text={text} index={index} className={cn} isClickable={isClickable} /> :
+        <RevealedClue text={text} index={index} className={cn} onClick={onClick} /> :
         <UnrevealedClue text={text} index={index} className={cn} />;
 };
 
-const RevealedClue = ({ text, index, className, isClickable }: { text: string; index: number; className?: string; isClickable?: boolean; }) => {
+const RevealedClue = ({ text, index, className, onClick }: {
+    text: string;
+    index: number;
+    className?: string;
+    onClick?: () => void;
+}) => {
     const classNames = [styles.revealedClue];
-    if (isClickable) {
-        classNames.push(styles.clickableClue);
-    }
     if(className) {
         classNames.push(className);
     }
@@ -26,6 +28,7 @@ const RevealedClue = ({ text, index, className, isClickable }: { text: string; i
         <div
             className={classNames.join(' ')}
             data-cy={`revealed-clue-${index}`}
+            onClick={onClick}
         >
             {text}
         </div>

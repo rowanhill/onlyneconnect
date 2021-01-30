@@ -1,14 +1,15 @@
 import React from 'react';
 import { Card } from './Card';
-import { useCluesContext, useQuestionsContext } from './contexts/quizPage';
+import { useCluesContext, useQuestionsContext, useQuizContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { CompoundTextClue, FourByFourTextClue, Question, Quiz, TextClue, throwBadQuestionType } from './models';
+import { CompoundTextClue, FourByFourTextClue, Question, TextClue, throwBadQuestionType } from './models';
 import { VisibleClue, HiddenClue, LastInSequenceClue } from './Clues';
 import { WallClues } from './WallClues';
 import styles from './CurrentQuestion.module.css';
 
-export const CurrentQuestion = ({ currentQuestionItem, quiz }: { currentQuestionItem?: CollectionQueryItem<Question>; quiz: Quiz; }) => {
+export const CurrentQuestion = ({ currentQuestionItem }: { currentQuestionItem?: CollectionQueryItem<Question>; }) => {
     const { error: questionsError } = useQuestionsContext();
+    const { quiz } = useQuizContext();
     function inner() {
         if (currentQuestionItem === undefined) {
             return <>Waiting for quiz to start...</>;
@@ -69,7 +70,9 @@ const QuestionClues = ({ currentQuestionItem }: { currentQuestionItem: Collectio
                 return (<SequenceClues clues={orderedClues as Array<CollectionQueryItem<TextClue>>} />);
             }
         case 'wall':
-            return (<WallClues clue={questionCluesById[currentQuestionItem.data.clueId] as CollectionQueryItem<FourByFourTextClue>} />);
+            return (<WallClues
+                    clue={questionCluesById[currentQuestionItem.data.clueId] as CollectionQueryItem<FourByFourTextClue>}
+                />);
         case 'missing-vowels':
             return (<MissingVowelsClues clue={questionCluesById[currentQuestionItem.data.clueId] as CollectionQueryItem<CompoundTextClue>} />);
         default:

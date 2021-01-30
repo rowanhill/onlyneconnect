@@ -18,3 +18,29 @@
 .wallClue {
     width: 100%;
 }
+
+.clickable {
+    cursor: pointer;
+}
+
+/* Set colours used by Clues.module.css */
+.unselected {
+    composes: wallClue;
+}
+.unselected.clickable:hover {
+    --lowlight: var(--light-blue-lowlight);
+    --standard: var(--light-blue);
+    --highlight: var(--light-blue-highlight);
+}
+
+.selected {
+    composes: wallClue;
+    --lowlight: var(--mid-blue-lowlight);
+    --standard: var(--mid-blue);
+    --highlight: var(--mid-blue-highlight);
+}
+.selected.clickable:hover {
+    --lowlight: var(--mid-blue-darkened-lowlight);
+    --standard: var(--mid-blue-darkened);
+    --highlight: var(--mid-blue-darkened-highlight);
+}

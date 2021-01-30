@@ -14,6 +14,7 @@ import {
     CluesContext,
     TeamsContext,
     AnswersContext,
+    PlayerTeamContext,
  } from './contexts/quizPage';
 import { QuizControls } from './QuizControls';
 import { CurrentQuestion } from './CurrentQuestion';
@@ -137,6 +138,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
         return (
             <>
             <QuizContext.Provider value={{ quizId, quiz: quizData }}>
+            <PlayerTeamContext.Provider value={{ teamId: playerTeamData?.teamId, isCaptain }}>
             <QuestionsContext.Provider value={questionsResult}>
             <CluesContext.Provider value={cluesResult}>
             <TeamsContext.Provider value={teamsResult}>
@@ -147,7 +149,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                         {joinTeamUrl && <p>Invite others to your team with this link: {joinTeamUrl.href}</p>}
                         {joinQuizUrl && <p>Invite team captains to your quiz with this link: {joinQuizUrl.href}</p>}
                     </div>
-                    <CurrentQuestion currentQuestionItem={currentQuestionItem} quiz={quizData} />
+                    <CurrentQuestion currentQuestionItem={currentQuestionItem} />
                     {isQuizOwner &&
                         <QuizControls currentQuestionItem={currentQuestionItem} />
                     }
@@ -168,6 +170,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
             </TeamsContext.Provider>
             </CluesContext.Provider>
             </QuestionsContext.Provider>
+            </PlayerTeamContext.Provider>
             </QuizContext.Provider>
             </>
         );

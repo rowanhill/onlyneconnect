@@ -29,6 +29,15 @@ export const useCluesContext = () => {
     return result;
 };
 
+export const PlayerTeamContext = createContext<{ teamId: string|undefined; isCaptain: boolean|undefined; }>(undefined as any);
+export const usePlayerTeamContext = () => {
+    const result = useContext(PlayerTeamContext);
+    if (!result) {
+        throw new Error('No value found in PlayerTeamContext. Is there a provider?');
+    }
+    return result;
+};
+
 export const TeamsContext = createContext<CollectionQueryResult<Team>>(undefined as any);
 export const useTeamsContext = () => {
     const result = useContext(TeamsContext);

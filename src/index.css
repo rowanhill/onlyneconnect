@@ -7,9 +7,17 @@
   --pale-blue: hsl(196, 90%, 91%);
   --pale-blue-highlight: hsl(189, 89%, 93%);
 
-  --mid-blue-lowlight: hsl(196, 80%, 78%);
-  --mid-blue: hsl(196, 80%, 80%);
-  --mid-blue-highlight: hsl(196, 79%, 83%);
+  --light-blue-lowlight: hsl(196, 80%, 78%);
+  --light-blue: hsl(196, 80%, 80%);
+  --light-blue-highlight: hsl(196, 79%, 83%);
+
+  --mid-blue-lowlight: hsl(196, 70%, 62%);
+  --mid-blue: hsl(196, 70%, 65%);
+  --mid-blue-highlight: hsl(196, 69%, 68%);
+
+  --mid-blue-darkened-lowlight: hsl(196, 70%, 58%);
+  --mid-blue-darkened: hsl(196, 70%, 60%);
+  --mid-blue-darkened-highlight: hsl(196, 69%, 63%);
 
   --dark-blue: hsl(225, 60%, 55%);
   --dark-blue-washed-out: hsl(225, 40%, 65%);

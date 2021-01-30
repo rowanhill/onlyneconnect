@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { CluesContext, QuestionsContext } from './contexts/quizPage';
+import { CluesContext, QuestionsContext, QuizContext } from './contexts/quizPage';
 import { CurrentQuestion } from './CurrentQuestion';
 import { CollectionQueryItem, CollectionQueryResult } from './hooks/useCollectionResult';
 import { Clue, CompoundTextClue, ConnectionQuestion, Four, MissingVowelsQuestion, Question, Quiz, SequenceQuestion, TextClue, Three } from './models';
@@ -32,11 +32,13 @@ describe('<CurrentQuestion>', () => {
         };
         const defaultedQuiz = quiz || { questionIds: question ? [question.id] : [] } as Quiz;
         return (
+            <QuizContext.Provider value={{ quiz: defaultedQuiz, quizId: 'quizid' }}>
             <QuestionsContext.Provider value={questionContext}>
             <CluesContext.Provider value={cluesContext}>
-                <CurrentQuestion currentQuestionItem={question} quiz={defaultedQuiz} />
+                <CurrentQuestion currentQuestionItem={question} />
             </CluesContext.Provider>
             </QuestionsContext.Provider>
+            </QuizContext.Provider>
         );
     }
 
