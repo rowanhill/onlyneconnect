@@ -1,0 +1,44 @@
+.clue {
+    box-sizing: border-box;
+    border-radius: 5px;
+    font-size: 1.2rem;
+    height: 5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.connectionOrSequenceClue {
+    width: calc(25% - 1em);
+}
+
+.revealedClue {
+    composes: clue;
+    --lowlight: var(--pale-blue-lowlight);
+    --standard: var(--pale-blue);
+    --highlight: var(--pale-blue-highlight);
+    box-shadow: inset -1px -1px 7px 2px hsl(212 30% 57% / 1);
+    background-image: radial-gradient(ellipse at 480% 95%, var(--lowlight) 0%, var(--standard) 80%, var(--highlight) 82%);
+    background-color: var(--standard);
+}
+
+.clickableClue {
+    cursor: pointer;
+}
+
+.clickableClue:hover {
+    --lowlight: var(--mid-blue-lowlight);
+    --standard: var(--mid-blue);
+    --highlight: var(--mid-blue-highlight);
+}
+
+.hiddenClue {
+    composes: clue;
+    visibility: hidden;
+}
+
+.unrevealedClue {
+    composes: clue;
+    border: 2px dashed var(--dark-blue-washed-out);
+    opacity: 0.6;
+}

@@ -3,7 +3,7 @@ import firebase from 'firebase/app';
 import 'firebase/firestore';
 import { ComponentProps } from 'react';
 import { AnswersForQuestion } from './AnswerHistory';
-import { Answer, Clue, MissingVowelsQuestion, Question } from './models';
+import { Clue, MissingVowelsQuestion, Question, SimpleAnswer } from './models';
 
 describe('<AnswersForQuestion>', () => {
     function time(s: number) {
@@ -26,9 +26,9 @@ describe('<AnswersForQuestion>', () => {
                 'c4': { id: 'c4', data: { revealedAt: time(700),                     } as Clue },
             },
             questionAnswers: [
-                { id: 'a1', data: { submittedAt: time(150), teamId: 't1', clueId: 'c1', text: 'Answer one' } as Answer },
-                { id: 'a2', data: { submittedAt: time(170), teamId: 't2', clueId: 'c1', text: 'Answer two' } as Answer },
-                { id: 'a3', data: { submittedAt: time(750), teamId: 't3', clueId: 'c4', text: 'Answer three' } as Answer },
+                { id: 'a1', data: { submittedAt: time(150), teamId: 't1', clueId: 'c1', text: 'Answer one' } as SimpleAnswer },
+                { id: 'a2', data: { submittedAt: time(170), teamId: 't2', clueId: 'c1', text: 'Answer two' } as SimpleAnswer },
+                { id: 'a3', data: { submittedAt: time(750), teamId: 't3', clueId: 'c4', text: 'Answer three' } as SimpleAnswer },
             ],
             teamNamesById: {
                 't1': 'Team One',
@@ -181,7 +181,7 @@ describe('<AnswersForQuestion>', () => {
             it('ignores answers from teams with the correct answer when determining the first unmarked answer', () => {
                 props.questionAnswers[0].data.correct = true;
                 props.questionAnswers[1].data.teamId = props.questionAnswers[0].data.teamId;
-                props.questionAnswers.push({ id: 'a4', data: { clueId: 'c1', submittedAt: time(190), text: 'Answer four', teamId: 't4' } as Answer })
+                props.questionAnswers.push({ id: 'a4', data: { clueId: 'c1', submittedAt: time(190), text: 'Answer four', teamId: 't4' } as SimpleAnswer })
 
                 renderWithProps();
 

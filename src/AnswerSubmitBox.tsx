@@ -38,7 +38,12 @@ function hasAnsweredQuestionCorrectly(
     if (!questionItem || !answersResult.data) {
         return false;
     }
-    return answersResult.data.some((answer) => answer.data.questionId === questionItem.id && answer.data.teamId === teamId && answer.data.correct === true);
+    return answersResult.data.some((answer) =>
+        answer.data.questionId === questionItem.id &&
+        answer.data.teamId === teamId &&
+        answer.data.type === 'simple' &&
+        answer.data.correct === true
+    );
 }
 
 export const AnswerSubmitBox = ({ teamId, questionItem, clueItem }: { teamId: string; questionItem: CollectionQueryItem<Question>|undefined; clueItem: CollectionQueryItem<Clue>|undefined; }) => {
@@ -46,6 +51,12 @@ export const AnswerSubmitBox = ({ teamId, questionItem, clueItem }: { teamId: st
     const answersResult = useAnswersContext();
     const [answerText, setAnswerText] = useState('');
     const [submitting, setSubmitting] = useState(false);
+
+    if (questionItem && questionItem.data.type === 'wall') {
+        // Wall answers are supplied inline in the clue area
+        return null;
+    }
+
     const hasReachedLimit = hasReachedAnswerLimit(clueItem, questionItem, answersResult, teamId);
     const alreadyAnsweredCorrectly = hasAnsweredQuestionCorrectly(questionItem, answersResult, teamId);
     const onAnswerChange = (e: ChangeEvent<HTMLInputElement>) => {

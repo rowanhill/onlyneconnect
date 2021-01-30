@@ -1,5 +1,5 @@
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { Answer, Question, throwBadQuestionType } from './models';
+import { Question, SimpleAnswer, throwBadQuestionType } from './models';
 import { AnswerUpdate } from './models/answer';
 
 const firstMissingVowelsScores = [4, 3, 3, 2, 2, 2];
@@ -16,11 +16,12 @@ export const calculateUpdatedScores = (
     correct: boolean,
     question: Question,
     clueIndex: number,
-    answers: CollectionQueryItem<Answer>[],
+    answers: CollectionQueryItem<SimpleAnswer>[],
 ): AnswerUpdate[] => {
     switch (question.type) {
         case 'connection':
         case 'sequence':
+            // Points are awarded based on the number of clues revealed at the time:
             if (!correct) {
                 return [{ answerId: answerId, score: 0, correct }];
             }
@@ -52,6 +53,9 @@ export const calculateUpdatedScores = (
                 }
             }
             return result;
+        case 'wall':
+            // Wall answers are handled separately
+            throw new Error('Cannot update scores for wall type questions');
         default:
             throwBadQuestionType(question);
     }

@@ -1,7 +1,10 @@
+import React from 'react';
 import { Card } from './Card';
 import { useCluesContext, useQuestionsContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { CompoundTextClue, Question, Quiz, TextClue, throwBadQuestionType } from './models';
+import { CompoundTextClue, FourByFourTextClue, Question, Quiz, TextClue, throwBadQuestionType } from './models';
+import { VisibleClue, HiddenClue, LastInSequenceClue } from './Clues';
+import { WallClues } from './WallClues';
 import styles from './CurrentQuestion.module.css';
 
 export const CurrentQuestion = ({ currentQuestionItem, quiz }: { currentQuestionItem?: CollectionQueryItem<Question>; quiz: Quiz; }) => {
@@ -18,9 +21,7 @@ export const CurrentQuestion = ({ currentQuestionItem, quiz }: { currentQuestion
             <>
                 <h3>Question {currentQuestionNumber}</h3>
                 <QuestionInstructions currentQuestionItem={currentQuestionItem} />
-                <div className={styles.cluesHolder}>
-                    <QuestionClues currentQuestionItem={currentQuestionItem} />
-                </div>
+                <QuestionClues currentQuestionItem={currentQuestionItem} />
             </>
         );
     }
@@ -33,6 +34,8 @@ const QuestionInstructions = ({ currentQuestionItem }: { currentQuestionItem: Co
             return <h4>Connection: what links these things?</h4>;
         case 'sequence':
             return <h4>Sequence: what comes fourth?</h4>;
+        case 'wall':
+            return <h4>Wall: what four connections group these things into sets of four?</h4>
         case 'missing-vowels':
             return <h4>Missing Vowels: what links these things?</h4>;
         default:
@@ -65,8 +68,10 @@ const QuestionClues = ({ currentQuestionItem }: { currentQuestionItem: Collectio
             } else {
                 return (<SequenceClues clues={orderedClues as Array<CollectionQueryItem<TextClue>>} />);
             }
+        case 'wall':
+            return (<WallClues clue={questionCluesById[currentQuestionItem.data.clueId] as CollectionQueryItem<FourByFourTextClue>} />);
         case 'missing-vowels':
-            return (<MissingVowelsClues clue={questionCluesById[currentQuestionItem.data.clueId] as CollectionQueryItem<CompoundTextClue>} />)
+            return (<MissingVowelsClues clue={questionCluesById[currentQuestionItem.data.clueId] as CollectionQueryItem<CompoundTextClue>} />);
         default:
             throwBadQuestionType(currentQuestionItem.data);
     }
@@ -74,61 +79,38 @@ const QuestionClues = ({ currentQuestionItem }: { currentQuestionItem: Collectio
 
 const ConnectionClues = ({ clues }: { clues: Array<CollectionQueryItem<TextClue>> }) => {
     return (
-        <>
-        {clues.map((clue, i) => (
-            <VisibleClue key={clue.id} isRevealed={clue.data.isRevealed} text={clue.data.text} index={i} />
-        ))}
-        {arrayUpTo(4 - clues.length).map((n) => (
-            <HiddenClue key={n} />
-        ))}
-        </>
+        <div className={styles.cluesHolder}>
+            {clues.map((clue, i) => (
+                <VisibleClue key={clue.id} isRevealed={clue.data.isRevealed} text={clue.data.text} index={i} />
+            ))}
+            {arrayUpTo(4 - clues.length).map((n) => (
+                <HiddenClue key={n} />
+            ))}
+        </div>
     );
 };
 
 const SequenceClues = ({ clues }: { clues: Array<CollectionQueryItem<TextClue>> }) => {
     return (
-        <>
-        {clues.map((clue, i) => (
-            <VisibleClue key={clue.id} isRevealed={clue.data.isRevealed} text={clue.data.text} index={i} />
-        ))}
-        {clues.length === 3 && <LastInSequenceClue allOtherCluesRevealed={!clues.some((c) => !c.data.isRevealed)} />}
-        {clues.length < 3 && arrayUpTo(4 - clues.length).map((n) => (
-            <HiddenClue key={n} />
-        ))}
-        </>
+        <div className={styles.cluesHolder}>
+            {clues.map((clue, i) => (
+                <VisibleClue key={clue.id} isRevealed={clue.data.isRevealed} text={clue.data.text} index={i} />
+            ))}
+            {clues.length === 3 && <LastInSequenceClue allOtherCluesRevealed={!clues.some((c) => !c.data.isRevealed)} />}
+            {clues.length < 3 && arrayUpTo(4 - clues.length).map((n) => (
+                <HiddenClue key={n} />
+            ))}
+        </div>
     );
 };
 
 const MissingVowelsClues = ({ clue }: { clue: CollectionQueryItem<CompoundTextClue>; }) => {
     return (
-        <>
+        <div className={styles.cluesHolder}>
             {clue.data.texts.map((text, i) => 
                 <VisibleClue key={i} isRevealed={clue.data.isRevealed} text={text} index={i} />
             )}
-        </>
-    );
-};
-
-const VisibleClue = ({ isRevealed, text, index }: { isRevealed: boolean; text: string; index: number; }) => {
-    return (
-        <div
-            className={isRevealed ? styles.revealedClue : styles.unrevealedClue}
-            data-cy={isRevealed ? `revealed-clue-${index}` : `unrevealed-clue-${index}`}
-        >
-            {isRevealed ? text : `(${text})`}
         </div>
-    );
-};
-
-const LastInSequenceClue = ({ allOtherCluesRevealed }: { allOtherCluesRevealed: boolean; }) => {
-    return (
-        <div className={allOtherCluesRevealed ? styles.revealedClue : styles.unrevealedClue} data-cy={'last-clue'}>?</div>
-    );
-};
-
-const HiddenClue = () => {
-    return (
-        <div className={styles.hiddenClue}></div>
     );
 };
 

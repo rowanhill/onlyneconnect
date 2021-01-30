@@ -20,7 +20,7 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
     // Construct an ordered array of clue items for the current question
     const cluesForQuestion = clues.filter((clue) => clue.data.questionId === quiz.currentQuestionId);
     const cluesForQuestionById = Object.fromEntries(cluesForQuestion.map((clue) => [clue.id, clue]));
-    const orderedClues = currentQuestionItem.data.type === 'missing-vowels' ?
+    const orderedClues = currentQuestionItem.data.type === 'missing-vowels' || currentQuestionItem.data.type === 'wall' ?
         [cluesForQuestionById[currentQuestionItem.data.clueId]] :
         currentQuestionItem.data.clueIds.map((id) => cluesForQuestionById[id]);
     

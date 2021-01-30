@@ -1,6 +1,6 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
-import { CompoundTextClue, Four, MissingVowelsQuestion, Three } from '.';
+import { CompoundTextClue, Four, FourByFourTextClue, FourByFourTextClueSecrets, MissingVowelsQuestion, Sixteen, Three, WallQuestion } from '.';
 
 export const createQuiz = (
     quizName: string,
@@ -30,6 +30,13 @@ export interface CompoundClueSpec {
     type: 'compound-text';
 }
 
+export interface FourByFourTextClueSpec {
+    id?: string;
+    solution: Four<{ texts: Four<string>; }>;
+    answerLimit: null;
+    type: 'four-by-four-text';
+}
+
 export interface ConnectionQuestionSpec {
     id?: string;
     answerLimit: number | null;
@@ -42,6 +49,13 @@ export interface SequenceQuestionSpec {
     answerLimit: number | null;
     clues: Three<TextClueSpec>;
     type: 'sequence';
+}
+
+export interface WallQuestionSpec {
+    id?: string;
+    answerLimit: null;
+    clue: FourByFourTextClueSpec;
+    type: 'wall';
 }
 
 export interface MissingVowelsQuestionSpec {
@@ -85,6 +99,54 @@ export const createConnectionOrSequenceQuestion = (
     });
     
     return batch.commit().then(() => ({ questionId: questionDoc.id, clueIds }));
+};
+
+function shuffleArray<T>(array: T[]) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+export const createWallQuestion = (
+    quizId: string,
+    question: WallQuestionSpec,
+    db: firebase.firestore.Firestore = firebase.app().firestore(),
+    arrayUnion = firebase.firestore.FieldValue.arrayUnion,
+) => {
+    const batch = db.batch();
+
+    const quizDoc = db.doc(`quizzes/${quizId}`);
+    const clueDoc = db.collection(`quizzes/${quizId}/clues`).doc();
+    const clueSecretsDoc = db.doc(`quizzes/${quizId}/clueSecrets/${clueDoc.id}`);
+    const questionDoc = db.collection(`quizzes/${quizId}/questions`).doc();
+
+    batch.set<WallQuestion>(questionDoc as any, {
+        type: question.type,
+        answerLimit: question.answerLimit,
+        isRevealed: false,
+        clueId: clueDoc.id,
+    });
+
+    const flattenedTexts = question.clue.solution.flatMap((group) => group.texts) as Sixteen<string>;
+    shuffleArray(flattenedTexts);
+    batch.set<FourByFourTextClue>(clueDoc as any, {
+        questionId: questionDoc.id,
+        isRevealed: false,
+        texts: flattenedTexts,
+        answerLimit: question.clue.answerLimit,
+        type: question.clue.type,
+    });
+
+    batch.set<FourByFourTextClueSecrets>(clueSecretsDoc as any, {
+        solution: question.clue.solution,
+        type: question.clue.type,
+    });
+
+    batch.update(quizDoc, {
+        questionIds: arrayUnion(questionDoc.id),
+    });
+    
+    return batch.commit().then(() => ({ questionId: questionDoc.id, clueId: clueDoc.id }));
 };
 
 export const createMissingVowelsQuestion = (

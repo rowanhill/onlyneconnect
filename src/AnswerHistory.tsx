@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import { PrimaryButton } from './Button';
 import { useAnswersContext, useCluesContext, useQuestionsContext, useQuizContext, useTeamsContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { Answer, Clue, Question } from './models';
+import { Answer, Clue, FourByFourTextClue, Question, SimpleAnswer, WallAnswer, WallQuestion } from './models';
 import { AnswerUpdate, updateAnswers } from './models/answer';
 import styles from './AnswerHistory.module.css';
 import { calculateUpdatedScores } from './answerScoreCalculator';
@@ -40,14 +40,25 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
     return (
         <div className={styles.answersHistory} data-cy="answers-history">
             {quiz.questionIds.map((questionId, groupIndex) => (
+                questionsById[questionId]?.type !== 'wall' ?
                 <AnswersForQuestion
                     key={questionId}
                     questionNumber={groupIndex + 1}
                     isQuizOwner={isQuizOwner}
                     question={questionsById[questionId]}
-                    questionAnswers={answersByQuestionId[questionId] || []}
+                    questionAnswers={answersByQuestionId[questionId] as CollectionQueryItem<SimpleAnswer>[] || []}
                     cluesById={cluesById}
                     teamNamesById={teamNamesById}
+                    updateAnswerScoresAndCorrectFlags={updateAnswerScoresAndCorrectFlags}
+                /> :
+                <AnswersForWallQuestion
+                    key={questionId}
+                    questionNumber={groupIndex + 1}
+                    question={questionsById[questionId] as WallQuestion}
+                    clue={cluesById[(questionsById[questionId] as WallQuestion).clueId] as CollectionQueryItem<FourByFourTextClue>}
+                    isQuizOwner={isQuizOwner}
+                    teamNamesById={teamNamesById}
+                    questionAnswers={answersByQuestionId[questionId] as CollectionQueryItem<WallAnswer>[] || []}
                     updateAnswerScoresAndCorrectFlags={updateAnswerScoresAndCorrectFlags}
                 />
             ))}
@@ -59,7 +70,7 @@ interface AnswersForQuestionProps {
     questionNumber: number;
     isQuizOwner: boolean;
     question: Question;
-    questionAnswers: CollectionQueryItem<Answer>[];
+    questionAnswers: CollectionQueryItem<SimpleAnswer>[];
     cluesById: { [clueId: string]: CollectionQueryItem<Clue>; };
     teamNamesById: { [teamId: string]: string; }
     updateAnswerScoresAndCorrectFlags: (updates: AnswerUpdate[]) => void;
@@ -137,6 +148,75 @@ export const AnswersForQuestion = (props: AnswersForQuestionProps) => {
                 />
             ))}
         </div>
+    );
+};
+
+interface AnswersForWallQuestionProps {
+    questionNumber: number;
+    isQuizOwner: boolean;
+    question: WallQuestion;
+    clue: CollectionQueryItem<FourByFourTextClue>;
+    questionAnswers: CollectionQueryItem<WallAnswer>[];
+    teamNamesById: { [teamId: string]: string; }
+    updateAnswerScoresAndCorrectFlags: (updates: AnswerUpdate[]) => void;
+}
+const AnswersForWallQuestion = (props: AnswersForWallQuestionProps) => {
+    return (
+        <div>
+            <h3>Question {props.questionNumber}</h3>
+            {props.questionAnswers.map((answer) => (
+                <Fragment key={answer.id}>
+                    <h4>{props.teamNamesById[answer.data.teamId]}</h4>
+                    {answer.data.groupsCorrect.map((groupCorrect, i) => 
+                        <div key={i}>Group {i}: {groupCorrect ? 'Found' : 'Not found'}</div>
+                    )}
+                    <AnswerInfosForWallAnswer answer={answer} clue={props.clue} isQuizOwner={props.isQuizOwner} />
+                </Fragment>
+            ))}
+        </div>
+    );
+};
+
+interface AnswerInfosForWallAnswerProps {
+    answer: CollectionQueryItem<WallAnswer>;
+    clue: CollectionQueryItem<FourByFourTextClue>;
+    isQuizOwner: boolean;
+}
+const AnswerInfosForWallAnswer = (props: AnswerInfosForWallAnswerProps) => {
+    const answerInfoPropObjs = props.answer.data.connections.map((connection) => {
+        const valid = !!props.answer.data.submittedAt &&
+            !!props.clue.data.revealedAt && props.answer.data.submittedAt.toMillis() >= props.clue.data.revealedAt.toMillis() &&
+            (!props.clue.data.closedAt || props.answer.data.submittedAt.toMillis() <= props.clue.data.closedAt.toMillis());
+        const infoProps = {
+            answer: {
+                id: props.answer.id,
+                text: connection.text,
+                isValid: valid,
+            } as AnswerInfoProps['answer'],
+            canBeMarkedCorrect: connection.correct !== true,
+            canBeMarkedIncorrect: connection.correct !== false,
+        };
+        if (connection.correct === true) {
+            infoProps.answer!.points = 1;
+        } else if (connection.correct === false) {
+            infoProps.answer!.points = 0;
+        }
+        return infoProps;
+    });
+
+    return (
+        <>
+            {answerInfoPropObjs.map((answerInfoProps, i) =>
+                <AnswerInfo
+                    key={i}
+                    {...answerInfoProps}
+                    isQuizOwner={props.isQuizOwner}
+                    buttonsAreVisible={true}
+                    markCorrect={() => {}}
+                    markIncorrect={() => {}}
+                />
+            )}
+        </>
     );
 };
 

@@ -1,18 +1,20 @@
-import React, { ChangeEvent, FormEvent, useState } from 'react';
+import React, { ChangeEvent, FormEvent, Fragment, useState } from 'react';
 import { useDocumentData } from 'react-firebase-hooks/firestore';
 import { Link } from 'react-router-dom';
 import firebase from './firebase';
 import { createChangeHandler } from './forms/changeHandler';
 import { useAuth } from './hooks/useAuth';
 import { CollectionQueryData, useCollectionResult } from './hooks/useCollectionResult';
-import { Clue, Four, Question, Quiz, QuizSecrets, Three, throwBadQuestionType } from './models';
+import { Clue, ClueSecrets, Four, Question, Quiz, QuizSecrets, Three, throwBadClueType, throwBadQuestionType } from './models';
 import { Page } from './Page';
 import { Card } from './Card';
 import { PrimaryButton } from './Button';
 import styles from './QuizEditPage.module.css';
 import {
     CompoundClueSpec, ConnectionQuestionSpec, createConnectionOrSequenceQuestion, createMissingVowelsQuestion,
-    MissingVowelsQuestionSpec, SequenceQuestionSpec, TextClueSpec,
+    createWallQuestion,
+    FourByFourTextClueSpec,
+    MissingVowelsQuestionSpec, SequenceQuestionSpec, TextClueSpec, WallQuestionSpec,
 } from './models/quiz';
 
 interface QuizEditPageProps {
@@ -27,20 +29,21 @@ export const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
     const [secretsData, secretsLoading, secretsError] = useDocumentData<QuizSecrets>(user ? db.collection('quizSecrets').doc(quizId) : null);
     const questionsResult = useCollectionResult<Question>(user ? db.collection(`quizzes/${quizId}/questions`) : null);
     const cluesResult = useCollectionResult<Clue>(user ? db.collection(`quizzes/${quizId}/clues`) : null);
+    const clueSecretsResult = useCollectionResult<ClueSecrets>(user ? db.collection(`quizzes/${quizId}/clueSecrets`) : null);
 
     function inner() {
         // Bail out if there are any problems or display a loading notice if we're not loaded yet
-        if (quizError || secretsError || questionsResult.error || cluesResult.error) {
-            console.log('Could not load quiz', quizError, secretsError, questionsResult.error, cluesResult.error);
+        if (quizError || secretsError || questionsResult.error || cluesResult.error || clueSecretsResult.error) {
+            console.warn('Could not load quiz', quizError, secretsError, questionsResult.error, cluesResult.error, clueSecretsResult.error);
             return <div>Could not load quiz. Try again later.</div>;
         }
         if (user && quizData && user.uid !== quizData.ownerId) {
             return <div>No quiz owned by you with id ${quizId} was found</div>;
         }
-        if (quizLoading || !user || secretsLoading || questionsResult.loading || cluesResult.loading) {
+        if (quizLoading || !user || secretsLoading || questionsResult.loading || cluesResult.loading || clueSecretsResult.loading) {
             return <div>Loading...</div>;
         }
-        if (!quizData || !secretsData || !questionsResult.data || !cluesResult.data) {
+        if (!quizData || !secretsData || !questionsResult.data || !cluesResult.data || !clueSecretsResult.data) {
             return <div>No quiz owned by you with id ${quizId} was found</div>;
         }
         
@@ -51,31 +54,33 @@ export const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
                 secrets={secretsData}
                 questions={questionsResult.data}
                 clues={cluesResult.data}
+                clueSecrets={clueSecretsResult.data}
             />
         );
     }
     return <Page title={quizData ? `Edit ${quizData.name}` : 'Edit quiz'}>{inner()}</Page>;
 };
 
-type ClueSpec = TextClueSpec | CompoundClueSpec;
-type QuestionSpec = ConnectionQuestionSpec | SequenceQuestionSpec | MissingVowelsQuestionSpec;
+type ClueSpec = TextClueSpec | FourByFourTextClueSpec | CompoundClueSpec;
+type QuestionSpec = ConnectionQuestionSpec | SequenceQuestionSpec | WallQuestionSpec | MissingVowelsQuestionSpec;
 
 function getClues(questionSpec: QuestionSpec): ClueSpec[] {
     if (questionSpec.type === 'connection' || questionSpec.type === 'sequence') {
         return questionSpec.clues;
-    } else if (questionSpec.type === 'missing-vowels') {
+    } else if (questionSpec.type === 'wall' || questionSpec.type === 'missing-vowels') {
         return [questionSpec.clue];
     } else {
         throwBadQuestionType(questionSpec);
     }
 } 
 
-const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
+const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecrets }: {
         quizId: string;
         quiz: Quiz;
         secrets: QuizSecrets;
         questions: CollectionQueryData<Question>;
         clues: CollectionQueryData<Clue>;
+        clueSecrets: CollectionQueryData<ClueSecrets>;
 }) => {
     const db = firebase.firestore();
     const [name, setName] = useState(quiz.name);
@@ -128,6 +133,23 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
             ],
         });
     };
+    const addNewWallQuestion = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        setNewQuestion({
+            type: 'wall',
+            answerLimit: null,
+            clue: {
+                answerLimit: null,
+                type: 'four-by-four-text',
+                solution: [
+                    { texts: ['', '', '', ''] },
+                    { texts: ['', '', '', ''] },
+                    { texts: ['', '', '', ''] },
+                    { texts: ['', '', '', ''] },
+                ],
+            },
+        });
+    }
     const addNewMissingVowelsQuestion = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         setNewQuestion({
@@ -146,6 +168,9 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
             case 'connection':
             case 'sequence':
                 promise = createConnectionOrSequenceQuestion(quizId, question);
+                break;
+            case 'wall':
+                promise = createWallQuestion(quizId, question);
                 break;
             case 'missing-vowels':
                 promise = createMissingVowelsQuestion(quizId, question);
@@ -192,6 +217,9 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
                 throw new Error('Tried to delete clue without id');
             }
             batch.delete(db.doc(`quizzes/${quizId}/clues/${clue.id}`));
+            if (clue.type === 'four-by-four-text') {
+                batch.delete(db.doc(`quizzes/${quizId}/clueSecrets/${clue.id}`));
+            }
         }
         batch.update(db.doc(`quizzes/${quizId}`), {
             questionIds: quiz.questionIds.filter((id) => id !== questionSpec.id),
@@ -248,6 +276,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
 
     const questionsById = Object.fromEntries(questions.map((q) => [q.id, q]));
     const cluesById = Object.fromEntries(clues.map((c) => [c.id, c]));
+    const clueSecretsById = Object.fromEntries(clueSecrets.map((cs) => [cs.id, cs]));
     const questionSpecs: QuestionSpec[] = quiz.questionIds
         .filter((id) => {
             const question = questionsById[id];
@@ -257,6 +286,8 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
             let result;
             if (question.data.type === 'connection' || question.data.type === 'sequence') {
                 result = question.data.clueIds.every((id) => !!cluesById[id]);
+            } else if (question.data.type === 'wall') {
+                result = !!cluesById[question.data.clueId] && !!clueSecretsById[question.data.clueId];
             } else if (question.data.type === 'missing-vowels') {
                 result = !!cluesById[question.data.clueId];
             } else {
@@ -299,6 +330,33 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
                         return { id: cid, answerLimit: clue.data.answerLimit, text: clue.data.text, type: 'text' };
                     }) as Three<TextClueSpec>,
                 };
+            } else if (question.type === 'wall') {
+                const clueItem = cluesById[question.clueId];
+                const clueSecretsItem = clueSecretsById[question.clueId];
+                if (!clueItem) {
+                    throw new Error(`Could not find clue ${question.clueId} referenced by question ${id}`);
+                }
+                if (!clueSecretsItem) {
+                    throw new Error(`Could not find clue secret ${question.clueId} referenced by question ${id}`);
+                }
+                if (clueItem.data.type !== 'four-by-four-text') {
+                    throw new Error(`Expected a four-by-four-text clue on a wall question, but clue ${question.clueId} is a ${clueItem.data.type}`);
+                }
+                if (clueSecretsItem.data.type !== 'four-by-four-text') {
+                    throw new Error(`Expected a four-by-four-text clue secret on a wall question, but clue secret ${question.clueId} is a ${clueSecretsItem.data.type}`);
+                }
+                const clueSpec: FourByFourTextClueSpec = {
+                    id: question.clueId,
+                    answerLimit: clueItem.data.answerLimit,
+                    solution: clueSecretsItem.data.solution,
+                    type: 'four-by-four-text',
+                };
+                result = {
+                    id,
+                    type: question.type,
+                    answerLimit: question.answerLimit,
+                    clue: clueSpec,
+                }
             } else if (question.type === 'missing-vowels') {
                 const clueItem = cluesById[question.clueId];
                 if (!clueItem) {
@@ -376,6 +434,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues }: {
                     <>
                     <PrimaryButton className={styles.addQuestionButton} onClick={addNewConnectionQuestion}>Add connection question</PrimaryButton>
                     <PrimaryButton className={styles.addQuestionButton} onClick={addNewSequenceQuestion}>Add sequence question</PrimaryButton>
+                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewWallQuestion}>Add wall question</PrimaryButton>
                     <PrimaryButton className={styles.addQuestionButton} onClick={addNewMissingVowelsQuestion}>Add missing vowels question</PrimaryButton>
                     </>
                 }
@@ -398,11 +457,24 @@ const CollapsedQuestion = ({ question, questionNumber, expand }: CollapsedQuesti
                 <PrimaryButton onClick={expand}>➕</PrimaryButton>
             </h3>
             <p>
-                {(question.type === 'missing-vowels' ? question.clue.texts : question.clues.map((c) => c.text)).join(' | ')}
+                {clueTextSummary(question)}
             </p>
         </Card>
     );
-}
+};
+const clueTextSummary = (question: QuestionSpec) => {
+    switch (question.type) {
+        case 'connection':
+        case 'sequence':
+            return question.clues.map((c) => c.text).join(' | ');
+        case 'wall':
+            return question.clue.solution.map((group) => group.texts.join(' | ')).join(' // ');
+        case 'missing-vowels':
+            return question.clue.texts.join(' | ');
+        default:
+            throwBadQuestionType(question);
+    }
+};
 
 interface QuestionFormProps {
     initialQuestion: QuestionSpec;
@@ -433,12 +505,33 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
         const q = question as MissingVowelsQuestionSpec;
         setQuestion({ ...q, clue });
     };
+    const changeFourByFourClue = (clue: FourByFourTextClueSpec) => {
+        if (question.type !== 'wall') {
+            throw new Error(`Tried to update a wall clue, but parent question is of type ${question.type}`);
+        }
+        const q = question as WallQuestionSpec;
+        setQuestion({ ...q, clue });
+    };
     const changeAnswerLimit = (e: ChangeEvent<HTMLInputElement>) => {
         setQuestion({
             ...question,
             answerLimit: e.target.valueAsNumber,
-        });
+        } as ConnectionQuestionSpec | SequenceQuestionSpec | MissingVowelsQuestionSpec);
     };
+
+    const getClueForm = (clue: ClueSpec, clueIndex: number) => {
+        switch (clue.type) {
+            case 'text':
+                return <TextClueForm key={clueIndex} clueNumber={clueIndex + 1} clue={clue} onChange={(c) => changeTextClue(clueIndex, c)} />;
+            case 'compound-text':
+                return <CompoundTextClueForm key={clueIndex} clue={clue} onChange={changeCompoundClue} />;
+            case 'four-by-four-text':
+                return <FourByFourClueForm key={clueIndex} clue={clue} onChange={changeFourByFourClue} />;
+            default:
+                throwBadClueType(clue);
+        }
+    };
+
     return (
         <Card>
             <h3>
@@ -455,15 +548,15 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
                     <QuestionTypeName question={question} />
                 </span>
             </p>
+            {question.type !== 'wall' &&
             <p className={styles.row}>
                 <label>Question answer limit</label>
                 <input type="number" value={question.answerLimit || ''} placeholder="No limit" onChange={changeAnswerLimit} />
             </p>
+            }
             <h4>Clues</h4>
             {getClues(question).map((clue, clueIndex) => (
-                clue.type === 'text' ?
-                    <TextClueForm key={clueIndex} clueNumber={clueIndex + 1} clue={clue} onChange={(c) => changeTextClue(clueIndex, c)} /> :
-                    <CompoundTextClueForm key={clueIndex} clue={clue} onChange={changeCompoundClue} />
+                getClueForm(clue, clueIndex)
             ))}
         </Card>
     );
@@ -474,6 +567,8 @@ const QuestionTypeName = ({ question }: { question: QuestionSpec }) => {
         return <>Connection</>;
     } else if (question.type === 'sequence') {
         return <>Sequence</>;
+    } else if (question.type === 'wall') {
+        return <>Wall</>;
     } else if (question.type === 'missing-vowels') {
         return <>Missing Vowels</>;
     } else {
@@ -537,4 +632,39 @@ const CompoundTextClueForm = ({ clue, onChange }: { clue: CompoundClueSpec; onCh
         </p>
         </>
     );
-}
+};
+
+const FourByFourClueForm = ({ clue, onChange }: { clue: FourByFourTextClueSpec; onChange: (clue: FourByFourTextClueSpec) => void; }) => {
+    const changeText = (groupIndex: number, textIndex: number) =>
+        (e: ChangeEvent<HTMLInputElement>) => {
+            onChange({
+                ...clue,
+                solution: clue.solution.map((oldGroup, g) =>
+                    g === groupIndex ?
+                        {
+                            ...oldGroup,
+                            texts: oldGroup.texts.map((oldText, i) => i === textIndex ? e.target.value : oldText) as Four<string>,
+                        } :
+                        oldGroup
+                    ,
+                ) as Four<{ texts: Four<string>; }>
+            });
+        };
+    return (
+        <>
+        {clue.solution.map((group, groupIndex) =>
+            <Fragment key={groupIndex}>
+                <p className={styles.row}>
+                    <label className={styles.cluePropLabel}>Group {groupIndex + 1}:</label>
+                </p>
+                {group.texts.map((text, textIndex) =>
+                    <p key={textIndex} className={styles.row}>
+                        <label className={styles.cluePropLabel}>Item {textIndex + 1}</label>
+                        <input type="text" value={text} onChange={changeText(groupIndex, textIndex)} />
+                    </p>
+                )}
+            </Fragment>
+        )}
+        </>
+    );
+};

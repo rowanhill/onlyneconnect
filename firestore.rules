@@ -70,6 +70,10 @@ service cloud.firestore {
         allow get, list: if currentQuestionOrClueVisibleToPlayer(quiz) || quizOwner(quiz);
       }
 
+      match /clueSecrets/{clue} {
+        allow read, write: if quizOwner(quiz);
+      }
+
       match /answers/{answer} {
         // Only team captains can create answers, and only for revealed questions.
         // New answers may not have points or be marked.
