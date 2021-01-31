@@ -71,7 +71,12 @@ service cloud.firestore {
 
         match /wallInProgress/{teamId} {
           // Only the team captain can create or update a team's in-progress wall answer
-          allow create, update: if request.auth != null && teamCaptain(quiz, teamId, request.auth.uid);
+          // (Excluding sensitive properties, which only cloud functions can write to)
+          allow create: if request.auth != null && teamCaptain(quiz, teamId, request.auth.uid) &&
+            !('correctGroups' in request.resource.data) &&
+            !('remainingLives' in request.resource.data); 
+          allow update: if request.auth != null && teamCaptain(quiz, teamId, request.auth.uid) &&
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['correctGroups', 'remainingLives']); 
           // Anyone on the team can read it
           allow get: if authedAndTeamMember(quiz, teamId);
           // (Nobody can delete, to avoid players deleting after finding some groups and starting again)

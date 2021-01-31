@@ -17,7 +17,8 @@
     --lowlight: var(--pale-blue-lowlight);
     --standard: var(--pale-blue);
     --highlight: var(--pale-blue-highlight);
-    box-shadow: inset -1px -1px 7px 2px hsl(212 30% 57% / 1);
+    --shadow: var(--pale-blue-shadow);
+    box-shadow: inset -1px -1px 7px 2px var(--shadow);
     background-image: radial-gradient(ellipse at 480% 95%, var(--lowlight) 0%, var(--standard) 80%, var(--highlight) 82%);
     background-color: var(--standard);
 }

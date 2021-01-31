@@ -6,25 +6,49 @@
   --pale-blue-lowlight: hsl(196, 90%, 89%);
   --pale-blue: hsl(196, 90%, 91%);
   --pale-blue-highlight: hsl(189, 89%, 93%);
+  --pale-blue-shadow: hsl(212, 30%, 57%);
 
   --light-blue-lowlight: hsl(196, 80%, 78%);
   --light-blue: hsl(196, 80%, 80%);
   --light-blue-highlight: hsl(196, 79%, 83%);
+  --light-blue-shadow: hsl(212, 20%, 47%);
 
   --mid-blue-lowlight: hsl(196, 70%, 62%);
   --mid-blue: hsl(196, 70%, 65%);
   --mid-blue-highlight: hsl(196, 69%, 68%);
+  --mid-blue-shadow: hsl(212, 10%, 35%);
 
   --mid-blue-darkened-lowlight: hsl(196, 70%, 58%);
   --mid-blue-darkened: hsl(196, 70%, 60%);
   --mid-blue-darkened-highlight: hsl(196, 69%, 63%);
+  --mid-blue-darkened-shadow: hsl(212, 10%, 30%);
 
   --dark-blue: hsl(225, 60%, 55%);
   --dark-blue-washed-out: hsl(225, 40%, 65%);
 
+  --very-dark-blue-lowlight: hsl(210, 55%, 22%);
+  --very-dark-blue: hsl(210, 55%, 25%);
+  --very-dark-blue-highlight: hsl(210, 50%, 28%);
+  --very-dark-blue-shadow: hsl(220, 10%, 10%);
+
   --darkest-blue: hsl(200, 50%, 15%);
 
+  --mid-turquoise-lowlight: hsl(189, 55%, 47%);
+  --mid-turquoise: hsl(189, 56%, 40%);
+  --mid-turquoise-highlight: hsl(189, 54%, 43%);
+  --mid-turquoise-shadow: hsl(190, 10%, 20%);
+
+  --mid-green-lowlight: hsl(160, 55%, 27%);
+  --mid-green: hsl(160, 55%, 30%);
+  --mid-green-highlight: hsl(160, 54%, 33%);
+  --mid-green-shadow: hsl(160, 10%, 20%);
+
   --red: hsl(350, 85%, 45%);
+
+  --dark-red-lowlight: hsl(340, 55%, 27%);
+  --dark-red: hsl(340, 56%, 30%);
+  --dark-red-highlight: hsl(340, 54%, 33%);
+  --dark-red-shadow: hsl(340, 10%, 20%);
 
   --white: white;
   --white-washed-out: lightgrey;

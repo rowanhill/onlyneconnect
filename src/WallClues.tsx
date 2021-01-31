@@ -3,6 +3,7 @@ import { useDocumentData } from 'react-firebase-hooks/firestore';
 import { VisibleClue } from './Clues';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
 import firebase from './firebase';
+import './firebase-functions';
 import { FourByFourTextClue, WallInProgress } from './models';
 import styles from './WallClues.module.css';
 import { useQuizContext, usePlayerTeamContext } from './contexts/quizPage';
@@ -16,13 +17,11 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
 
     const [hasCreated, setHasCreated] = useState(false);
     useEffect(() => {
-        console.log(progressDoc, progressLoading, progressData, hasCreated);
         if (progressDoc && progressLoading === false && !progressData && hasCreated === false) {
             progressDoc.set({
                 selectedIndexes: [],
             });
             setHasCreated(true);
-            console.log('Created in-progress doc');
         }
     }, [progressDoc, progressData, progressLoading, hasCreated, setHasCreated]);
 
@@ -31,7 +30,10 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
     }
 
     const toggleClue = (i: number) => {
-        if (!isCaptain || !progressDoc || !progressData || progressData.selectedIndexes.length >= 4) {
+        if (!isCaptain || !progressDoc || !progressData ||
+            progressData.selectedIndexes.length >= 4 ||
+            (progressData.remainingLives !== undefined && progressData.remainingLives <= 0)
+        ) {
             return;
         }
         if (progressData.selectedIndexes.includes(i)) {
@@ -45,42 +47,81 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
             });
 
             if (newIndexes.length >= 4) {
-                // TODO: Submit answers to server function for marking
-                setTimeout(() => {
-                    progressDoc.update({
-                        selectedIndexes: [],
-                    });
-                }, 300);
+                const checkIfWallGroupIsInSolution = firebase.functions().httpsCallable('checkIfWallGroupIsInSolution');
+                checkIfWallGroupIsInSolution({ quizId, clueId: clue.id, teamId, indexes: newIndexes })
+                    .then((result) => console.log(result.data));
             }
         }
     };
 
-    const getClassNames = (i: number) => {
+    const getUngroupedClassNames = (textIndex: number, gridIndex: number) => {
         const names = [];
-        if (isCaptain) {
+        if (isCaptain && progressData && (progressData.remainingLives === undefined || progressData.remainingLives > 0)) {
             names.push(styles.clickable);
         }
-        if (progressData && progressData.selectedIndexes.includes(i)) {
+        if (progressData && progressData.selectedIndexes.includes(textIndex)) {
             names.push(styles.selected);
         } else {
             names.push(styles.unselected);
         }
-        names.push(styles[`col${(i % 4) + 1}`]);
-        names.push(styles[`row${Math.floor((i / 4) + 1)}`]);
+        names.push(styles[`col${(gridIndex % 4) + 1}`]);
+        names.push(styles[`row${Math.floor((gridIndex / 4) + 1)}`]);
         return names.join(' ');
-    }
+    };
+    const getGroupedClassNames = (groupIndex: number, gridIndex: number) => {
+        const names = [];
+        names.push(styles[`group${groupIndex + 1}`]);
+        names.push(styles[`col${(gridIndex % 4) + 1}`]);
+        names.push(styles[`row${Math.floor((gridIndex / 4) + 1)}`]);
+        return names.join(' ');
+    };
+
+    const correctGroups = progressData?.correctGroups || [];
+    const groupedIndexes = correctGroups.flatMap((group) => group.indexes);
+
+    const clueMetas: Array<{ foundGroupIndex: number|null; textIndex: number; text: string }> = [];
+    correctGroups.forEach(({ indexes }, groupIndex) => {
+        for (const textIndex of indexes) {
+            clueMetas.push({ foundGroupIndex: groupIndex, textIndex, text: clue.data.texts[textIndex] });
+        }
+    });
+    clue.data.texts.forEach((text, textIndex) => {
+        if (groupedIndexes.indexOf(textIndex) === -1) {
+            clueMetas.push({ foundGroupIndex: null, textIndex, text });
+        }
+    });
+
     return (
+        <>
         <div className={styles.wallGrid}>
-            {clue.data.texts.map((text, i) =>
-                <VisibleClue
-                    key={i}
-                    className={getClassNames(i)}
-                    onClick={() => toggleClue(i)}
-                    isRevealed={clue.data.isRevealed}
-                    text={text}
-                    index={i}
-                />
+            {clueMetas.map((clueMeta, gridIndex) =>
+                clueMeta.foundGroupIndex === null ?
+                    <VisibleClue
+                        key={clueMeta.textIndex}
+                        className={getUngroupedClassNames(clueMeta.textIndex, gridIndex)}
+                        onClick={() => toggleClue(clueMeta.textIndex)}
+                        isRevealed={clue.data.isRevealed}
+                        text={clueMeta.text}
+                        index={gridIndex}
+                    /> :
+                    <VisibleClue
+                        key={clueMeta.textIndex}
+                        className={getGroupedClassNames(clueMeta.foundGroupIndex, gridIndex)}
+                        isRevealed={clue.data.isRevealed}
+                        text={clueMeta.text}
+                        index={gridIndex}
+                    />
             )}
         </div>
-    )
+        {progressData?.remainingLives !== undefined && 
+            <h4>
+                Tries remaining:{' '}
+                {progressData.remainingLives === 0 && 'none! The wall is frozen.'}
+                {progressData.remainingLives === 1 && '💙'}
+                {progressData.remainingLives === 2 && '💙💙'}
+                {progressData.remainingLives >= 3 && '💙💙💙'}
+            </h4>
+        }
+        </>
+    );
 };

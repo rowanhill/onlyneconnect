@@ -130,4 +130,8 @@ export type Answer = SimpleAnswer | WallAnswer;
 
 export interface WallInProgress {
     selectedIndexes: number[];
+
+    // Sensitive props, written to by cloud functions:
+    correctGroups?: { indexes: number[]; }[];
+    remainingLives?: number;
 }

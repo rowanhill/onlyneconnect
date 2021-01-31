@@ -32,10 +32,30 @@ describe('/quiz/{quiz}/clues/{clue}/wallInProgress/{team} security ruleset', () 
             await assertSucceeds(testDb.doc(`quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`).set({ dummy: true }));
         });
 
+        it('denies create with correctGroups', async () => {
+            await assertFails(testDb.doc(`quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`).set({ correctGroups: [{ indexes: [1, 2, 3, 4] }] }));
+        });
+
+        it('denies create with remainingLives', async () => {
+            await assertFails(testDb.doc(`quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`).set({ remainingLives: 5 }));
+        });
+
         it('allows update', async () => {
             const path = `quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`
             await adminDb.doc(path).set({ dummy: true });
             await assertSucceeds(testDb.doc(path).update({ updated: true }));
+        });
+
+        it('denies update of correctGroups', async () => {
+            const path = `quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`
+            await adminDb.doc(path).set({ dummy: true });
+            await assertFails(testDb.doc(path).update({ correctGroups: [{ indexes: [1, 2, 3, 4] }] }));
+        });
+
+        it('denies update of remainingLives', async () => {
+            const path = `quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`
+            await adminDb.doc(path).set({ dummy: true });
+            await assertFails(testDb.doc(path).update({ remainingLives: 5 }));
         });
     });
 
