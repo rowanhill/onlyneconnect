@@ -487,6 +487,7 @@ interface QuestionFormProps {
 }
 const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, moveDown, collapse }: QuestionFormProps) => {
     const [question, setQuestion] = useState(initialQuestion);
+    const [isValid, setIsValid] = useState(true);
     const changeTextClue = (clueIndex: number, clue: TextClueSpec) => {
         if (question.type !== 'connection' && question.type !== 'sequence') {
             throw new Error(`Tried to update a text clue, but parent question is of type ${question.type}`);
@@ -511,6 +512,9 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
         }
         const q = question as WallQuestionSpec;
         setQuestion({ ...q, clue });
+        const flatTexts = clue.solution.flatMap((group) => group.texts);
+        const isValid = (new Set(flatTexts)).size === flatTexts.length;
+        setIsValid(isValid);
     };
     const changeAnswerLimit = (e: ChangeEvent<HTMLInputElement>) => {
         setQuestion({
@@ -538,7 +542,7 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
                 Question {questionNumber}{' '}
                 {moveUp && <PrimaryButton onClick={moveUp}>⬆️</PrimaryButton>}{' '}
                 {moveDown && <PrimaryButton onClick={moveDown}>⬇️</PrimaryButton>}{' '}
-                {save && <PrimaryButton onClick={() => save(question)}>✔️</PrimaryButton>}{' '}
+                {save && <PrimaryButton onClick={() => save(question)} disabled={!isValid}>✔️</PrimaryButton>}{' '}
                 <PrimaryButton onClick={remove}>❌</PrimaryButton>{' '}
                 {collapse && <PrimaryButton onClick={collapse}>➖</PrimaryButton>}
             </h3>
