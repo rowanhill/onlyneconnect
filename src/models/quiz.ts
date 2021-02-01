@@ -1,6 +1,6 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
-import { CompoundTextClue, Four, FourByFourTextClue, FourByFourTextClueSecrets, MissingVowelsQuestion, Sixteen, Three, WallQuestion } from '.';
+import { Clue, ClueSecrets, CompoundTextClue, Four, FourByFourTextClue, FourByFourTextClueSecrets, MissingVowelsQuestion, Sixteen, Three, WallQuestion } from '.';
 
 export const createQuiz = (
     quizName: string,
@@ -251,4 +251,31 @@ export const closeLastClue = (
         .update({
             closedAt: serverTimestamp(),
         });
+};
+
+export const copySolutionFromSecretToClue = (
+    quizId: string,
+    clueId: string,
+    db: firebase.firestore.Firestore = firebase.app().firestore(),
+) => {
+    const clueDoc = db.doc(`quizzes/${quizId}/clues/${clueId}`);
+    const secretsDoc = db.doc(`quizzes/${quizId}/clueSecrets/${clueId}`);
+
+    return db.runTransaction(async (transaction) => {
+        const [clueSnapshot, secretsSnapshot] = await Promise.all([transaction.get(clueDoc), transaction.get(secretsDoc)]);
+        if (!clueSnapshot.exists) {
+            throw new Error(`Clue ${quizId}/${clueId} does not exist`);
+        }
+        const clueData = clueSnapshot.data() as Clue;
+        if (!secretsSnapshot.exists) {
+            throw new Error(`Secret for clue ${quizId}/${clueId} does not exist`);
+        }
+        const secretsData = secretsSnapshot.data() as ClueSecrets;
+        if (clueData.type !== 'four-by-four-text' || secretsData.type !== 'four-by-four-text') {
+            throw new Error(`Expected clue and secrets to be four-by-four-text, but clue was ${clueData.type} and secrets was ${secretsData.type}`);
+        }
+        transaction.update(clueDoc, {
+            solution: secretsData.solution,
+        });
+    });
 };

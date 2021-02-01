@@ -3,7 +3,7 @@ import { PrimaryButton } from './Button';
 import { useCluesContext, useQuestionsContext, useQuizContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
 import { Question } from './models';
-import { closeLastClue, revealNextClue, revealNextQuestion } from './models/quiz';
+import { closeLastClue, copySolutionFromSecretToClue, revealNextClue, revealNextQuestion } from './models/quiz';
 
 export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem: CollectionQueryItem<Question>; }) => {
     const { quizId, quiz } = useQuizContext();
@@ -74,7 +74,7 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
                 setDisabled(false);
             });
         setDisabled(true);
-    }
+    };
     const handleCloseLastClue = () => {
         if (!currentClue) {
             console.error('Tried to close the last clue with no currentClue set');
@@ -89,10 +89,35 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
                 setDisabled(false);
             });
         setDisabled(true);
-    }
+    };
+    const handleResolveWallGroups = () => {
+        if (!currentClue) {
+            console.error('Tried to resolve the wall without a current clue');
+            return;
+        }
+        if (currentClue.data.type !== 'four-by-four-text') {
+            console.error(`Tried to resolve the wall without a four-by-four-text clue (current clue is type ${currentClue.data.type})`);
+            return;
+        }
+        if (typeof currentClue.data.solution !== 'undefined') {
+            console.error('Tried to resolve the wall, but a solution is already shown');
+            return;
+        }
+        copySolutionFromSecretToClue(quizId, currentClue.id)
+            .then(() => {
+                setDisabled(false);
+            })
+            .catch((error) => {
+                console.error(`Could not copy solution to clue ${quizId}/${currentClue.id}`, error);
+                setDisabled(false);
+            });
+        setDisabled(true);
+    };
 
-    let buttonToShow: 'error'|'next-clue'|'next-question'|'end-quiz'|'quiz-ended' = 'error';
-    if (nextClue) {
+    let buttonToShow: 'error'|'solve-wall'|'next-clue'|'next-question'|'end-quiz'|'quiz-ended' = 'error';
+    if (currentClue && currentClue.data.type === 'four-by-four-text' && typeof currentClue.data.solution === 'undefined') {
+        buttonToShow = 'solve-wall';
+    } else if (nextClue) {
         buttonToShow = 'next-clue';
     } else if (nextQuestion) {
         buttonToShow = 'next-question';
@@ -106,6 +131,7 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
     return (
         <>
             <p>This is question {currentQuestionNumber} of {totalQuestions}. For this question, it is clue {currentClueNumber} of {totalClues}.</p>
+            {buttonToShow === 'solve-wall' && <PrimaryButton disabled={disabled} onClick={handleResolveWallGroups}>Resolve wall groups</PrimaryButton>}
             {buttonToShow === 'next-clue' && <PrimaryButton disabled={disabled} onClick={handleGoToNextClue}>Next clue</PrimaryButton>}
             {buttonToShow === 'next-question' && <PrimaryButton disabled={disabled} onClick={handleGoToNextQuestion}>Next question</PrimaryButton>}
             {buttonToShow === 'end-quiz' && <PrimaryButton disabled={disabled} onClick={handleCloseLastClue}>End quiz</PrimaryButton>}
