@@ -19,7 +19,7 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
     useEffect(() => {
         if (progressDoc && progressLoading === false && !progressData && hasCreated === false) {
             progressDoc.set({
-                selectedIndexes: [],
+                selectedTexts: [],
             });
             setHasCreated(true);
         }
@@ -29,37 +29,37 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
         console.error(`Error when fetching wall-in-progress data for clue ${clue.id} team ${teamId}`, progressError);
     }
 
-    const toggleClue = (i: number) => {
+    const toggleClue = (text: string) => {
         if (!isCaptain || !progressDoc || !progressData ||
-            progressData.selectedIndexes.length >= 4 ||
+            progressData.selectedTexts.length >= 4 ||
             (progressData.remainingLives !== undefined && progressData.remainingLives <= 0)
         ) {
             return;
         }
-        if (progressData.selectedIndexes.includes(i)) {
+        if (progressData.selectedTexts.includes(text)) {
             progressDoc.update({
-                selectedIndexes: progressData.selectedIndexes.filter((index) => index !== i),
+                selectedTexts: progressData.selectedTexts.filter((selectedText) => selectedText !== text),
             });
         } else {
-            const newIndexes = [...progressData.selectedIndexes, i];
+            const newTexts = [...progressData.selectedTexts, text];
             progressDoc.update({
-                selectedIndexes: newIndexes,
+                selectedTexts: newTexts,
             });
 
-            if (newIndexes.length >= 4) {
+            if (newTexts.length >= 4) {
                 const checkIfWallGroupIsInSolution = firebase.functions().httpsCallable('checkIfWallGroupIsInSolution');
-                checkIfWallGroupIsInSolution({ quizId, clueId: clue.id, teamId, indexes: newIndexes })
+                checkIfWallGroupIsInSolution({ quizId, clueId: clue.id, teamId, texts: newTexts })
                     .then((result) => console.log(result.data));
             }
         }
     };
 
-    const getUngroupedClassNames = (textIndex: number, gridIndex: number) => {
+    const getUngroupedClassNames = (text: string, gridIndex: number) => {
         const names = [];
         if (isCaptain && progressData && (progressData.remainingLives === undefined || progressData.remainingLives > 0)) {
             names.push(styles.clickable);
         }
-        if (progressData && progressData.selectedIndexes.includes(textIndex)) {
+        if (progressData && progressData.selectedTexts.includes(text)) {
             names.push(styles.selected);
         } else {
             names.push(styles.unselected);
@@ -77,19 +77,38 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
     };
 
     const correctGroups = progressData?.correctGroups || [];
-    const groupedIndexes = correctGroups.flatMap((group) => group.indexes);
+    const textsInFoundGroups = correctGroups.flatMap((group) => group.texts);
 
-    const clueMetas: Array<{ foundGroupIndex: number|null; textIndex: number; text: string }> = [];
-    correctGroups.forEach(({ indexes }, groupIndex) => {
-        for (const textIndex of indexes) {
-            clueMetas.push({ foundGroupIndex: groupIndex, textIndex, text: clue.data.texts[textIndex] });
+    const clueMetas: Array<{ foundGroupIndex: number|null; text: string; }> = [];
+    correctGroups.forEach(({ texts }, groupIndex) => {
+        for (const text of texts) {
+            clueMetas.push({ foundGroupIndex: groupIndex, text });
         }
     });
-    clue.data.texts.forEach((text, textIndex) => {
-        if (groupedIndexes.indexOf(textIndex) === -1) {
-            clueMetas.push({ foundGroupIndex: null, textIndex, text });
+    // If the grouping solution is still hidden - i.e. it's still the grouping phase of the question - then
+    // show the ungrouped clues. Otherwise, solve the remainder of the wall
+    if (clue.data.solution === undefined) {
+        clue.data.texts.forEach((text) => {
+            if (textsInFoundGroups.indexOf(text) === -1) {
+                clueMetas.push({ foundGroupIndex: null, text });
+            }
+        });
+    } else {
+        // Find the groups from the solution that haven't already been found by the team
+        const unfoundGroups = clue.data.solution.filter((_, solutionGroupIndex) => {
+            const groupAlreadyFound = correctGroups.some((foundGroup) => foundGroup.solutionGroupIndex === solutionGroupIndex);
+            return !groupAlreadyFound;
+        });
+        // Display those groups as now solved
+        let groupIndex = correctGroups.length;
+        for (const unfoundGroup of unfoundGroups) {
+            for (const unfoundValue of unfoundGroup.texts) {
+                // Add to this group
+                clueMetas.push({ foundGroupIndex: groupIndex, text: unfoundValue });
+            }
+            groupIndex++;
         }
-    });
+    }
 
     return (
         <>
@@ -97,15 +116,15 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
             {clueMetas.map((clueMeta, gridIndex) =>
                 clueMeta.foundGroupIndex === null ?
                     <VisibleClue
-                        key={clueMeta.textIndex}
-                        className={getUngroupedClassNames(clueMeta.textIndex, gridIndex)}
-                        onClick={() => toggleClue(clueMeta.textIndex)}
+                        key={clueMeta.text}
+                        className={getUngroupedClassNames(clueMeta.text, gridIndex)}
+                        onClick={() => toggleClue(clueMeta.text)}
                         isRevealed={clue.data.isRevealed}
                         text={clueMeta.text}
                         index={gridIndex}
                     /> :
                     <VisibleClue
-                        key={clueMeta.textIndex}
+                        key={clueMeta.text}
                         className={getGroupedClassNames(clueMeta.foundGroupIndex, gridIndex)}
                         isRevealed={clue.data.isRevealed}
                         text={clueMeta.text}

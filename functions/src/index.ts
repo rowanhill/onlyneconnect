@@ -4,28 +4,13 @@ admin.initializeApp();
 
 // Hack: copied from src/models/index.ts!
 type Four<T> = [T, T, T, T];
-type Sixteen<T> = [
-    T, T, T, T,
-    T, T, T, T,
-    T, T, T, T,
-    T, T, T, T,
-];
-interface FourByFourTextClue {
-    type: 'four-by-four-text';
-    questionId: string;
-    isRevealed: boolean;
-    texts: Sixteen<string>;
-    answerLimit: null;
-    revealedAt?: admin.firestore.Timestamp;
-    closedAt?: admin.firestore.Timestamp;
-}
 interface FourByFourTextClueSecrets {
     solution: Four<{ texts: Four<string>; }>;
     type: 'four-by-four-text';
 }
 interface WallInProgress {
-    selectedIndexes: number[];
-    correctGroups?: { indexes: number[]; }[];
+    selectedTexts: string[];
+    correctGroups?: { texts: Four<string>; solutionGroupIndex: number; }[];
     remainingLives?: number;
 }
 interface Team {
@@ -49,20 +34,20 @@ export const checkIfWallGroupIsInSolution = functions.https.onCall(async (data, 
     if (typeof teamId !== 'string') {
         throw new functions.https.HttpsError('invalid-argument', `Expected teamId to be a string, but found ${teamId}`);
     }
-    const indexesAsAny = data.indexes;
-    if (!Array.isArray(indexesAsAny)) {
-        throw new functions.https.HttpsError('invalid-argument', `Expected indexes to be an array, but found ${indexesAsAny}`);
+    const textsAsAny = data.texts;
+    if (!Array.isArray(textsAsAny)) {
+        throw new functions.https.HttpsError('invalid-argument', `Expected texts to be an array, but found ${textsAsAny}`);
     }
-    if (indexesAsAny.length !== 4) {
-        throw new functions.https.HttpsError('invalid-argument', `Expected indexes to have 4 elements, but found ${indexesAsAny.length}`);
+    if (textsAsAny.length !== 4) {
+        throw new functions.https.HttpsError('invalid-argument', `Expected texts to have 4 elements, but found ${textsAsAny.length}`);
     }
-    for (let i = 0; i < indexesAsAny.length; i++) {
-        const indexAtI = indexesAsAny[i];
-        if (typeof indexAtI !== 'number') {
-            throw new functions.https.HttpsError('invalid-argument', `Expected all elements of indexes to be numbers, but element at ${i} is ${typeof indexAtI}`);
+    for (let i = 0; i < textsAsAny.length; i++) {
+        const elementAtI = textsAsAny[i];
+        if (typeof elementAtI !== 'string') {
+            throw new functions.https.HttpsError('invalid-argument', `Expected all elements of texts to be strings, but element at ${i} is ${typeof elementAtI}`);
         }
     }
-    const indexes = indexesAsAny as [number, number, number, number];
+    const texts = textsAsAny as Four<string>;
 
     // Check submitting user is captain of team submitted for
     const teamSnapshot = await admin.firestore().doc(`teams/${teamId}`).get();
@@ -78,20 +63,15 @@ export const checkIfWallGroupIsInSolution = functions.https.onCall(async (data, 
     return await admin.firestore().runTransaction(async (transaction) => {
         // Read clue+secrets & team's progress from database
         const progressDoc = admin.firestore().doc(`quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`);
-        const cluePromise = transaction.get(admin.firestore().doc(`quizzes/${quizId}/clues/${clueId}`));
         const secretPromise = transaction.get(admin.firestore().doc(`quizzes/${quizId}/clueSecrets/${clueId}`));
         const progressPromise = transaction.get(progressDoc);
-        const [clueSnapshot, secretSnapshot, progressSnapshot] = await Promise.all([cluePromise, secretPromise, progressPromise]);
-        if (!secretSnapshot.exists) {
-            throw new functions.https.HttpsError('not-found', `Could not find clue at ${clueSnapshot.ref.path}`);
-        }
+        const [secretSnapshot, progressSnapshot] = await Promise.all([secretPromise, progressPromise]);
         if (!secretSnapshot.exists) {
             throw new functions.https.HttpsError('not-found', `Could not find clue secrets at ${secretSnapshot.ref.path}`);
         }
         if (!progressSnapshot.exists) {
             throw new functions.https.HttpsError('not-found', `Could not find wall in progress data at ${progressSnapshot.ref.path}`);
         }
-        const clueData = clueSnapshot.data()! as FourByFourTextClue;
         const secretData = secretSnapshot.data()! as FourByFourTextClueSecrets;
         const progressData = progressSnapshot.data()! as WallInProgress;
 
@@ -100,45 +80,39 @@ export const checkIfWallGroupIsInSolution = functions.https.onCall(async (data, 
             throw new functions.https.HttpsError('failed-precondition', 'No lives remaining');
         }
 
-        // Determine if the submitted group is correct
-        const sortedSubmittedTexts = indexes.map((i) => clueData.texts[i]).sort();
-        const submissionIsCorrect = secretData.solution.some((solutionGroup) => {
+        // Determine if the submitted group matches a solution group
+        const sortedSubmittedTexts = texts.slice().sort();
+        const submissionSolutionGroupIndex = secretData.solution.findIndex((solutionGroup) => {
             const sortedSolutionTexts = solutionGroup.texts.slice().sort();
             return scalarArraysAreEqual(sortedSolutionTexts, sortedSubmittedTexts);
         });
 
-        // Ensure submitted group does not re-use any texts
-        const remainingTextIndexes = new Set<number>();
-        for (let i = 0; i < 16; i++) {
-            remainingTextIndexes.add(i);
-        }
-        for (const group of (progressData.correctGroups || [])) {
-            for (const i of group.indexes) {
-                remainingTextIndexes.delete(i);
-            }
-        }
-        for (const i of indexes) {
-            const indexRemained = remainingTextIndexes.delete(i);
-            if (!indexRemained) {
-                throw new  functions.https.HttpsError('invalid-argument', `Cannot re-use text indexes, but ${i} appears in a previously accepted group`);
-            }
-        }
+        // Submitted group is correct if it matches a solution group not submitted before
+        const correctGroups = progressData.correctGroups || [];
+        const submissionIsCorrect = submissionSolutionGroupIndex > -1 &&
+            !correctGroups.some((group) => group.solutionGroupIndex === submissionSolutionGroupIndex);
     
         // Clear the selection regardless of result
         const updateData: Partial<WallInProgress> = {
-            selectedIndexes: [],
+            selectedTexts: [],
         };
         // Update the correct groups / lives as appropriate
         if (submissionIsCorrect) {
             const numCorrectAfterUpdate = (progressData.correctGroups?.length || 0) + 1;
 
             // Add the submitted indexes to the correctGroups
-            const groupsToAdd = [{ indexes }];
+            const groupsToAdd = [{ texts, solutionGroupIndex: submissionSolutionGroupIndex }];
 
             // If three groups have now been found, the fourth is automatically found
-            if (numCorrectAfterUpdate === 3) {
-                const finalGroup = Array.from(remainingTextIndexes.values());
-                groupsToAdd.push({ indexes: finalGroup as Four<number> });
+            if (numCorrectAfterUpdate === secretData.solution.length - 1) {
+                const finalGroupIndex = Array.from(secretData.solution.keys())
+                    .find((groupIndex) => !progressData.correctGroups!.some((foundGroup) => foundGroup.solutionGroupIndex === groupIndex));
+                if (!finalGroupIndex) {
+                    console.error('Could not identify final group (after user has found all others)');
+                } else {
+                    const finalGroup = secretData.solution[finalGroupIndex];
+                    groupsToAdd.push({ texts: finalGroup.texts, solutionGroupIndex: finalGroupIndex! });
+                }
             }
 
             // Append the new correct groups

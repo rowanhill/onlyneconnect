@@ -87,6 +87,7 @@ export interface FourByFourTextClue {
     isRevealed: boolean;
     texts: Sixteen<string>;
     answerLimit: null;
+    solution?: Four<{ texts: Four<string>; }>;
     revealedAt?: firebase.firestore.Timestamp;
     closedAt?: firebase.firestore.Timestamp;
 }
@@ -129,9 +130,9 @@ export interface WallAnswer {
 export type Answer = SimpleAnswer | WallAnswer;
 
 export interface WallInProgress {
-    selectedIndexes: number[];
+    selectedTexts: string[];
 
     // Sensitive props, written to by cloud functions:
-    correctGroups?: { indexes: number[]; }[];
+    correctGroups?: { texts: Four<string>; solutionGroupIndex: number; }[];
     remainingLives?: number;
 }
