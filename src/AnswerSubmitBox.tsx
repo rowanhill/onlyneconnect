@@ -176,7 +176,7 @@ const FourAnswerSubmitBox = ({ teamId, questionItem, clueItem }: FourAnswerSubmi
 
     return (
         <form onSubmit={submit}>
-            <fieldset className={styles.submitAnswerForm} disabled={submitting || !questionItem || !clueItem || hasAnsweredQuestion}>
+            <fieldset className={styles.submitWallAnswerForm} disabled={submitting || !questionItem || !clueItem || hasAnsweredQuestion}>
                 {solutionGroupIndexesInAnswerOrder.map((solutionGroupIndex, i) =>
                     <input
                         type="text"
