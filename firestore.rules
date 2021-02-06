@@ -68,19 +68,6 @@ service cloud.firestore {
       match /clues/{clue} {
         allow create, update, delete: if quizOwner(quiz);
         allow get, list: if currentQuestionOrClueVisibleToPlayer(quiz) || quizOwner(quiz);
-
-        match /wallInProgress/{teamId} {
-          // Only the team captain can create or update a team's in-progress wall answer
-          // (Excluding sensitive properties, which only cloud functions can write to)
-          allow create: if request.auth != null && teamCaptain(quiz, teamId, request.auth.uid) &&
-            !('correctGroups' in request.resource.data) &&
-            !('remainingLives' in request.resource.data); 
-          allow update: if request.auth != null && teamCaptain(quiz, teamId, request.auth.uid) &&
-            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['correctGroups', 'remainingLives']); 
-          // Anyone on the team can read it
-          allow get: if authedAndTeamMember(quiz, teamId);
-          // (Nobody can delete, to avoid players deleting after finding some groups and starting again)
-        }
       }
 
       match /clueSecrets/{clue} {
@@ -101,7 +88,24 @@ service cloud.firestore {
         // The quiz owner and anyone on the team can read their answers
         allow read: if quizOwner(quiz) || authedAndTeamMember(quiz, resource.data.teamId);
         // The quiz owner can update the answer's awarded points
-        allow update: if quizOwner(quiz) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['points', 'correct']);
+        allow update: if quizOwner(quiz) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['points', 'correct', 'connections']);
+      }
+
+      match /wallInProgress/{wip} {
+        // Only the team captain can create or update a team's in-progress wall answer
+        // (Excluding sensitive properties, which only cloud functions can write to, and static properties)
+        allow create: if request.auth != null && teamCaptain(quiz, request.resource.data.teamId, request.auth.uid) &&
+          answerMatchesClueAndQuestion(quiz, request.resource.data.clueId) &&
+          !('correctGroups' in request.resource.data) &&
+          !('remainingLives' in request.resource.data);
+        allow update: if request.auth != null && teamCaptain(quiz, resource.data.teamId, request.auth.uid) &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'questionId', 'clueId', 'teamId',
+            'correctGroups', 'remainingLives'
+          ]); 
+        // Anyone on the team can read it
+        allow read: if quizOwner(quiz) || authedAndTeamMember(quiz, resource.data.teamId);
+        // (Nobody can delete, to avoid players deleting after finding some groups and starting again)
       }
     }
 

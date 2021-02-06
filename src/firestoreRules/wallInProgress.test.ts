@@ -9,8 +9,9 @@ const testUid = 'uid-of-test-user';
 const otherUid = 'uid-of-other-user';
 const quizId = 'uid-of-quiz';
 const clueId = 'uid-of-clue';
+const questionId = 'uid-of-question';
 
-describe('/quiz/{quiz}/clues/{clue}/wallInProgress/{team} security ruleset', () => {
+describe('/quiz/{quiz}/wallInProgress/{team} security ruleset', () => {
     let testDb: firebase.firestore.Firestore;
     let adminDb: firebase.firestore.Firestore;
     beforeAll(() => {
@@ -21,6 +22,11 @@ describe('/quiz/{quiz}/clues/{clue}/wallInProgress/{team} security ruleset', () 
         adminDb = initializeAdminApp({ projectId: process.env.REACT_APP_PID }).firestore();
     });
 
+    beforeEach(async () => {
+        await adminDb.doc(`quizzes/${quizId}/questions/${questionId}`).set({ dummy: 'queston' });
+        await adminDb.doc(`quizzes/${quizId}/clues/${clueId}`).set({ questionId });
+    });
+
     describe('for team captain', () => {
         let teamId: string;
         beforeEach(async () => {
@@ -29,33 +35,33 @@ describe('/quiz/{quiz}/clues/{clue}/wallInProgress/{team} security ruleset', () 
         });
 
         it('allows create', async () => {
-            await assertSucceeds(testDb.doc(`quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`).set({ dummy: true }));
+            await assertSucceeds(testDb.collection(`quizzes/${quizId}/wallInProgress`).add({ teamId, questionId, clueId }));
         });
 
         it('denies create with correctGroups', async () => {
-            await assertFails(testDb.doc(`quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`).set({ correctGroups: [{ indexes: [1, 2, 3, 4] }] }));
+            await assertFails(testDb.collection(`quizzes/${quizId}/wallInProgress`).add({ teamId, questionId, clueId, correctGroups: [{ indexes: [1, 2, 3, 4] }] }));
         });
 
         it('denies create with remainingLives', async () => {
-            await assertFails(testDb.doc(`quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`).set({ remainingLives: 5 }));
+            await assertFails(testDb.collection(`quizzes/${quizId}/wallInProgress`).add({ teamId, questionId, clueId, remainingLives: 5 }));
         });
 
         it('allows update', async () => {
-            const path = `quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`
-            await adminDb.doc(path).set({ dummy: true });
-            await assertSucceeds(testDb.doc(path).update({ updated: true }));
+            const path = `quizzes/${quizId}/wallInProgress/`;
+            const doc = await adminDb.collection(path).add({ teamId, questionId, clueId });
+            await assertSucceeds(testDb.doc(doc.path).update({ updated: true }));
         });
 
         it('denies update of correctGroups', async () => {
-            const path = `quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`
-            await adminDb.doc(path).set({ dummy: true });
-            await assertFails(testDb.doc(path).update({ correctGroups: [{ indexes: [1, 2, 3, 4] }] }));
+            const path = `quizzes/${quizId}/wallInProgress/`;
+            const doc = await adminDb.collection(path).add({ teamId, questionId, clueId });
+            await assertFails(testDb.doc(doc.path).update({ correctGroups: [{ indexes: [1, 2, 3, 4] }] }));
         });
 
         it('denies update of remainingLives', async () => {
-            const path = `quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`
-            await adminDb.doc(path).set({ dummy: true });
-            await assertFails(testDb.doc(path).update({ remainingLives: 5 }));
+            const path = `quizzes/${quizId}/wallInProgress/`;
+            const doc = await adminDb.collection(path).add({ teamId, questionId, clueId });
+            await assertFails(testDb.doc(doc.path).update({ remainingLives: 5 }));
         });
     });
 
@@ -68,19 +74,19 @@ describe('/quiz/{quiz}/clues/{clue}/wallInProgress/{team} security ruleset', () 
         });
 
         it('denies create', async () => {
-            await assertFails(testDb.doc(`quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`).set({ dummy: true }));
+            await assertFails(testDb.collection(`quizzes/${quizId}/wallInProgress`).add({ teamId, questionId, clueId }));
         });
 
         it('denies update', async () => {
-            const path = `quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`
-            await adminDb.doc(path).set({ dummy: true });
-            await assertFails(testDb.doc(path).update({ updated: true }));
+            const path = `quizzes/${quizId}/wallInProgress/`;
+            const doc = await adminDb.collection(path).add({ teamId, questionId, clueId });
+            await assertFails(testDb.doc(doc.path).update({ updated: true }));
         });
 
         it('allows fetch', async () => {
-            const path = `quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`
-            await adminDb.doc(path).set({ dummy: true });
-            await assertSucceeds(testDb.doc(path).get());
+            const path = `quizzes/${quizId}/wallInProgress/`;
+            const doc = await adminDb.collection(path).add({ teamId, questionId, clueId });
+            await assertSucceeds(testDb.doc(doc.path).get());
         });
     });
 
@@ -91,19 +97,19 @@ describe('/quiz/{quiz}/clues/{clue}/wallInProgress/{team} security ruleset', () 
         });
 
         it('denies create', async () => {
-            await assertFails(testDb.doc(`quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`).set({ dummy: true }));
+            await assertFails(testDb.collection(`quizzes/${quizId}/wallInProgress`).add({ teamId, questionId, clueId }));
         });
 
         it('denies update', async () => {
-            const path = `quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`
-            await adminDb.doc(path).set({ dummy: true });
-            await assertFails(testDb.doc(path).update({ updated: true }));
+            const path = `quizzes/${quizId}/wallInProgress/`;
+            const doc = await adminDb.collection(path).add({ teamId, questionId, clueId });
+            await assertFails(testDb.doc(doc.path).update({ updated: true }));
         });
 
         it('denies fetch', async () => {
-            const path = `quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`
-            await adminDb.doc(path).set({ dummy: true });
-            await assertFails(testDb.doc(path).get());
+            const path = `quizzes/${quizId}/wallInProgress/`;
+            const doc = await adminDb.collection(path).add({ teamId, questionId, clueId });
+            await assertFails(testDb.doc(doc.path).get());
         });
     });
 });

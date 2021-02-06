@@ -120,9 +120,8 @@ export interface WallAnswer {
     questionId: string;
     clueId: string;
     teamId: string;
-    groupsCorrect: Four<boolean|null>;
     connections: Four<{ text: string; correct: boolean|null; }>;
-    points: number;
+    points?: number;
     submittedAt: firebase.firestore.Timestamp;
     type: 'wall';
 }
@@ -130,9 +129,15 @@ export interface WallAnswer {
 export type Answer = SimpleAnswer | WallAnswer;
 
 export interface WallInProgress {
+    // static properties
+    questionId: string;
+    clueId: string;
+    teamId: string;
+
+    // dynamic properties
     selectedTexts: string[];
 
-    // Sensitive props, written to by cloud functions:
+    // Sensitive properties, written to by cloud functions
     correctGroups?: { texts: Four<string>; solutionGroupIndex: number; }[];
     remainingLives?: number;
 }

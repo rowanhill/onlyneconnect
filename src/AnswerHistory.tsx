@@ -1,9 +1,9 @@
 import React, { Fragment } from 'react';
 import { PrimaryButton } from './Button';
-import { useAnswersContext, useCluesContext, useQuestionsContext, useQuizContext, useTeamsContext } from './contexts/quizPage';
+import { useAnswersContext, useCluesContext, useQuestionsContext, useQuizContext, useTeamsContext, useWallInProgressContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { Answer, Clue, FourByFourTextClue, Question, SimpleAnswer, WallAnswer, WallQuestion } from './models';
-import { AnswerUpdate, updateAnswers } from './models/answer';
+import { Answer, Clue, FourByFourTextClue, Question, SimpleAnswer, WallAnswer, WallInProgress, WallQuestion } from './models';
+import { AnswerUpdate, updateAnswers, updateWallAnswer } from './models/answer';
 import styles from './AnswerHistory.module.css';
 import { calculateUpdatedScores } from './answerScoreCalculator';
 
@@ -13,6 +13,7 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
     const { data: cluesData, loading: cluesLoading, error: cluesError } = useCluesContext();
     const { data: questionsData, loading: questionsLoading, error: questionsError } = useQuestionsContext();
     const { data: teamsData } = useTeamsContext();
+    const { wipByTeamByClue: wallInProgressByTeamIdByClueId } = useWallInProgressContext();
     if (answersError || cluesError || questionsError) {
         return <div className={styles.answersHistory}><strong>There was an error loading your answers! Please try again</strong></div>;
     }
@@ -37,6 +38,23 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
             });
     };
 
+    const updateWallAnswerScoreAndCorrectFlag = (
+        answerId: string,
+        wallInProgressId: string,
+        connectionIndex: number,
+        connectionCorrect: boolean,
+    ) => {
+        updateWallAnswer(
+            quizId,
+            answerId,
+            wallInProgressId,
+            connectionIndex,
+            connectionCorrect
+        ).catch((error) => {
+            console.error('Error when updating wall answer', error);
+        });
+    }
+
     return (
         <div className={styles.answersHistory} data-cy="answers-history">
             {quiz.questionIds.map((questionId, groupIndex) => (
@@ -56,15 +74,29 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
                     questionNumber={groupIndex + 1}
                     question={questionsById[questionId] as WallQuestion}
                     clue={cluesById[(questionsById[questionId] as WallQuestion).clueId] as CollectionQueryItem<FourByFourTextClue>}
+                    wallInProgressByTeam={(wallInProgressByTeamIdByClueId && wallInProgressByTeamIdByClueId[(questionsById[questionId] as WallQuestion).clueId]) || {}}
                     isQuizOwner={isQuizOwner}
                     teamNamesById={teamNamesById}
                     questionAnswers={answersByQuestionId[questionId] as CollectionQueryItem<WallAnswer>[] || []}
-                    updateAnswerScoresAndCorrectFlags={updateAnswerScoresAndCorrectFlags}
+                    updateWallAnswerScoreAndCorrectFlag={updateWallAnswerScoreAndCorrectFlag}
                 />
             ))}
         </div>
     );
 };
+
+/**
+ * Determines whether an answer is 'valid' - i.e. was submitted after the clue was revealed and before the clue was
+ * closed
+ */
+function answerIsValid(answer: Answer, clue: Clue) {
+    if (!answer.submittedAt || !clue.revealedAt) {
+        return false;
+    }
+    const submittedMillis = answer.submittedAt.toMillis();
+    const revealedAtMillis = clue.revealedAt.toMillis();
+    return submittedMillis >= revealedAtMillis && (!clue.closedAt || submittedMillis <= clue.closedAt.toMillis());
+}
 
 interface AnswersForQuestionProps {
     questionNumber: number;
@@ -104,9 +136,7 @@ export const AnswersForQuestion = (props: AnswersForQuestionProps) => {
 
     const answerInfoProps = props.questionAnswers.map((answerItem) => {
         const clue = props.cluesById[answerItem.data.clueId];
-        const valid = clue && !!answerItem.data.submittedAt && !!clue.data.revealedAt &&
-            answerItem.data.submittedAt.toMillis() >= clue.data.revealedAt.toMillis() &&
-            (!clue.data.closedAt || answerItem.data.submittedAt.toMillis() <= clue.data.closedAt.toMillis());
+        const valid = clue && answerIsValid(answerItem.data, clue.data);
 
         const clueIndex = (props.question.type === 'connection' || props.question.type === 'sequence') ? 
             props.question.clueIds.indexOf(answerItem.data.clueId) :
@@ -156,9 +186,15 @@ interface AnswersForWallQuestionProps {
     isQuizOwner: boolean;
     question: WallQuestion;
     clue: CollectionQueryItem<FourByFourTextClue>;
+    wallInProgressByTeam: { [teamId: string]: CollectionQueryItem<WallInProgress> };
     questionAnswers: CollectionQueryItem<WallAnswer>[];
-    teamNamesById: { [teamId: string]: string; }
-    updateAnswerScoresAndCorrectFlags: (updates: AnswerUpdate[]) => void;
+    teamNamesById: { [teamId: string]: string; };
+    updateWallAnswerScoreAndCorrectFlag: (
+        answerId: string,
+        wallInProgressId: string,
+        connectionIndex: number,
+        connectionCorrect: boolean,
+    ) => void;
 }
 const AnswersForWallQuestion = (props: AnswersForWallQuestionProps) => {
     return (
@@ -166,35 +202,94 @@ const AnswersForWallQuestion = (props: AnswersForWallQuestionProps) => {
             <h3>Question {props.questionNumber}</h3>
             {props.questionAnswers.map((answer) => (
                 <Fragment key={answer.id}>
-                    <h4>{props.teamNamesById[answer.data.teamId]}</h4>
-                    {answer.data.groupsCorrect.map((groupCorrect, i) => 
-                        <div key={i}>Group {i}: {groupCorrect ? 'Found' : 'Not found'}</div>
-                    )}
-                    <AnswerInfosForWallAnswer answer={answer} clue={props.clue} isQuizOwner={props.isQuizOwner} />
+                    <AnswerForWallQuestion
+                        answer={answer}
+                        clue={props.clue}
+                        teamNamesById={props.teamNamesById}
+                        wallInProgressByTeam={props.wallInProgressByTeam}
+                        isQuizOwner={props.isQuizOwner}
+                        updateWallAnswerScoreAndCorrectFlag={props.updateWallAnswerScoreAndCorrectFlag}
+                    />
                 </Fragment>
             ))}
         </div>
     );
 };
 
-interface AnswerInfosForWallAnswerProps {
+interface AnswerForWallQuestionProps {
     answer: CollectionQueryItem<WallAnswer>;
     clue: CollectionQueryItem<FourByFourTextClue>;
+    teamNamesById: { [teamId: string]: string; };
+    wallInProgressByTeam: { [teamId: string]: CollectionQueryItem<WallInProgress> };
     isQuizOwner: boolean;
+    updateWallAnswerScoreAndCorrectFlag: (
+        answerId: string,
+        wallInProgressId: string,
+        connectionIndex: number,
+        connectionCorrect: boolean,
+    ) => void;
+}
+const AnswerForWallQuestion = (props: AnswerForWallQuestionProps) => {
+    const teamName = props.teamNamesById[props.answer.data.teamId];
+    const wallInProgress = props.wallInProgressByTeam[props.answer.data.teamId];
+
+    const markCorrect = (connectionIndex: number) => {
+        props.updateWallAnswerScoreAndCorrectFlag(props.answer.id, wallInProgress.id, connectionIndex, true);
+    };
+    const markIncorrect = (connectionIndex: number) => {
+        props.updateWallAnswerScoreAndCorrectFlag(props.answer.id, wallInProgress.id, connectionIndex, false);
+    };
+
+    const valid = answerIsValid(props.answer.data, props.clue.data);
+
+    return (
+        <>
+            <h4>{teamName}</h4>
+            <ConnectionsFound wallInProgress={wallInProgress} />
+            <AnswerInfosForWallAnswer
+                answer={props.answer}
+                wallInProgress={wallInProgress}
+                valid={valid}
+                isQuizOwner={props.isQuizOwner}
+                markCorrect={markCorrect}
+                markIncorrect={markIncorrect}
+            />
+        </>
+    );
+};
+
+interface ConnectionsFoundProps {
+    wallInProgress: CollectionQueryItem<WallInProgress> | undefined;
+}
+const ConnectionsFound = (props: ConnectionsFoundProps) => {
+    if (!props.wallInProgress) {
+        return null;
+    }
+    if (!props.wallInProgress.data.correctGroups) {
+        return null;
+    }
+    return <div>Found {props.wallInProgress.data.correctGroups.length} group(s)</div>;
+};
+
+interface AnswerInfosForWallAnswerProps {
+    answer: CollectionQueryItem<WallAnswer>;
+    wallInProgress: CollectionQueryItem<WallInProgress> | undefined;
+    valid: boolean;
+    isQuizOwner: boolean;
+    markCorrect: (connectionIndex: number) => void;
+    markIncorrect: (connectionIndex: number) => void;
 }
 const AnswerInfosForWallAnswer = (props: AnswerInfosForWallAnswerProps) => {
     const answerInfoPropObjs = props.answer.data.connections.map((connection) => {
-        const valid = !!props.answer.data.submittedAt &&
-            !!props.clue.data.revealedAt && props.answer.data.submittedAt.toMillis() >= props.clue.data.revealedAt.toMillis() &&
-            (!props.clue.data.closedAt || props.answer.data.submittedAt.toMillis() <= props.clue.data.closedAt.toMillis());
         const infoProps = {
             answer: {
                 id: props.answer.id,
                 text: connection.text,
-                isValid: valid,
+                isValid: props.valid,
             } as AnswerInfoProps['answer'],
-            canBeMarkedCorrect: connection.correct !== true,
-            canBeMarkedIncorrect: connection.correct !== false,
+            canBeMarkedCorrect: connection.correct !== true && props.wallInProgress !== undefined,
+            canBeMarkedIncorrect: connection.correct !== false && props.wallInProgress !== undefined,
+            buttonsAreVisible: props.isQuizOwner && props.valid && props.wallInProgress !== undefined,
         };
         if (connection.correct === true) {
             infoProps.answer!.points = 1;
@@ -211,9 +306,8 @@ const AnswerInfosForWallAnswer = (props: AnswerInfosForWallAnswerProps) => {
                     key={i}
                     {...answerInfoProps}
                     isQuizOwner={props.isQuizOwner}
-                    buttonsAreVisible={true}
-                    markCorrect={() => {}}
-                    markIncorrect={() => {}}
+                    markCorrect={() => props.markCorrect(i)}
+                    markIncorrect={() => props.markIncorrect(i)}
                 />
             )}
         </>

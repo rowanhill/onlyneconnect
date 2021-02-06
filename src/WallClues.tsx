@@ -1,41 +1,51 @@
 import React, { useEffect, useState } from 'react';
-import { useDocumentData } from 'react-firebase-hooks/firestore';
 import { VisibleClue } from './Clues';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
 import firebase from './firebase';
 import './firebase-functions';
 import { FourByFourTextClue, WallInProgress } from './models';
 import styles from './WallClues.module.css';
-import { useQuizContext, usePlayerTeamContext } from './contexts/quizPage';
+import { useQuizContext, usePlayerTeamContext, useWallInProgressContext } from './contexts/quizPage';
 
 export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextClue>; }) => {
     const { quizId } = useQuizContext();
     const { teamId, isCaptain } = usePlayerTeamContext();
+    const { wipByTeamByClue } = useWallInProgressContext();
     const db = firebase.firestore();
-    const progressDoc = teamId ? db.doc(`quizzes/${quizId}/clues/${clue.id}/wallInProgress/${teamId}`) : null;
-    const [progressData, progressLoading, progressError] = useDocumentData<WallInProgress>(progressDoc);
 
-    const [hasCreated, setHasCreated] = useState(false);
-    useEffect(() => {
-        if (progressDoc && progressLoading === false && !progressData && hasCreated === false) {
-            progressDoc.set({
-                selectedTexts: [],
-            });
-            setHasCreated(true);
-        }
-    }, [progressDoc, progressData, progressLoading, hasCreated, setHasCreated]);
+    const progressCollection = db.collection(`/quizzes/${quizId}/wallInProgress`);
 
-    if (progressError) {
-        console.error(`Error when fetching wall-in-progress data for clue ${clue.id} team ${teamId}`, progressError);
+    let progressItem: CollectionQueryItem<WallInProgress> | undefined;
+    if (wipByTeamByClue && teamId && wipByTeamByClue[clue.id]) {
+        progressItem = wipByTeamByClue[clue.id][teamId]
     }
 
+    // If there's no WallInProgress document for this team & clue, the team captain creates (exactly) one
+    const [hasCreated, setHasCreated] = useState(false);
+    useEffect(() => {
+        if (isCaptain && !progressItem && hasCreated === false && teamId) {
+            const wallInProgress: WallInProgress = {
+                teamId,
+                clueId: clue.id,
+                questionId: clue.data.questionId,
+                selectedTexts: [],
+            };
+
+            progressCollection.add(wallInProgress);
+            setHasCreated(true);
+        }
+    }, [isCaptain, progressItem, hasCreated, teamId, clue, progressCollection, setHasCreated]);
+
+    const progressData = progressItem?.data;
+
     const toggleClue = (text: string) => {
-        if (!isCaptain || !progressDoc || !progressData ||
+        if (!isCaptain || !progressItem || !progressData ||
             progressData.selectedTexts.length >= 4 ||
             (progressData.remainingLives !== undefined && progressData.remainingLives <= 0)
         ) {
             return;
         }
+        const progressDoc = progressCollection.doc(progressItem.id);
         if (progressData.selectedTexts.includes(text)) {
             progressDoc.update({
                 selectedTexts: progressData.selectedTexts.filter((selectedText) => selectedText !== text),
@@ -48,8 +58,7 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
 
             if (newTexts.length >= 4) {
                 const checkIfWallGroupIsInSolution = firebase.functions().httpsCallable('checkIfWallGroupIsInSolution');
-                checkIfWallGroupIsInSolution({ quizId, clueId: clue.id, teamId, texts: newTexts })
-                    .then((result) => console.log(result.data));
+                checkIfWallGroupIsInSolution({ quizId, wipId: progressItem.id, texts: newTexts });
             }
         }
     };

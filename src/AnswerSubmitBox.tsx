@@ -2,8 +2,8 @@ import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { PrimaryButton } from './Button';
 import { useQuizContext, useAnswersContext } from './contexts/quizPage';
 import { CollectionQueryItem, CollectionQueryResult } from './hooks/useCollectionResult';
-import { Clue, Question, Answer } from './models';
-import { submitAnswer } from './models/answer';
+import { Clue, Question, Answer, FourByFourTextClue, WallQuestion, Four } from './models';
+import { submitAnswer, submitWallAnswer } from './models/answer';
 import styles from './AnswerSubmitBox.module.css';
 
 function hasReachedAnswerLimit(
@@ -46,16 +46,30 @@ function hasAnsweredQuestionCorrectly(
     );
 }
 
-export const AnswerSubmitBox = ({ teamId, questionItem, clueItem }: { teamId: string; questionItem: CollectionQueryItem<Question>|undefined; clueItem: CollectionQueryItem<Clue>|undefined; }) => {
+interface AnswerSubmitBoxProps {
+    teamId: string;
+    questionItem: CollectionQueryItem<Question>|undefined;
+    clueItem: CollectionQueryItem<Clue>|undefined;
+}
+export const AnswerSubmitBox = ({ teamId, questionItem, clueItem }: AnswerSubmitBoxProps) => {
+    if (questionItem?.data.type === 'wall') {
+        const wallQuestion = questionItem as CollectionQueryItem<WallQuestion>;
+        const wallClueItem = clueItem as CollectionQueryItem<FourByFourTextClue>|undefined;
+        if (wallClueItem?.data.solution !== undefined) {
+            return <FourAnswerSubmitBox teamId={teamId} questionItem={wallQuestion} clueItem={wallClueItem} />;
+        } else {
+            return null;
+        }
+    } else {
+        return <SingleAnswerSubmitBox teamId={teamId} questionItem={questionItem} clueItem={clueItem} />;
+    }
+};
+
+const SingleAnswerSubmitBox = ({ teamId, questionItem, clueItem }: AnswerSubmitBoxProps) => {
     const { quizId } = useQuizContext();
     const answersResult = useAnswersContext();
     const [answerText, setAnswerText] = useState('');
     const [submitting, setSubmitting] = useState(false);
-
-    if (questionItem && questionItem.data.type === 'wall') {
-        // Wall answers are supplied inline in the clue area
-        return null;
-    }
 
     const hasReachedLimit = hasReachedAnswerLimit(clueItem, questionItem, answersResult, teamId);
     const alreadyAnsweredCorrectly = hasAnsweredQuestionCorrectly(questionItem, answersResult, teamId);
@@ -96,6 +110,63 @@ export const AnswerSubmitBox = ({ teamId, questionItem, clueItem }: { teamId: st
         <form onSubmit={submit}>
             <fieldset className={styles.submitAnswerForm} disabled={submitting || !questionItem || !clueItem || hasReachedLimit || alreadyAnsweredCorrectly}>
                 <input type="text" placeholder="Type your answer here" value={answerText} onChange={onAnswerChange} data-cy="answer-text" />
+                <PrimaryButton data-cy="answer-submit">Submit</PrimaryButton>
+            </fieldset>
+        </form>
+    );
+};
+
+interface FourAnswerSubmitBoxProps {
+    teamId: string;
+    questionItem: CollectionQueryItem<WallQuestion>;
+    clueItem: CollectionQueryItem<FourByFourTextClue>;
+}
+const FourAnswerSubmitBox = ({ teamId, questionItem, clueItem }: FourAnswerSubmitBoxProps) => {
+    const { quizId } = useQuizContext();
+    const [answerTexts, setAnswerTexts] = useState(['', '', '', ''] as Four<string>);
+    const [submitting, setSubmitting] = useState(false);
+    const answersResult = useAnswersContext();
+
+    const onAnswerChange = (answerIndex: number) => {
+        return (e: ChangeEvent<HTMLInputElement>) => {
+            e.preventDefault();
+            const newText = e.target.value;
+            const newTexts = [...answerTexts];
+            newTexts[answerIndex] = newText;
+            setAnswerTexts(newTexts as Four<string>);
+        };
+    };
+    const submit = (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setSubmitting(true);
+
+        submitWallAnswer(
+            quizId,
+            questionItem.id,
+            clueItem.id,
+            teamId,
+            answerTexts,
+        )
+        .then(() => {
+            setSubmitting(false);
+            setAnswerTexts(['', '', '', '']);
+        })
+        .catch((error) => {
+            console.error("Could not submit wall answer", error);
+        });
+    };
+
+    const hasAnsweredQuestion = answersResult.data && answersResult.data.some((answer) => {
+        return answer.data.teamId === teamId && answer.data.questionId === questionItem.id;
+    });
+
+    return (
+        <form onSubmit={submit}>
+            <fieldset className={styles.submitAnswerForm} disabled={submitting || !questionItem || !clueItem || hasAnsweredQuestion}>
+                <input type="text" placeholder="Group 1 connection" value={answerTexts[0]} onChange={onAnswerChange(0)} data-cy="answer-text-0" />
+                <input type="text" placeholder="Group 2 connection" value={answerTexts[1]} onChange={onAnswerChange(1)} data-cy="answer-text-1" />
+                <input type="text" placeholder="Group 3 connection" value={answerTexts[2]} onChange={onAnswerChange(2)} data-cy="answer-text-2" />
+                <input type="text" placeholder="Group 4 connection" value={answerTexts[3]} onChange={onAnswerChange(3)} data-cy="answer-text-3" />
                 <PrimaryButton data-cy="answer-submit">Submit</PrimaryButton>
             </fieldset>
         </form>

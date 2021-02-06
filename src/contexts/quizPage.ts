@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
-import { CollectionQueryResult } from '../hooks/useCollectionResult';
-import { Answer, Clue, Question, Quiz, Team } from '../models';
+import { CollectionQueryItem, CollectionQueryResult } from '../hooks/useCollectionResult';
+import { Answer, Clue, Question, Quiz, Team, WallInProgress } from '../models';
 
 export const QuizContext = createContext<{ quizId: string; quiz: Quiz; }>(undefined as any);
 export const useQuizContext = () => {
@@ -52,6 +52,23 @@ export const useAnswersContext = () => {
     const result = useContext(AnswersContext);
     if (!result) {
         throw new Error('No value found in AnswersContext. Is there a provider?');
+    }
+    return result;
+};
+
+interface WallInProgressContextValue {
+    queryResult: CollectionQueryResult<WallInProgress> | undefined;
+    wipByTeamByClue: {
+        [clueId: string]: {
+            [teamId: string]: CollectionQueryItem<WallInProgress>;
+        };
+    } | undefined;
+}
+export const WallInProgressContext = createContext<WallInProgressContextValue>(undefined as any);
+export const useWallInProgressContext = () => {
+    const result = useContext(WallInProgressContext);
+    if (!result) {
+        throw new Error('No value found in WallInProgressContext. Is there a provider?');
     }
     return result;
 };

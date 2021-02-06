@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
 import { CollectionQueryItem, useCollectionResult } from './hooks/useCollectionResult';
-import { Answer, Clue, PlayerTeam, Question, Quiz, Team } from './models';
+import { Answer, Clue, PlayerTeam, Question, Quiz, Team, WallInProgress } from './models';
 import { Card } from './Card';
 import { Page } from './Page';
 import styles from './QuizPage.module.css';
@@ -15,12 +15,14 @@ import {
     TeamsContext,
     AnswersContext,
     PlayerTeamContext,
+    WallInProgressContext,
  } from './contexts/quizPage';
 import { QuizControls } from './QuizControls';
 import { CurrentQuestion } from './CurrentQuestion';
 import { Scoreboard } from './Scoreboard';
 import { AnswersHistory } from './AnswerHistory';
 import { AnswerSubmitBox } from './AnswerSubmitBox';
+import { createWipLookup } from './wallInProgressLookup';
 
 interface QuizPageProps {
     quizId: string;
@@ -117,6 +119,19 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
         console.error('Error getting answers:', answersResult.error);
     }
 
+    // Fetch wall in-progress info
+    let wipQuery: firebase.firestore.Query|null = null;
+    if (isQuizOwner) {
+        wipQuery = db.collection(`quizzes/${quizId}/wallInProgress`);
+    } else if (playerTeamData?.teamId) {
+        wipQuery = db.collection(`quizzes/${quizId}/wallInProgress`)
+            .where('teamId', '==', playerTeamData.teamId)
+    }
+    const wipResult = useCollectionResult<WallInProgress>(wipQuery);
+    if (wipResult.error) {
+        console.error('Error getting wall in progress info:', wipResult.error);
+    }
+
     // Render
     function inner() {
         if (quizError) {
@@ -143,6 +158,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
             <CluesContext.Provider value={cluesResult}>
             <TeamsContext.Provider value={teamsResult}>
             <AnswersContext.Provider value={answersResult}>
+            <WallInProgressContext.Provider value={{ queryResult: wipResult, wipByTeamByClue: createWipLookup(wipResult) }}>
                 <div className={styles.leftPanel}>
                     <div>
                         <h1 className={styles.pageTitle}>{quizData.name}</h1>
@@ -166,6 +182,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                             />}
                     </Card>
                 </div>
+            </WallInProgressContext.Provider>
             </AnswersContext.Provider>
             </TeamsContext.Provider>
             </CluesContext.Provider>

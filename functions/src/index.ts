@@ -9,7 +9,15 @@ interface FourByFourTextClueSecrets {
     type: 'four-by-four-text';
 }
 interface WallInProgress {
+    // static properties
+    questionId: string;
+    clueId: string;
+    teamId: string;
+
+    // dynamic properties
     selectedTexts: string[];
+
+    // Sensitive properties, written to by cloud functions
     correctGroups?: { texts: Four<string>; solutionGroupIndex: number; }[];
     remainingLives?: number;
 }
@@ -26,13 +34,9 @@ export const checkIfWallGroupIsInSolution = functions.https.onCall(async (data, 
     if (typeof quizId !== 'string') {
         throw new functions.https.HttpsError('invalid-argument', `Expected quizId to be a string, but found ${quizId}`);
     }
-    const clueId = data.clueId;
-    if (typeof clueId !== 'string') {
-        throw new functions.https.HttpsError('invalid-argument', `Expected clueId to be a string, but found ${clueId}`);
-    }
-    const teamId = data.teamId;
-    if (typeof teamId !== 'string') {
-        throw new functions.https.HttpsError('invalid-argument', `Expected teamId to be a string, but found ${teamId}`);
+    const wipId = data.wipId;
+    if (typeof wipId !== 'string') {
+        throw new functions.https.HttpsError('invalid-argument', `Expected wipId to be a string, but found ${wipId}`);
     }
     const textsAsAny = data.texts;
     if (!Array.isArray(textsAsAny)) {
@@ -49,31 +53,34 @@ export const checkIfWallGroupIsInSolution = functions.https.onCall(async (data, 
     }
     const texts = textsAsAny as Four<string>;
 
-    // Check submitting user is captain of team submitted for
-    const teamSnapshot = await admin.firestore().doc(`teams/${teamId}`).get();
-    if (!teamSnapshot.exists) {
-        throw new functions.https.HttpsError('not-found', `Could not find clue at ${teamSnapshot.ref.path}`);
-    }
-    const teamData = teamSnapshot.data()! as Team;
-    if (context.auth?.uid !== teamData.captainId) {
-        throw new functions.https.HttpsError('permission-denied', `Expected auth uid to be to team captain (${teamData.captainId}) but was ${context.auth?.uid}`);
-    }
-
     // Start a transaction - we update the wall progress based on it's current state, so need to read and write atomically
     return await admin.firestore().runTransaction(async (transaction) => {
         // Read clue+secrets & team's progress from database
-        const progressDoc = admin.firestore().doc(`quizzes/${quizId}/clues/${clueId}/wallInProgress/${teamId}`);
-        const secretPromise = transaction.get(admin.firestore().doc(`quizzes/${quizId}/clueSecrets/${clueId}`));
-        const progressPromise = transaction.get(progressDoc);
-        const [secretSnapshot, progressSnapshot] = await Promise.all([secretPromise, progressPromise]);
-        if (!secretSnapshot.exists) {
-            throw new functions.https.HttpsError('not-found', `Could not find clue secrets at ${secretSnapshot.ref.path}`);
-        }
+        const progressDoc = admin.firestore().doc(`quizzes/${quizId}/wallInProgress/${wipId}`);
+        const progressSnapshot = await transaction.get(progressDoc);
         if (!progressSnapshot.exists) {
             throw new functions.https.HttpsError('not-found', `Could not find wall in progress data at ${progressSnapshot.ref.path}`);
         }
-        const secretData = secretSnapshot.data()! as FourByFourTextClueSecrets;
         const progressData = progressSnapshot.data()! as WallInProgress;
+
+        const teamPromise = transaction.get(admin.firestore().doc(`teams/${progressData.teamId}`));
+        const secretPromise = transaction.get(admin.firestore().doc(`quizzes/${quizId}/clueSecrets/${progressData.clueId}`));
+        const [teamSnapshot, secretSnapshot] = await Promise.all([teamPromise, secretPromise]);
+
+        if (!teamSnapshot.exists) {
+            throw new functions.https.HttpsError('not-found', `Could not find clue at ${teamSnapshot.ref.path}`);
+        }
+        const teamData = teamSnapshot.data()! as Team;
+
+        // Check submitting user is captain of team submitted for
+        if (context.auth?.uid !== teamData.captainId) {
+            throw new functions.https.HttpsError('permission-denied', `Expected auth uid to be to team captain (${teamData.captainId}) but was ${context.auth?.uid}`);
+        }
+        
+        if (!secretSnapshot.exists) {
+            throw new functions.https.HttpsError('not-found', `Could not find clue secrets at ${secretSnapshot.ref.path}`);
+        }
+        const secretData = secretSnapshot.data()! as FourByFourTextClueSecrets;
 
         const remainingLiveSet = typeof progressData.remainingLives === 'number';
         if (remainingLiveSet && progressData.remainingLives! <= 0) {
@@ -105,13 +112,17 @@ export const checkIfWallGroupIsInSolution = functions.https.onCall(async (data, 
 
             // If three groups have now been found, the fourth is automatically found
             if (numCorrectAfterUpdate === secretData.solution.length - 1) {
-                const finalGroupIndex = Array.from(secretData.solution.keys())
-                    .find((groupIndex) => !progressData.correctGroups!.some((foundGroup) => foundGroup.solutionGroupIndex === groupIndex));
-                if (!finalGroupIndex) {
-                    console.error('Could not identify final group (after user has found all others)');
+                const unfoundGroupIndexes = new Set(secretData.solution.keys());
+                for (const foundGroup of progressData.correctGroups!) {
+                    unfoundGroupIndexes.delete(foundGroup.solutionGroupIndex);
+                }
+                unfoundGroupIndexes.delete(submissionSolutionGroupIndex);
+                if (unfoundGroupIndexes.size !== 1) {
+                    console.error('Could not identify final group (after user has found all others). The following indexes remain:', unfoundGroupIndexes);
                 } else {
+                    const finalGroupIndex = unfoundGroupIndexes.values().next().value as number;
                     const finalGroup = secretData.solution[finalGroupIndex];
-                    groupsToAdd.push({ texts: finalGroup.texts, solutionGroupIndex: finalGroupIndex! });
+                    groupsToAdd.push({ texts: finalGroup.texts, solutionGroupIndex: finalGroupIndex });
                 }
             }
 
