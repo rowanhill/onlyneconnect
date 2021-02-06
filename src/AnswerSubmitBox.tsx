@@ -1,6 +1,6 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { PrimaryButton } from './Button';
-import { useQuizContext, useAnswersContext } from './contexts/quizPage';
+import { useQuizContext, useAnswersContext, useWallInProgressContext } from './contexts/quizPage';
 import { CollectionQueryItem, CollectionQueryResult } from './hooks/useCollectionResult';
 import { Clue, Question, Answer, FourByFourTextClue, WallQuestion, Four } from './models';
 import { submitAnswer, submitWallAnswer } from './models/answer';
@@ -126,6 +126,13 @@ const FourAnswerSubmitBox = ({ teamId, questionItem, clueItem }: FourAnswerSubmi
     const [answerTexts, setAnswerTexts] = useState(['', '', '', ''] as Four<string>);
     const [submitting, setSubmitting] = useState(false);
     const answersResult = useAnswersContext();
+    const { wipByTeamByClue } = useWallInProgressContext();
+
+    const wallInProgress = wipByTeamByClue && wipByTeamByClue[clueItem.id] && wipByTeamByClue[clueItem.id][teamId];
+
+    if (!wallInProgress) {
+        return null;
+    }
 
     const onAnswerChange = (answerIndex: number) => {
         return (e: ChangeEvent<HTMLInputElement>) => {
@@ -160,13 +167,25 @@ const FourAnswerSubmitBox = ({ teamId, questionItem, clueItem }: FourAnswerSubmi
         return answer.data.teamId === teamId && answer.data.questionId === questionItem.id;
     });
 
+    const solutionGroupIndexesInAnswerOrder = (wallInProgress.data.correctGroups || []).map((g) => g.solutionGroupIndex);
+    for (const i of [0, 1, 2, 3]) {
+        if (!solutionGroupIndexesInAnswerOrder.includes(i)) {
+            solutionGroupIndexesInAnswerOrder.push(i);
+        }
+    }
+
     return (
         <form onSubmit={submit}>
             <fieldset className={styles.submitAnswerForm} disabled={submitting || !questionItem || !clueItem || hasAnsweredQuestion}>
-                <input type="text" placeholder="Group 1 connection" value={answerTexts[0]} onChange={onAnswerChange(0)} data-cy="answer-text-0" />
-                <input type="text" placeholder="Group 2 connection" value={answerTexts[1]} onChange={onAnswerChange(1)} data-cy="answer-text-1" />
-                <input type="text" placeholder="Group 3 connection" value={answerTexts[2]} onChange={onAnswerChange(2)} data-cy="answer-text-2" />
-                <input type="text" placeholder="Group 4 connection" value={answerTexts[3]} onChange={onAnswerChange(3)} data-cy="answer-text-3" />
+                {solutionGroupIndexesInAnswerOrder.map((solutionGroupIndex, i) =>
+                    <input
+                        type="text"
+                        placeholder={`Group ${i + 1} connection`}
+                        value={answerTexts[solutionGroupIndex]}
+                        onChange={onAnswerChange(solutionGroupIndex)}
+                        data-cy={`answer-text-${i}`}
+                    />
+                )}
                 <PrimaryButton data-cy="answer-submit">Submit</PrimaryButton>
             </fieldset>
         </form>
