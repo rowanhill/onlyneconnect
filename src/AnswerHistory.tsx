@@ -310,6 +310,7 @@ const AnswerInfosForWallAnswer = (props: AnswerInfosForWallAnswerProps) => {
                     markIncorrect={() => props.markIncorrect(i)}
                 />
             )}
+            Total: {props.answer.data.points || 0}
         </>
     );
 };
