@@ -6,14 +6,12 @@ import './firebase-functions';
 import { FourByFourTextClue, WallInProgress } from './models';
 import styles from './WallClues.module.css';
 import { useQuizContext, usePlayerTeamContext, useWallInProgressContext } from './contexts/quizPage';
+import { createWallInProgress, updateWallInProgressSelections } from './models/wallInProgress';
 
 export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextClue>; }) => {
     const { quizId } = useQuizContext();
     const { teamId, isCaptain } = usePlayerTeamContext();
     const { wipByTeamByClue } = useWallInProgressContext();
-    const db = firebase.firestore();
-
-    const progressCollection = db.collection(`/quizzes/${quizId}/wallInProgress`);
 
     let progressItem: CollectionQueryItem<WallInProgress> | undefined;
     if (wipByTeamByClue && teamId && wipByTeamByClue[clue.id]) {
@@ -24,17 +22,10 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
     const [hasCreated, setHasCreated] = useState(false);
     useEffect(() => {
         if (isCaptain && !progressItem && hasCreated === false && teamId) {
-            const wallInProgress: WallInProgress = {
-                teamId,
-                clueId: clue.id,
-                questionId: clue.data.questionId,
-                selectedTexts: [],
-            };
-
-            progressCollection.add(wallInProgress);
+            createWallInProgress(quizId, clue.data.questionId, clue.id, teamId);
             setHasCreated(true);
         }
-    }, [isCaptain, progressItem, hasCreated, teamId, clue, progressCollection, setHasCreated]);
+    }, [isCaptain, progressItem, hasCreated, teamId, quizId, clue, setHasCreated]);
 
     const progressData = progressItem?.data;
 
@@ -45,16 +36,12 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
         ) {
             return;
         }
-        const progressDoc = progressCollection.doc(progressItem.id);
         if (progressData.selectedTexts.includes(text)) {
-            progressDoc.update({
-                selectedTexts: progressData.selectedTexts.filter((selectedText) => selectedText !== text),
-            });
+            const newTexts = progressData.selectedTexts.filter((selectedText) => selectedText !== text);
+            updateWallInProgressSelections(quizId, progressItem.id, newTexts);
         } else {
             const newTexts = [...progressData.selectedTexts, text];
-            progressDoc.update({
-                selectedTexts: newTexts,
-            });
+            updateWallInProgressSelections(quizId, progressItem.id, newTexts);
 
             if (newTexts.length >= 4) {
                 const checkIfWallGroupIsInSolution = firebase.functions().httpsCallable('checkIfWallGroupIsInSolution');

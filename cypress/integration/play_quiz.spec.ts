@@ -1,10 +1,10 @@
 import { ConnectionQuestionSpec, MissingVowelsQuestionSpec, SequenceQuestionSpec } from "../../src/models/quiz";
-import { CreateConnectionOrSequenceQuestionResult, CreateMissingVowelsQuestionResult } from "../plugins";
+import { CreateConnectionOrSequenceQuestionResult, CreateMissingVowelsOrWallQuestionResult } from "../plugins";
 
 describe('The quiz page', () => {
     let quizId: string;
     let teamId: string;
-    let questionAndClueIds: [CreateConnectionOrSequenceQuestionResult, CreateConnectionOrSequenceQuestionResult, CreateMissingVowelsQuestionResult];
+    let questionAndClueIds: [CreateConnectionOrSequenceQuestionResult, CreateConnectionOrSequenceQuestionResult, CreateMissingVowelsOrWallQuestionResult];
     beforeEach(() => {
         cy.login();
         cy.task<string>('createQuiz', {
@@ -50,7 +50,7 @@ describe('The quiz page', () => {
                 answerLimit: null,
                 clue: { answerLimit: null, texts: ['Q3 C1', 'Q3 C2', 'Q3 C3', 'Q3 C4'], type: 'compound-text' },
             };
-            return cy.task<CreateMissingVowelsQuestionResult>('createMissingVowelsQuestion', {
+            return cy.task<CreateMissingVowelsOrWallQuestionResult>('createMissingVowelsQuestion', {
                 quizId,
                 question: question3,
             });

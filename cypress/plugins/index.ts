@@ -13,9 +13,10 @@
 // the project's config changing)
 import * as admin from 'firebase-admin';
 import firebase from 'firebase';
-import { closeLastClue, createConnectionOrSequenceQuestion, createMissingVowelsQuestion, createQuiz, revealNextClue, revealNextQuestion } from '../../src/models/quiz';
-import { submitAnswer, updateAnswers } from '../../src/models/answer';
+import { closeLastClue, createConnectionOrSequenceQuestion, createMissingVowelsQuestion, createQuiz, createWallQuestion, revealNextClue, revealNextQuestion } from '../../src/models/quiz';
+import { submitAnswer, submitWallAnswer, updateAnswers, updateWallAnswer } from '../../src/models/answer';
 import { createTeam, joinPlayerToTeam } from '../../src/models/team';
+import { createWallInProgress, updateWallInProgressSelections } from '../../src/models/wallInProgress';
 const cypressFirebasePlugin = require('cypress-firebase').plugin;
 
 export interface CreateConnectionOrSequenceQuestionResult {
@@ -23,7 +24,7 @@ export interface CreateConnectionOrSequenceQuestionResult {
   clueIds: string[];
 }
 
-export interface CreateMissingVowelsQuestionResult {
+export interface CreateMissingVowelsOrWallQuestionResult {
   questionId: string;
   clueId: string;
 }
@@ -55,6 +56,15 @@ const config: Cypress.PluginConfig = (on, config) => {
 
     createMissingVowelsQuestion({ quizId, question }) {
       return createMissingVowelsQuestion(
+        quizId,
+        question,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
+        admin.firestore.FieldValue.arrayUnion,
+      );
+    },
+
+    createWallQuestion({ quizId, question }) {
+      return createWallQuestion(
         quizId,
         question,
         admin.app().firestore() as unknown as firebase.firestore.Firestore,
@@ -103,12 +113,55 @@ const config: Cypress.PluginConfig = (on, config) => {
       );
     },
 
+    submitWallAnswer({ quizId, questionId, clueId, teamId, connections }) {
+      return submitWallAnswer(
+        quizId,
+        questionId,
+        clueId,
+        teamId,
+        connections,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
+        admin.firestore.FieldValue.serverTimestamp,
+      )
+    },
+
     updateAnswers({ quizId, answerUpdates }) {
       return updateAnswers(
         quizId,
         answerUpdates,
         admin.app().firestore() as unknown as firebase.firestore.Firestore,
         admin.firestore.FieldValue.increment,
+      );
+    },
+
+    updateWallAnswer({ quizId, answerId, wallInProgressId, connectionIndex, connectionCorrect }) {
+      return updateWallAnswer(
+        quizId,
+        answerId,
+        wallInProgressId,
+        connectionIndex,
+        connectionCorrect,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
+        admin.firestore.FieldValue.increment,
+      )
+    },
+
+    createWallInProgress({ quizId, questionId, clueId, teamId }) {
+      return createWallInProgress(
+        quizId,
+        questionId,
+        clueId,
+        teamId,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
+      )
+    },
+
+    updateWallInProgressSelections({ quizId, wipId, selectedTexts }) {
+      return updateWallInProgressSelections(
+        quizId,
+        wipId,
+        selectedTexts,
+        admin.app().firestore() as unknown as firebase.firestore.Firestore,
       );
     },
 
