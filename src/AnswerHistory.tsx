@@ -129,7 +129,7 @@ export const AnswersForQuestion = (props: AnswersForQuestionProps) => {
     const earlierAnswersAreUnmarked = (submittedAtMillis: number) => {
         return props.questionAnswers.some((item) => {
             return item.data.correct === undefined && // Item is umarked...
-                item.data.submittedAt.toMillis() < submittedAtMillis && // ...and prior to answer...
+                item.data.submittedAt && item.data.submittedAt.toMillis() < submittedAtMillis && // ...and prior to answer...
                 hasAnsweredCorrectlyByTeam[item.data.teamId] !== true; // ...and not by a team with correct answer elsewhere...
         });
     };
@@ -143,7 +143,7 @@ export const AnswersForQuestion = (props: AnswersForQuestionProps) => {
             0;
 
         const canBeMarkedCorrect = answerItem.data.correct !== true &&
-            !(props.question.type === 'missing-vowels' && earlierAnswersAreUnmarked(answerItem.data.submittedAt.toMillis()));
+            !(props.question.type === 'missing-vowels' && answerItem.data.submittedAt && earlierAnswersAreUnmarked(answerItem.data.submittedAt.toMillis()));
         const canBeMarkedIncorrect = answerItem.data.correct !== false;
         const buttonsAreVisible = props.isQuizOwner && valid && !props.questionAnswers
             .some((a) => a.data.correct === true && a.data.teamId === answerItem.data.teamId && a.id !== answerItem.id);
@@ -201,16 +201,15 @@ const AnswersForWallQuestion = (props: AnswersForWallQuestionProps) => {
         <div>
             <h3>Question {props.questionNumber}</h3>
             {props.questionAnswers.map((answer) => (
-                <Fragment key={answer.id}>
-                    <AnswerForWallQuestion
-                        answer={answer}
-                        clue={props.clue}
-                        teamNamesById={props.teamNamesById}
-                        wallInProgressByTeam={props.wallInProgressByTeam}
-                        isQuizOwner={props.isQuizOwner}
-                        updateWallAnswerScoreAndCorrectFlag={props.updateWallAnswerScoreAndCorrectFlag}
-                    />
-                </Fragment>
+                <AnswerForWallQuestion
+                    key={answer.id}
+                    answer={answer}
+                    clue={props.clue}
+                    teamNamesById={props.teamNamesById}
+                    wallInProgressByTeam={props.wallInProgressByTeam}
+                    isQuizOwner={props.isQuizOwner}
+                    updateWallAnswerScoreAndCorrectFlag={props.updateWallAnswerScoreAndCorrectFlag}
+                />
             ))}
         </div>
     );
@@ -243,7 +242,7 @@ const AnswerForWallQuestion = (props: AnswerForWallQuestionProps) => {
     const valid = answerIsValid(props.answer.data, props.clue.data);
 
     return (
-        <>
+        <div data-cy={`submitted-answer-${props.answer.id}`}>
             <h4>{teamName}</h4>
             <ConnectionsFound wallInProgress={wallInProgress} />
             <AnswerInfosForWallAnswer
@@ -254,7 +253,7 @@ const AnswerForWallQuestion = (props: AnswerForWallQuestionProps) => {
                 markCorrect={markCorrect}
                 markIncorrect={markIncorrect}
             />
-        </>
+        </div>
     );
 };
 
@@ -280,13 +279,14 @@ interface AnswerInfosForWallAnswerProps {
     markIncorrect: (connectionIndex: number) => void;
 }
 const AnswerInfosForWallAnswer = (props: AnswerInfosForWallAnswerProps) => {
-    const answerInfoPropObjs = props.answer.data.connections.map((connection) => {
+    const answerInfoPropObjs = props.answer.data.connections.map((connection, i) => {
         const infoProps = {
             answer: {
                 id: props.answer.id,
                 text: connection.text,
                 isValid: props.valid,
             } as AnswerInfoProps['answer'],
+            connectionIndex: i,
             canBeMarkedCorrect: connection.correct !== true && props.wallInProgress !== undefined,
             canBeMarkedIncorrect: connection.correct !== false && props.wallInProgress !== undefined,
             buttonsAreVisible: props.isQuizOwner && props.valid && props.wallInProgress !== undefined,
@@ -323,6 +323,7 @@ interface AnswerInfoProps {
         points?: number;
         teamName?: string;
     };
+    connectionIndex?: number;
     isQuizOwner: boolean;
     buttonsAreVisible: boolean;
     canBeMarkedCorrect: boolean;
@@ -335,7 +336,7 @@ const AnswerInfo = (props: AnswerInfoProps) => {
         <div
             key={props.answer.id}
             className={props.answer.isValid ? styles.answer : styles.invalidAnswer}
-            data-cy={`submitted-answer-${props.answer.id}`}
+            data-cy={props.connectionIndex !== undefined ? `submitted-answer-${props.answer.id}-connection-${props.connectionIndex}` : `submitted-answer-${props.answer.id}`}
         >
             <div className={styles.answerInfo}>
                 {props.isQuizOwner && props.answer.teamName && <>{props.answer.teamName}:<br/></>}

@@ -1,4 +1,5 @@
 import { WallQuestionSpec } from '../../src/models/quiz';
+import { answersHistory, revealedClues } from '../pages/quizPage';
 import { CreateMissingVowelsOrWallQuestionResult } from '../plugins';
 
 describe('Playing a wall question', () => {
@@ -69,9 +70,6 @@ describe('Playing a wall question', () => {
             cy.visit(`/quiz/${quizId}`);
         });
     });
-
-    const revealedClues = () => cy.get('[data-cy^="revealed-clue"]');
-    const answerHistory = () => cy.get('[data-cy=answers-history]');
 
     describe('as a team member', () => {
         it('shows a grid and differentiates current selections', () => {
@@ -161,7 +159,7 @@ describe('Playing a wall question', () => {
                 cy.task('updateWallAnswer', { quizId, answerId, wallInProgressId: wipId, connectionIndex: 1, connectionCorrect: false });
             });
 
-            answerHistory()
+            answersHistory()
                 .should('contain.text', 'Found 1 group(s)')
                 .and('contain.text', 'Con 1 (1)')
                 .and('contain.text', 'Con 2 (0)')
@@ -198,7 +196,7 @@ describe('Playing a wall question', () => {
 
         it('allows submitting connections when solution is revealed', () => {
             // No inputs when in grouping phase of the wall
-            answerHistory().get('input').should('not.exist');
+            answersHistory().get('input').should('not.exist');
 
             cy.callFirestore('update', `/quizzes/${quizId}/clues/${clueId}`, { solution: [
                 { texts: ['G1 A', 'G1 B', 'G1 C', 'G1 D'] },
@@ -208,19 +206,19 @@ describe('Playing a wall question', () => {
             ] });
 
             // An input for the connection of each group when in connection naming phase of the wall
-            answerHistory().get('input').should('have.length', 4).and('not.be.disabled');
+            answersHistory().get('input').should('have.length', 4).and('not.be.disabled');
 
-            answerHistory().get('input').each(($el, i) => {
+            answersHistory().get('input').each(($el, i) => {
                 cy.wrap($el).type(`c${i + 1}`);
             });
-            answerHistory().get('button').click();
+            answersHistory().get('button').click();
 
             // Inputs and button are disabled after submitting
-            answerHistory().get('input').should('be.disabled');
-            answerHistory().get('button').should('be.disabled');
+            answersHistory().get('input').should('be.disabled');
+            answersHistory().get('button').should('be.disabled');
 
             // Submitted connections appear in answer history
-            answerHistory()
+            answersHistory()
                 .should('contain.text', 'c1')
                 .and('contain.text', 'c2')
                 .and('contain.text', 'c3')
