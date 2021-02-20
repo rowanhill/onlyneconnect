@@ -1,13 +1,9 @@
 .clue {
-    box-sizing: border-box;
-    border-radius: 5px;
     font-size: 1.2rem;
     height: 5em;
-    padding: 0.5em;
     display: flex;
     align-items: center;
     justify-content: center;
-    text-align: center;
 }
 
 .connectionOrSequenceClue {
@@ -16,22 +12,15 @@
 
 .revealedClue {
     composes: clue;
-    --lowlight: var(--pale-blue-lowlight);
-    --standard: var(--pale-blue);
-    --highlight: var(--pale-blue-highlight);
-    --shadow: var(--pale-blue-shadow);
-    box-shadow: inset -1px -1px 7px 2px var(--shadow);
-    background-image: radial-gradient(ellipse at 480% 95%, var(--lowlight) 0%, var(--standard) 80%, var(--highlight) 82%);
-    background-color: var(--standard);
+    composes: glassItem paleBlueGlassColours from './glass.module.css';
 }
 
 .hiddenClue {
-    composes: clue;
+    composes: revealedClue;
     visibility: hidden;
 }
 
 .unrevealedClue {
     composes: clue;
-    border: 2px dashed var(--dark-blue-washed-out);
-    opacity: 0.6;
+    composes: placeholderItem from './placeholder.module.css';
 }

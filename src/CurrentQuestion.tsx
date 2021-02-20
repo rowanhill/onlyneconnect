@@ -1,8 +1,8 @@
 import React from 'react';
 import { Card } from './Card';
-import { useCluesContext, useQuestionsContext, useQuizContext } from './contexts/quizPage';
+import { useCluesContext, usePlayerTeamContext, useQuestionsContext, useQuizContext, useWallInProgressContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { CompoundTextClue, FourByFourTextClue, Question, TextClue, throwBadQuestionType } from './models';
+import { CompoundTextClue, ConnectionQuestion, FourByFourTextClue, MissingVowelsQuestion, Question, SequenceQuestion, TextClue, throwBadQuestionType, WallQuestion } from './models';
 import { VisibleClue, HiddenClue, LastInSequenceClue } from './Clues';
 import { WallClues } from './WallClues';
 import styles from './CurrentQuestion.module.css';
@@ -23,6 +23,7 @@ export const CurrentQuestion = ({ currentQuestionItem }: { currentQuestionItem?:
                 <h3>Question {currentQuestionNumber}</h3>
                 <QuestionInstructions currentQuestionItem={currentQuestionItem} />
                 <QuestionClues currentQuestionItem={currentQuestionItem} />
+                <QuestionConnection currentQuestionItem={currentQuestionItem} />
             </>
         );
     }
@@ -67,7 +68,7 @@ const QuestionClues = ({ currentQuestionItem }: { currentQuestionItem: Collectio
             if (currentQuestionItem.data.type === 'connection') {
                 return (<ConnectionClues clues={orderedClues as Array<CollectionQueryItem<TextClue>>} />);
             } else {
-                return (<SequenceClues clues={orderedClues as Array<CollectionQueryItem<TextClue>>} />);
+                return (<SequenceClues clues={orderedClues as Array<CollectionQueryItem<TextClue>>} question={currentQuestionItem as CollectionQueryItem<SequenceQuestion>} />);
             }
         case 'wall':
             return (<WallClues
@@ -93,13 +94,18 @@ const ConnectionClues = ({ clues }: { clues: Array<CollectionQueryItem<TextClue>
     );
 };
 
-const SequenceClues = ({ clues }: { clues: Array<CollectionQueryItem<TextClue>> }) => {
+const SequenceClues = ({ question, clues }: { question: CollectionQueryItem<SequenceQuestion>; clues: Array<CollectionQueryItem<TextClue>> }) => {
     return (
         <div className={styles.cluesHolder}>
             {clues.map((clue, i) => (
                 <VisibleClue key={clue.id} isRevealed={clue.data.isRevealed} text={clue.data.text} index={i} />
             ))}
-            {clues.length === 3 && <LastInSequenceClue allOtherCluesRevealed={!clues.some((c) => !c.data.isRevealed)} />}
+            {clues.length === 3 &&
+                <LastInSequenceClue
+                    allOtherCluesRevealed={!clues.some((c) => !c.data.isRevealed)}
+                    example={question.data.exampleLastInSequence}
+                />
+            }
             {clues.length < 3 && arrayUpTo(4 - clues.length).map((n) => (
                 <HiddenClue key={n} />
             ))}
@@ -112,6 +118,69 @@ const MissingVowelsClues = ({ clue }: { clue: CollectionQueryItem<CompoundTextCl
         <div className={styles.cluesHolder}>
             {clue.data.texts.map((text, i) => 
                 <VisibleClue key={i} isRevealed={clue.data.isRevealed} text={text} index={i} />
+            )}
+        </div>
+    );
+};
+
+const QuestionConnection = ({ currentQuestionItem }: { currentQuestionItem: CollectionQueryItem<Question>; }) => {
+    switch (currentQuestionItem.data.type) {
+        case 'connection':
+        case 'sequence':
+        case 'missing-vowels':
+            return (<SingleConnection currentQuestionItem={currentQuestionItem as CollectionQueryItem<ConnectionQuestion|SequenceQuestion|MissingVowelsQuestion>} />);
+        case 'wall':
+            return (<WallConnections currentQuestionItem={currentQuestionItem as CollectionQueryItem<WallQuestion>} />);
+        default:
+            throwBadQuestionType(currentQuestionItem.data);
+    }
+};
+
+const SingleConnection = ({ currentQuestionItem }: { currentQuestionItem: CollectionQueryItem<ConnectionQuestion|SequenceQuestion|MissingVowelsQuestion>; }) => {
+    if (!currentQuestionItem.data.connection) {
+        return null;
+    }
+    return (
+        <div className={styles.connection}>{currentQuestionItem.data.connection}</div>
+    );
+};
+
+const WallConnections = ({ currentQuestionItem }: { currentQuestionItem: CollectionQueryItem<WallQuestion>; }) => {
+    const { teamId } = usePlayerTeamContext();
+    const { wipByTeamByClue } = useWallInProgressContext();
+    const { data: clues } = useCluesContext();
+    if (!currentQuestionItem.data.connections) {
+        return null;
+    }
+    const clue = clues?.find((c) => c.data.questionId === currentQuestionItem.id);
+    const progress = (teamId && wipByTeamByClue && clue) ? wipByTeamByClue[clue.id][teamId] : undefined;
+
+    const connections = [];
+    if (progress && progress.data.correctGroups) {
+        for (const { solutionGroupIndex } of progress.data.correctGroups) {
+            connections.push(currentQuestionItem.data.connections[solutionGroupIndex]);
+        }
+        let solutionGroupIndex = 0;
+        const isGroupFactory = (solutionGroupIndex: number) => (group: { solutionGroupIndex: number }): boolean => {
+            return group.solutionGroupIndex === solutionGroupIndex;
+        }
+        for (const connection of currentQuestionItem.data.connections) {
+            const isGroup = isGroupFactory(solutionGroupIndex);
+            if (!progress.data.correctGroups.some((g) => isGroup(g))) {
+                connections.push(connection);
+            }
+            solutionGroupIndex++;
+        }
+    } else {
+        for (const connection of currentQuestionItem.data.connections) {
+            connections.push(connection);
+        }
+    }
+
+    return (
+        <div className={styles.connections}>
+            {connections.map((con, i) =>
+                <div className={styles.groupConnection + ' ' + styles[`group${i + 1}`]} key={con}>{con}</div>
             )}
         </div>
     );

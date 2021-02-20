@@ -102,6 +102,16 @@ describe('Playing a sequence question', () => {
             answersHistory().contains('Second answer (4)');
             scoreboard().contains('Universally Challenged: 4');
         });
+
+        it('shows the connection and example last item when the question is over', () => {
+            cy.task('revealNextClue', { quizId, nextClueId: clueIds[0] });
+            cy.task('revealNextClue', { quizId, nextClueId: clueIds[1], currentClueId: clueIds[0] });
+            cy.task('revealNextClue', { quizId, nextClueId: clueIds[2], currentClueId: clueIds[1] });
+            cy.task('revealAnswer', { quizId, questionId });
+
+            cy.contains('Q1 conn').should('exist');
+            finalClue().should('contain.text', 'Q1 C4 ex');
+        });
     });
 
     describe('as team captain', () => {

@@ -171,6 +171,21 @@ describe('Playing a wall question', () => {
             cy.contains('Tries remaining: 💙💙')
         });
 
+        it('displays the connections (in the same order as the groups are displayed) when the question is over', () => {
+            cy.callFirestore('update', `quizzes/${quizId}/wallInProgress/${wipId}`, {
+                correctGroups: [
+                    { texts: ['G2 B', 'G2 D', 'G2 C', 'G2 A'], solutionGroupIndex: 1 },
+                ],
+            });
+            cy.task('revealWallSolution', { quizId, questionId, clueId });
+            cy.task('revealAnswer', { quizId, questionId });
+
+            cy.contains('G2 conn').should('have.css', 'background-color', group1Colour);
+            cy.contains('G1 conn').should('have.css', 'background-color', group2Colour);
+            cy.contains('G3 conn').should('have.css', 'background-color', group3Colour);
+            cy.contains('G4 conn').should('have.css', 'background-color', group4Colour);
+        });
+
         it('displays submitted connections', () => {
             cy.callFirestore('update', `quizzes/${quizId}/wallInProgress/${wipId}`, {
                 correctGroups: [

@@ -36,10 +36,7 @@
 
 .selected {
     composes: wallClue;
-    --lowlight: var(--mid-blue-lowlight);
-    --standard: var(--mid-blue);
-    --highlight: var(--mid-blue-highlight);
-    --shadow: var(--mid-blue-shadow);
+    composes: midBlueGlassColours from './glass.module.css';
 }
 .selected.clickable:hover {
     --lowlight: var(--mid-blue-darkened-lowlight);
@@ -50,36 +47,20 @@
 
 .group1 {
     composes: wallClue;
-    --lowlight: var(--very-dark-blue-lowlight);
-    --standard: var(--very-dark-blue);
-    --highlight: var(--very-dark-blue-highlight);
-    --shadow: var(--very-dark-blue-shadow);
-    color: var(--white);
+    composes: veryDarkBlueGlassColours from './glass.module.css';
 }
 
 .group2 {
     composes: wallClue;
-    --lowlight: var(--mid-green-lowlight);
-    --standard: var(--mid-green);
-    --highlight: var(--mid-green-highlight);
-    --shadow: var(--mid-green-shadow);
-    color: var(--white);
+    composes: midGreenGlassColours from './glass.module.css';
 }
 
 .group3 {
     composes: wallClue;
-    --lowlight: var(--dark-red-lowlight);
-    --standard: var(--dark-red);
-    --highlight: var(--dark-red-highlight);
-    --shadow: var(--dark-red-shadow);
-    color: var(--white);
+    composes: darkRedGlassColours from './glass.module.css';
 }
 
 .group4 {
     composes: wallClue;
-    --lowlight: var(--mid-turquoise-lowlight);
-    --standard: var(--mid-turquoise);
-    --highlight: var(--mid-turquoise-highlight);
-    --shadow: var(--mid-turquoise-shadow);
-    color: var(--white);
+    composes: midTurquoiseGlassColours from './glass.module.css';
 }

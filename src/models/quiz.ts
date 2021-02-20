@@ -1,6 +1,6 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
-import { Clue, CompoundTextClue, ConnectionQuestion, ConnectionSecrets, Four, FourByFourTextClue, MissingVowelsQuestion, MissingVowelsSecrets, QuestionSecrets, SequenceQuestion, SequenceSecrets, Sixteen, TextClue, Three, WallQuestion, WallSecrets } from '.';
+import { Clue, CompoundTextClue, ConnectionQuestion, ConnectionSecrets, Four, FourByFourTextClue, MissingVowelsQuestion, MissingVowelsSecrets, QuestionSecrets, SequenceQuestion, SequenceSecrets, Sixteen, TextClue, Three, throwBadQuestionType, WallQuestion, WallSecrets } from '.';
 
 export const createQuiz = (
     quizName: string,
@@ -305,6 +305,46 @@ export const revealWallSolution = (
         transaction.update(clueDoc, {
             solution: secretsData.solution,
         });
+        return null;
+    });
+};
+
+export const revealAnswer = (
+    quizId: string,
+    questionId: string,
+    db: firebase.firestore.Firestore = firebase.app().firestore(),
+) => {
+    const questionDoc = db.doc(`quizzes/${quizId}/questions/${questionId}`);
+    const secretsDoc = db.doc(`quizzes/${quizId}/questionSecrets/${questionId}`);
+
+    return db.runTransaction(async (transaction) => {
+        const secretsSnapshot = await transaction.get(secretsDoc);
+        if (!secretsSnapshot.exists) {
+            throw new Error(`Secret for clue ${quizId}/${questionId} does not exist`);
+        }
+        const secretsData = secretsSnapshot.data() as QuestionSecrets;
+        
+        switch (secretsData.type) {
+            case 'connection':
+            case 'missing-vowels':
+                transaction.update(questionDoc, {
+                    connection: secretsData.connection
+                });
+                break;
+            case 'sequence':
+                transaction.update(questionDoc, {
+                    connection: secretsData.connection,
+                    exampleLastInSequence: secretsData.exampleLastInSequence,
+                });
+                break;
+            case 'wall':
+                transaction.update(questionDoc, {
+                    connections: secretsData.connections
+                });
+                break;
+            default:
+                throwBadQuestionType(secretsData);
+        }
         return null;
     });
 };

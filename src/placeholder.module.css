@@ -1,0 +1,7 @@
+.placeholderItem {
+    composes: verySmallPadding from './layout.module.css';
+    composes: rounded from './effects.module.css';
+    text-align: center;
+    border: 2px dashed var(--dark-blue-washed-out);
+    opacity: 0.6;
+}

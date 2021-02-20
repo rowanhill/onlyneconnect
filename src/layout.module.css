@@ -2,6 +2,7 @@
     --large: 6em;
     --medium: 2em;
     --small: 1em;
+    --very-small: 0.5em;
 }
 
 .noMarginTop {
@@ -32,4 +33,16 @@
 }
 .smallPadding {
     padding: var(--small);
+}
+
+.smallTopMargin {
+    margin-top: var(--small);
+}
+
+.verySmallTopMargin {
+    margin-top: var(--very-small);
+}
+
+.verySmallPadding {
+    padding: var(--very-small);
 }

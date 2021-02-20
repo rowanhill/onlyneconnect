@@ -8,3 +8,9 @@
 .shadow {
     box-shadow: black 1px 1px 4px -1px;
 }
+
+.glassy {
+    box-shadow: inset -1px -1px 7px 2px var(--shadow);
+    background-image: radial-gradient(ellipse at 480% 95%, var(--lowlight) 0%, var(--standard) 80%, var(--highlight) 82%);
+    background-color: var(--standard);
+}

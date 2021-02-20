@@ -35,24 +35,29 @@ export type Sixteen<T> = [
 export interface ConnectionQuestion {
     clueIds: Four<string>;
     isRevealed: boolean;
+    connection?: string;
     answerLimit: number|null;
     type: 'connection';
 }
 export interface SequenceQuestion {
     clueIds: Three<string>;
     isRevealed: boolean;
+    connection?: string;
+    exampleLastInSequence?: string;
     answerLimit: number|null;
     type: 'sequence';
 }
 export interface WallQuestion {
     clueId: string;
     isRevealed: boolean;
+    connections?: Four<string>;
     answerLimit: null;
     type: 'wall';
 }
 export interface MissingVowelsQuestion {
     clueId: string;
     isRevealed: boolean;
+    connection?: string;
     answerLimit: number|null;
     type: 'missing-vowels';
 }

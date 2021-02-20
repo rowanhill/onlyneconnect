@@ -104,7 +104,10 @@ describe('Playing a connection question', () => {
         });
 
         it('shows the connection when the question is over', () => {
+            cy.task('revealNextClue', { quizId, nextClueId: clueIds[0] });
+            cy.task('revealAnswer', { quizId, questionId });
 
+            cy.contains('Q1 Conn').should('exist');
         });
     });
 

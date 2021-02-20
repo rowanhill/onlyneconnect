@@ -8,3 +8,34 @@
     justify-content: space-between;
     max-width: 43em;
 }
+
+.connection {
+    composes: glassItem veryDarkBlueGlassColours from './glass.module.css';
+    composes: smallTopMargin from './layout.module.css';
+    width: 100%;
+}
+
+.connections {
+    composes: smallTopMargin from './layout.module.css';
+    width: 100%;
+}
+
+.group1 {
+    composes: glassItem veryDarkBlueGlassColours from './glass.module.css';
+}
+.group2 {
+    composes: glassItem midGreenGlassColours from './glass.module.css';
+}
+.group3 {
+    composes: glassItem darkRedGlassColours from './glass.module.css';
+}
+.group4 {
+    composes: glassItem midTurquoiseGlassColours from './glass.module.css';
+}
+
+.groupConnection {
+    composes: verySmallTopMargin from './layout.module.css';
+}
+.groupConnection:first-of-type {
+    margin-top: 0;
+}

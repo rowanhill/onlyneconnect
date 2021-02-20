@@ -88,6 +88,13 @@ describe('Playing a missing vowels question', () => {
             answersHistory().contains('Second answer (4)');
             scoreboard().contains('Universally Challenged: 4');
         });
+
+        it('shows the connection when the question is over', () => {
+            cy.task('revealNextClue', { quizId, nextClueId: clueId });
+            cy.task('revealAnswer', { quizId, questionId });
+
+            cy.contains('Q1 conn').should('exist');
+        });
     });
 
     describe('as team captain', () => {
