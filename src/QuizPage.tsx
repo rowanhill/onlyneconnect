@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
 import { CollectionQueryItem, useCollectionResult } from './hooks/useCollectionResult';
-import { Answer, Clue, PlayerTeam, Question, Quiz, Team, WallInProgress } from './models';
+import { Answer, Clue, PlayerTeam, Question, QuestionSecrets, Quiz, Team, WallInProgress } from './models';
 import { Card } from './Card';
 import { Page } from './Page';
 import styles from './QuizPage.module.css';
@@ -16,6 +16,7 @@ import {
     AnswersContext,
     PlayerTeamContext,
     WallInProgressContext,
+    QuestionSecretsContext,
  } from './contexts/quizPage';
 import { QuizControls } from './QuizControls';
 import { CurrentQuestion } from './CurrentQuestion';
@@ -59,6 +60,16 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
     // Find the current question item
     const currentQuestionItem: CollectionQueryItem<Question>|undefined = quizData &&
         questionsResult.data?.find((questionData) => questionData.id === quizData.currentQuestionId);
+
+    // Fetch question secrets
+    const questionSecretsResult = useCollectionResult<QuestionSecrets>(
+        isQuizOwner ?
+        db.collection(`quizzes/${quizId}/questionSecrets`) :
+        null
+    );
+    if (questionSecretsResult.error) {
+        console.error('Error getting question secrets:', questionSecretsResult.error);
+    }
 
     // Fetch clues
     let cluesQuery: firebase.firestore.Query|null = null;
@@ -155,6 +166,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
             <QuizContext.Provider value={{ quizId, quiz: quizData }}>
             <PlayerTeamContext.Provider value={{ teamId: playerTeamData?.teamId, isCaptain }}>
             <QuestionsContext.Provider value={questionsResult}>
+            <QuestionSecretsContext.Provider value={questionSecretsResult}>
             <CluesContext.Provider value={cluesResult}>
             <TeamsContext.Provider value={teamsResult}>
             <AnswersContext.Provider value={answersResult}>
@@ -186,6 +198,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
             </AnswersContext.Provider>
             </TeamsContext.Provider>
             </CluesContext.Provider>
+            </QuestionSecretsContext.Provider>
             </QuestionsContext.Provider>
             </PlayerTeamContext.Provider>
             </QuizContext.Provider>

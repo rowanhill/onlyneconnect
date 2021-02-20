@@ -10,9 +10,16 @@
 }
 
 .connection {
-    composes: glassItem veryDarkBlueGlassColours from './glass.module.css';
     composes: smallTopMargin from './layout.module.css';
     width: 100%;
+}
+.revealedConnection {
+    composes: connection;
+    composes: glassItem veryDarkBlueGlassColours from './glass.module.css';
+}
+.unrevealedConnection {
+    composes: connection;
+    composes: placeholderItem from './placeholder.module.css';
 }
 
 .connections {
@@ -31,6 +38,10 @@
 }
 .group4 {
     composes: glassItem midTurquoiseGlassColours from './glass.module.css';
+}
+
+.unrevealedGroup {
+    composes: placeholderItem from './placeholder.module.css';
 }
 
 .groupConnection {

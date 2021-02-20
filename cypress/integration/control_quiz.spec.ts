@@ -1,5 +1,5 @@
 import { ConnectionQuestionSpec, MissingVowelsQuestionSpec, SequenceQuestionSpec, WallQuestionSpec } from '../../src/models/quiz';
-import { quizControls, expectRevealedCluesToBe, expectUnrevealedCluesToBe, unrevealedClues, revealedClues } from '../pages/quizPage';
+import { quizControls, expectRevealedCluesToBe, expectUnrevealedCluesToBe, unrevealedClues, revealedClues, finalClue } from '../pages/quizPage';
 import { CreateConnectionOrSequenceQuestionResult, CreateMissingVowelsOrWallQuestionResult } from '../plugins';
 
 describe('Controlling the quiz', () => {
@@ -83,6 +83,7 @@ describe('Controlling the quiz', () => {
         quizControls().contains('Start quiz').click();
         expectRevealedCluesToBe([]);
         expectUnrevealedCluesToBe(['(Q1 C1)', '(Q1 C2)', '(Q1 C3)', '(Q1 C4)']);
+        cy.contains('(Q1 Conn)').should('exist');
 
         // Reveal the first clue
         quizControls().contains('Next clue').click();
@@ -100,6 +101,8 @@ describe('Controlling the quiz', () => {
         quizControls().contains('Next question').click();
         expectRevealedCluesToBe([]);
         expectUnrevealedCluesToBe(['(Q2 C1)', '(Q2 C2)', '(Q2 C3)']);
+        finalClue().should('contain.text', '(Q2 C4 ex)');
+        cy.contains('(Q2 Conn)').should('exist');
 
         // Reveal the clues
         quizControls().contains('Next clue').click();
@@ -107,11 +110,16 @@ describe('Controlling the quiz', () => {
         quizControls().contains('Next clue').click();
         expectRevealedCluesToBe(['Q2 C1', 'Q2 C2', 'Q2 C3']);
         expectUnrevealedCluesToBe([]);
+        finalClue().should('contain.text', 'Q2 C4 ex');
 
         // Start the third question (a wall)
         quizControls().contains('Next question').click();
         expectRevealedCluesToBe([]);
         unrevealedClues().should('have.length', 16);
+        cy.contains('(G1 conn)').should('exist');
+        cy.contains('(G2 conn)').should('exist');
+        cy.contains('(G3 conn)').should('exist');
+        cy.contains('(G4 conn)').should('exist');
 
         // Reveal the wall
         quizControls().contains('Next clue').click();
@@ -125,6 +133,7 @@ describe('Controlling the quiz', () => {
         quizControls().contains('Next question').click();
         expectRevealedCluesToBe([]);
         expectUnrevealedCluesToBe(['(Q4 C1)', '(Q4 C2)', '(Q4 C3)', '(Q4 C4)']);
+        cy.contains('(Q4 Conn)').should('exist');
 
         // Reveal the de-vowelled words
         quizControls().contains('Next clue').click();

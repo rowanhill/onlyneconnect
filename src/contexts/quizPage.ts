@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import { CollectionQueryItem, CollectionQueryResult } from '../hooks/useCollectionResult';
-import { Answer, Clue, Question, Quiz, Team, WallInProgress } from '../models';
+import { Answer, Clue, Question, QuestionSecrets, Quiz, Team, WallInProgress } from '../models';
 
 export const QuizContext = createContext<{ quizId: string; quiz: Quiz; }>(undefined as any);
 export const useQuizContext = () => {
@@ -16,6 +16,15 @@ export const useQuestionsContext = () => {
     const result = useContext(QuestionsContext);
     if (!result) {
         throw new Error('No value found in QuestionsContext. Is there a provider?');
+    }
+    return result;
+};
+
+export const QuestionSecretsContext = createContext<CollectionQueryResult<QuestionSecrets>>(undefined as any);
+export const useQuestionSecretsContext = () => {
+    const result = useContext(QuestionSecretsContext);
+    if (!result) {
+        throw new Error('No value found in QuestionSecretsContext. Is there a provider?');
     }
     return result;
 };
