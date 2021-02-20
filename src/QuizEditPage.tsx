@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom';
 import firebase from './firebase';
 import { createChangeHandler } from './forms/changeHandler';
 import { useAuth } from './hooks/useAuth';
-import { CollectionQueryData, useCollectionResult } from './hooks/useCollectionResult';
-import { Clue, ClueSecrets, Four, Question, Quiz, QuizSecrets, Three, throwBadClueType, throwBadQuestionType } from './models';
+import { CollectionQueryData, CollectionQueryItem, useCollectionResult } from './hooks/useCollectionResult';
+import { Clue, ConnectionSecrets, Four, MissingVowelsSecrets, Question, QuestionSecrets, Quiz, QuizSecrets, SequenceSecrets, Three, throwBadClueType, throwBadQuestionType, WallSecrets } from './models';
 import { Page } from './Page';
 import { Card } from './Card';
 import { PrimaryButton } from './Button';
@@ -29,21 +29,21 @@ export const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
     const [secretsData, secretsLoading, secretsError] = useDocumentData<QuizSecrets>(user ? db.collection('quizSecrets').doc(quizId) : null);
     const questionsResult = useCollectionResult<Question>(user ? db.collection(`quizzes/${quizId}/questions`) : null);
     const cluesResult = useCollectionResult<Clue>(user ? db.collection(`quizzes/${quizId}/clues`) : null);
-    const clueSecretsResult = useCollectionResult<ClueSecrets>(user ? db.collection(`quizzes/${quizId}/clueSecrets`) : null);
+    const questionSecretsResult = useCollectionResult<QuestionSecrets>(user ? db.collection(`quizzes/${quizId}/questionSecrets`) : null);
 
     function inner() {
         // Bail out if there are any problems or display a loading notice if we're not loaded yet
-        if (quizError || secretsError || questionsResult.error || cluesResult.error || clueSecretsResult.error) {
-            console.warn('Could not load quiz', quizError, secretsError, questionsResult.error, cluesResult.error, clueSecretsResult.error);
+        if (quizError || secretsError || questionsResult.error || cluesResult.error || questionSecretsResult.error) {
+            console.warn('Could not load quiz', quizError, secretsError, questionsResult.error, cluesResult.error, questionSecretsResult.error);
             return <div>Could not load quiz. Try again later.</div>;
         }
         if (user && quizData && user.uid !== quizData.ownerId) {
             return <div>No quiz owned by you with id ${quizId} was found</div>;
         }
-        if (quizLoading || !user || secretsLoading || questionsResult.loading || cluesResult.loading || clueSecretsResult.loading) {
+        if (quizLoading || !user || secretsLoading || questionsResult.loading || cluesResult.loading || questionSecretsResult.loading) {
             return <div>Loading...</div>;
         }
-        if (!quizData || !secretsData || !questionsResult.data || !cluesResult.data || !clueSecretsResult.data) {
+        if (!quizData || !secretsData || !questionsResult.data || !cluesResult.data || !questionSecretsResult.data) {
             return <div>No quiz owned by you with id ${quizId} was found</div>;
         }
         
@@ -54,7 +54,7 @@ export const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
                 secrets={secretsData}
                 questions={questionsResult.data}
                 clues={cluesResult.data}
-                clueSecrets={clueSecretsResult.data}
+                questionSecrets={questionSecretsResult.data}
             />
         );
     }
@@ -74,13 +74,13 @@ function getClues(questionSpec: QuestionSpec): ClueSpec[] {
     }
 } 
 
-const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecrets }: {
+const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionSecrets }: {
         quizId: string;
         quiz: Quiz;
         secrets: QuizSecrets;
         questions: CollectionQueryData<Question>;
         clues: CollectionQueryData<Clue>;
-        clueSecrets: CollectionQueryData<ClueSecrets>;
+        questionSecrets: CollectionQueryData<QuestionSecrets>;
 }) => {
     const db = firebase.firestore();
     const [name, setName] = useState(quiz.name);
@@ -113,6 +113,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecre
         setNewQuestion({
             type: 'connection',
             answerLimit: null,
+            connection: '',
             clues: [
                 { text: '', answerLimit: 1, type: 'text' },
                 { text: '', answerLimit: 1, type: 'text' },
@@ -126,6 +127,8 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecre
         setNewQuestion({
             type: 'sequence',
             answerLimit: null,
+            connection: '',
+            exampleLastInSequence: '',
             clues: [
                 { text: '', answerLimit: 1, type: 'text' },
                 { text: '', answerLimit: 1, type: 'text' },
@@ -147,6 +150,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecre
                     { texts: ['', '', '', ''] },
                     { texts: ['', '', '', ''] },
                 ],
+                connections: ['', '', '', ''],
             },
         });
     }
@@ -155,6 +159,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecre
         setNewQuestion({
             type: 'missing-vowels',
             answerLimit: 5,
+            connection: '',
             clue: { texts: ['', '', '', ''], answerLimit: null, type: 'compound-text' },
         });
     };
@@ -195,6 +200,24 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecre
         batch.update(db.doc(`quizzes/${quizId}/questions/${questionId}`), {
             answerLimit: newSpec.answerLimit
         });
+        const secretDoc = db.doc(`quizzes/${quizId}/questionSecrets/${questionId}`);
+        switch (newSpec.type) {
+            case 'connection':
+            case 'missing-vowels':
+                const conSecretUpdate = { connection: newSpec.connection };
+                batch.update(secretDoc, conSecretUpdate);
+                break;
+            case 'sequence':
+                const seqSecretUpdate = { connection: newSpec.connection, exampleLastInSequence: newSpec.exampleLastInSequence };
+                batch.update(secretDoc, seqSecretUpdate);
+                break;
+            case 'wall':
+                const wallSecretUpdate = { connections: newSpec.clue.connections, solution: newSpec.clue.solution };
+                batch.update(secretDoc, wallSecretUpdate);
+                break;
+            default:
+                throwBadQuestionType(newSpec);
+        }
         const clues = getClues(newSpec);
         for (let i=0; i < clues.length; i++) {
             const clue = clues[i];
@@ -212,14 +235,12 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecre
         }
         const batch = db.batch();
         batch.delete(db.doc(`quizzes/${quizId}/questions/${questionSpec.id}`));
+        batch.delete(db.doc(`quizzes/${quizId}/questionSecrets/${questionSpec.id}`));
         for (const clue of getClues(questionSpec)) {
             if (clue.id === undefined) {
                 throw new Error('Tried to delete clue without id');
             }
             batch.delete(db.doc(`quizzes/${quizId}/clues/${clue.id}`));
-            if (clue.type === 'four-by-four-text') {
-                batch.delete(db.doc(`quizzes/${quizId}/clueSecrets/${clue.id}`));
-            }
         }
         batch.update(db.doc(`quizzes/${quizId}`), {
             questionIds: quiz.questionIds.filter((id) => id !== questionSpec.id),
@@ -276,7 +297,32 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecre
 
     const questionsById = Object.fromEntries(questions.map((q) => [q.id, q]));
     const cluesById = Object.fromEntries(clues.map((c) => [c.id, c]));
-    const clueSecretsById = Object.fromEntries(clueSecrets.map((cs) => [cs.id, cs]));
+    const questionSecretsById = Object.fromEntries(questionSecrets.map((cs) => [cs.id, cs]));
+    const defaultConnectionSecretItem: CollectionQueryItem<ConnectionSecrets> = {
+        id: 'loading',
+        data: { connection: 'Loading connection', type: 'connection' },
+    };
+    const defaultSequenceSecretItem: CollectionQueryItem<SequenceSecrets> = {
+        id: 'loading',
+        data: { connection: 'Loading connection', exampleLastInSequence: 'Loading example', type: 'sequence' },
+    };
+    const defaultWallSecretItem: CollectionQueryItem<WallSecrets> = {
+        id: 'loading',
+        data: {
+            solution: [
+                { texts: ['', '', '', ''] },
+                { texts: ['', '', '', ''] },
+                { texts: ['', '', '', ''] },
+                { texts: ['', '', '', ''] },
+            ],
+            connections: ['Loading connection', 'Loading connection', 'Loading connection', 'Loading connection'],
+            type: 'wall',
+        },
+    };
+    const defaultMissingVowelsSecretItem: CollectionQueryItem<MissingVowelsSecrets> = {
+        id: 'loading',
+        data: { connection: 'Loading connection', type: 'missing-vowels' },
+    };
     const questionSpecs: QuestionSpec[] = quiz.questionIds
         .filter((id) => {
             const question = questionsById[id];
@@ -287,7 +333,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecre
             if (question.data.type === 'connection' || question.data.type === 'sequence') {
                 result = question.data.clueIds.every((id) => !!cluesById[id]);
             } else if (question.data.type === 'wall') {
-                result = !!cluesById[question.data.clueId] && !!clueSecretsById[question.data.clueId];
+                result = !!cluesById[question.data.clueId] && !!questionSecretsById[question.id];
             } else if (question.data.type === 'missing-vowels') {
                 result = !!cluesById[question.data.clueId];
             } else {
@@ -299,10 +345,15 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecre
             const question = questionsById[id].data;
             let result;
             if (question.type === 'connection') {
+                const questionSecretsItem = questionSecretsById[id] || defaultConnectionSecretItem;
+                if (questionSecretsItem.data.type !== 'connection') {
+                    throw new Error(`Expected a connection secret on a connection question, but question secret ${id} is a ${questionSecretsItem.data.type}`);
+                }
                 result = {
                     id,
                     type: question.type,
                     answerLimit: question.answerLimit,
+                    connection: questionSecretsItem.data.connection,
                     clues: question.clueIds.map((cid) => {
                         const clue = cluesById[cid];
                         if (!clue) {
@@ -315,10 +366,16 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecre
                     }) as Four<TextClueSpec>,
                 };
             } else if (question.type === 'sequence') {
+                const questionSecretsItem = questionSecretsById[id] || defaultSequenceSecretItem;
+                if (questionSecretsItem.data.type !== 'sequence') {
+                    throw new Error(`Expected a sequence secret on a sequence question, but question secret ${id} is a ${questionSecretsItem.data.type}`);
+                }
                 result = {
                     id,
                     type: question.type,
                     answerLimit: question.answerLimit,
+                    connection: questionSecretsItem.data.connection || 'Could not load',
+                    exampleLastInSequence: questionSecretsItem.data.exampleLastInSequence || 'Could not load',
                     clues: question.clueIds.map((cid) => {
                         const clue = cluesById[cid];
                         if (!clue) {
@@ -332,23 +389,21 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecre
                 };
             } else if (question.type === 'wall') {
                 const clueItem = cluesById[question.clueId];
-                const clueSecretsItem = clueSecretsById[question.clueId];
+                const questionSecretsItem = questionSecretsById[id] || defaultWallSecretItem;
                 if (!clueItem) {
                     throw new Error(`Could not find clue ${question.clueId} referenced by question ${id}`);
-                }
-                if (!clueSecretsItem) {
-                    throw new Error(`Could not find clue secret ${question.clueId} referenced by question ${id}`);
                 }
                 if (clueItem.data.type !== 'four-by-four-text') {
                     throw new Error(`Expected a four-by-four-text clue on a wall question, but clue ${question.clueId} is a ${clueItem.data.type}`);
                 }
-                if (clueSecretsItem.data.type !== 'four-by-four-text') {
-                    throw new Error(`Expected a four-by-four-text clue secret on a wall question, but clue secret ${question.clueId} is a ${clueSecretsItem.data.type}`);
+                if (questionSecretsItem.data.type !== 'wall') {
+                    throw new Error(`Expected a wall secret on a wall question, but question secret ${id} is a ${questionSecretsItem.data.type}`);
                 }
                 const clueSpec: FourByFourTextClueSpec = {
                     id: question.clueId,
                     answerLimit: clueItem.data.answerLimit,
-                    solution: clueSecretsItem.data.solution,
+                    solution: questionSecretsItem.data.solution,
+                    connections: questionSecretsItem.data.connections,
                     type: 'four-by-four-text',
                 };
                 result = {
@@ -358,7 +413,11 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecre
                     clue: clueSpec,
                 }
             } else if (question.type === 'missing-vowels') {
+                const questionSecretsItem = questionSecretsById[id] || defaultMissingVowelsSecretItem;
                 const clueItem = cluesById[question.clueId];
+                if (questionSecretsItem.data.type !== 'missing-vowels') {
+                    throw new Error(`Expected a missing-vowels secret on a missing-vowels question, but question secret ${id} is a ${questionSecretsItem.data.type}`);
+                }
                 if (!clueItem) {
                     throw new Error(`Could not find clue ${question.clueId} referenced by question ${id}`);
                 }
@@ -375,6 +434,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, clueSecre
                     id,
                     type: question.type,
                     answerLimit: question.answerLimit,
+                    connection: questionSecretsItem.data.connection || 'Not loaded',
                     clue: clueSpec,
                 }
             } else {
@@ -522,6 +582,18 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
             answerLimit: e.target.valueAsNumber,
         } as ConnectionQuestionSpec | SequenceQuestionSpec | MissingVowelsQuestionSpec);
     };
+    const changeConnection = (e: ChangeEvent<HTMLInputElement>) => {
+        setQuestion({
+            ...question,
+            connection: e.target.value,
+        } as ConnectionQuestionSpec | SequenceQuestionSpec | MissingVowelsQuestionSpec);
+    };
+    const changeExampleLastInSequence = (e: ChangeEvent<HTMLInputElement>) => {
+        setQuestion({
+            ...question,
+            exampleLastInSequence: e.target.value,
+        } as SequenceQuestionSpec);
+    };
 
     const getClueForm = (clue: ClueSpec, clueIndex: number) => {
         switch (clue.type) {
@@ -553,15 +625,27 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
                 </span>
             </p>
             {question.type !== 'wall' &&
+            <>
             <p className={styles.row}>
                 <label>Question answer limit</label>
                 <input type="number" value={question.answerLimit || ''} placeholder="No limit" onChange={changeAnswerLimit} />
             </p>
+            <p className={styles.row}>
+                <label>Connection</label>
+                <input type="text" value={question.connection} onChange={changeConnection} />
+            </p>
+            </>
             }
             <h4>Clues</h4>
             {getClues(question).map((clue, clueIndex) => (
                 getClueForm(clue, clueIndex)
             ))}
+            {question.type === 'sequence' &&
+            <p className={styles.row}>
+                <label>Example last item in sequence</label>
+                <input type="text" value={question.exampleLastInSequence} onChange={changeExampleLastInSequence} />
+            </p>
+            }
         </Card>
     );
 };
@@ -651,7 +735,14 @@ const FourByFourClueForm = ({ clue, onChange }: { clue: FourByFourTextClueSpec; 
                         } :
                         oldGroup
                     ,
-                ) as Four<{ texts: Four<string>; }>
+                ) as Four<{ texts: Four<string>; connection: string; }>
+            });
+        };
+    const changeConnection = (groupIndex: number) =>
+        (e: ChangeEvent<HTMLInputElement>) => {
+            onChange({
+                ...clue,
+                connections: clue.connections.map((oldConn, i) => i === groupIndex ? e.target.value : oldConn) as Four<string>,
             });
         };
     return (
@@ -660,6 +751,10 @@ const FourByFourClueForm = ({ clue, onChange }: { clue: FourByFourTextClueSpec; 
             <Fragment key={groupIndex}>
                 <p className={styles.row}>
                     <label className={styles.cluePropLabel}>Group {groupIndex + 1}:</label>
+                </p>
+                <p className={styles.row}>
+                    <label className={styles.cluePropLabel}>Connection</label>
+                    <input type="text" value={clue.connections[groupIndex]} onChange={changeConnection(groupIndex)} />
                 </p>
                 {group.texts.map((text, textIndex) =>
                     <p key={textIndex} className={styles.row}>

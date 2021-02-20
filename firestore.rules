@@ -65,13 +65,13 @@ service cloud.firestore {
         allow get, list: if currentQuestionOrClueVisibleToPlayer(quiz) || quizOwner(quiz);
       }
 
+      match /questionSecrets/{question} {
+        allow read, write: if quizOwner(quiz);
+      }
+
       match /clues/{clue} {
         allow create, update, delete: if quizOwner(quiz);
         allow get, list: if currentQuestionOrClueVisibleToPlayer(quiz) || quizOwner(quiz);
-      }
-
-      match /clueSecrets/{clue} {
-        allow read, write: if quizOwner(quiz);
       }
 
       match /answers/{answer} {

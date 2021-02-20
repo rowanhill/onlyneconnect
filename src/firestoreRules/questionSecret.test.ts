@@ -8,7 +8,7 @@ import { initializeTestApp, initializeAdminApp, assertSucceeds, assertFails } fr
 const testUid = 'uid-of-test-user';
 const otherUid = 'uid-of-other-user';
 
-describe('/quiz/{quiz}/clueSecrets security ruleset', () => {
+describe('/quiz/{quiz}/questionSecrets security ruleset', () => {
     let testDb: firebase.firestore.Firestore;
     let adminDb: firebase.firestore.Firestore;
     beforeAll(() => {
@@ -27,26 +27,26 @@ describe('/quiz/{quiz}/clueSecrets security ruleset', () => {
         });
 
         it('allows create', async () => {
-            await assertSucceeds(testDb.collection(`/quizzes/${quizId}/clueSecrets`).add({ dummy: 'secret' }));
+            await assertSucceeds(testDb.collection(`/quizzes/${quizId}/questionSecrets`).add({ dummy: 'secret' }));
         });
 
         it('allows delete', async () => {
-            const doc = await adminDb.collection(`/quizzes/${quizId}/clueSecrets`).add({ dummy: 'secret' });
+            const doc = await adminDb.collection(`/quizzes/${quizId}/questionSecrets`).add({ dummy: 'secret' });
             await assertSucceeds(testDb.doc(doc.path).delete());
         });
 
         it('allows update', async () => {
-            const doc = await adminDb.collection(`/quizzes/${quizId}/clueSecrets`).add({ dummy: 'secret' });
+            const doc = await adminDb.collection(`/quizzes/${quizId}/questionSecrets`).add({ dummy: 'secret' });
             await assertSucceeds(testDb.doc(doc.path).update({ dummy: 'updated secret' }));
         });
 
         it('allows fetching', async () => {
-            const doc = await adminDb.collection(`/quizzes/${quizId}/clueSecrets`).add({ dummy: 'secret' });
+            const doc = await adminDb.collection(`/quizzes/${quizId}/questionSecrets`).add({ dummy: 'secret' });
             await assertSucceeds(testDb.doc(doc.path).get());
         });
 
-        it('allows listing even unrevealed clues', async () => {
-            const doc = await adminDb.collection(`/quizzes/${quizId}/clueSecrets`).add({ dummy: 'secret' });
+        it('allows listing', async () => {
+            const doc = await adminDb.collection(`/quizzes/${quizId}/questionSecrets`).add({ dummy: 'secret' });
             await assertSucceeds(testDb.collection(doc.parent.path).get());
         });
     });
@@ -59,26 +59,26 @@ describe('/quiz/{quiz}/clueSecrets security ruleset', () => {
         });
 
         it('denies create', async () => {
-            await assertFails(testDb.collection(`/quizzes/${quizId}/clueSecrets`).add({ dummy: 'secret' }));
+            await assertFails(testDb.collection(`/quizzes/${quizId}/questionSecrets`).add({ dummy: 'secret' }));
         });
 
         it('denies delete', async () => {
-            const doc = await adminDb.collection(`/quizzes/${quizId}/clueSecrets`).add({ dummy: 'secret' });
+            const doc = await adminDb.collection(`/quizzes/${quizId}/questionSecrets`).add({ dummy: 'secret' });
             await assertFails(testDb.doc(doc.path).delete());
         });
 
         it('denies update', async () => {
-            const doc = await adminDb.collection(`/quizzes/${quizId}/clueSecrets`).add({ dummy: 'secret' });
-            await assertFails(testDb.doc(doc.path).update({ dummy: 'updated clue' }));
+            const doc = await adminDb.collection(`/quizzes/${quizId}/questionSecrets`).add({ dummy: 'secret' });
+            await assertFails(testDb.doc(doc.path).update({ dummy: 'updated secret' }));
         });
 
         it('denies fetching', async () => {
-            const doc = await adminDb.collection(`/quizzes/${quizId}/clueSecrets`).add({ dummy: 'secret' });
+            const doc = await adminDb.collection(`/quizzes/${quizId}/questionSecrets`).add({ dummy: 'secret' });
             await assertFails(testDb.doc(doc.path).get());
         });
 
         it('denies listing', async () => {
-            const doc = await adminDb.collection(`/quizzes/${quizId}/clueSecrets`).add({ dummy: 'secret' });
+            const doc = await adminDb.collection(`/quizzes/${quizId}/questionSecrets`).add({ dummy: 'secret' });
             await assertFails(testDb.collection(doc.parent.path).get());
         });
     });

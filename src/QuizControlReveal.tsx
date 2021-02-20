@@ -103,7 +103,7 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
             console.error('Tried to resolve the wall, but a solution is already shown');
             return;
         }
-        copySolutionFromSecretToClue(quizId, currentClue.id)
+        copySolutionFromSecretToClue(quizId, currentQuestionItem.id, currentClue.id)
             .then(() => {
                 setDisabled(false);
             })

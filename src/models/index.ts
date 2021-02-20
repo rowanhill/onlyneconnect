@@ -58,6 +58,30 @@ export interface MissingVowelsQuestion {
 }
 export type Question = ConnectionQuestion | SequenceQuestion | WallQuestion | MissingVowelsQuestion;
 
+export interface ConnectionSecrets {
+    type: 'connection';
+    connection: string;
+}
+
+export interface SequenceSecrets {
+    type: 'sequence';
+    connection: string;
+    exampleLastInSequence: string;
+}
+
+export interface WallSecrets {
+    type: 'wall';
+    solution: Four<{ texts: Four<string>; }>;
+    connections: Four<string>;
+}
+
+export interface MissingVowelsSecrets {
+    type: 'missing-vowels';
+    connection: string;
+}
+
+export type QuestionSecrets = ConnectionSecrets | SequenceSecrets | WallSecrets | MissingVowelsSecrets;
+
 export function throwBadQuestionType(question: never): never;
 export function throwBadQuestionType(question: Question) {
     throw new Error(`Unhandled question type: ${question.type}`);
@@ -97,13 +121,6 @@ export function throwBadClueType(clue: never): never;
 export function throwBadClueType(clue: Clue) {
     throw new Error(`Unhandled clue type: ${clue.type}`);
 }
-
-export interface FourByFourTextClueSecrets {
-    solution: Four<{ texts: Four<string>; }>;
-    type: 'four-by-four-text';
-}
-
-export type ClueSecrets = FourByFourTextClueSecrets;
 
 export interface SimpleAnswer {
     questionId: string;

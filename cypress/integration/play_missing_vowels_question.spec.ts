@@ -20,6 +20,7 @@ describe('Playing a missing vowels question', () => {
                 type: 'missing-vowels',
                 answerLimit: 5,
                 clue: { answerLimit: null, texts: ['Q1 C1', 'Q1 C2', 'Q1 C3', 'Q1 C4'], type: 'compound-text' },
+                connection: 'Q1 conn',
             };
             return cy.task<CreateMissingVowelsOrWallQuestionResult>('createMissingVowelsQuestion', {
                 quizId,

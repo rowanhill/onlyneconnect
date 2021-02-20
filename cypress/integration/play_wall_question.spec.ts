@@ -36,6 +36,7 @@ describe('Playing a wall question', () => {
                         { texts: ['G3 A', 'G3 B', 'G3 C', 'G3 D'] },
                         { texts: ['G4 A', 'G4 B', 'G4 C', 'G4 D'] },
                     ],
+                    connections: ['G1 conn', 'G2 conn', 'G3 conn', 'G4 conn'],
                 },
             };
             return cy.task<CreateMissingVowelsOrWallQuestionResult>('createWallQuestion', { quizId, question: wallSpec });

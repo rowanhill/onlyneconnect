@@ -4,9 +4,9 @@ admin.initializeApp();
 
 // Hack: copied from src/models/index.ts!
 type Four<T> = [T, T, T, T];
-interface FourByFourTextClueSecrets {
-    solution: Four<{ texts: Four<string>; }>;
-    type: 'four-by-four-text';
+export interface WallSecrets {
+    type: 'wall';
+    solution: Four<{ texts: Four<string>; connection: string; }>;
 }
 interface WallInProgress {
     // static properties
@@ -64,7 +64,7 @@ export const checkIfWallGroupIsInSolution = functions.https.onCall(async (data, 
         const progressData = progressSnapshot.data()! as WallInProgress;
 
         const teamPromise = transaction.get(admin.firestore().doc(`teams/${progressData.teamId}`));
-        const secretPromise = transaction.get(admin.firestore().doc(`quizzes/${quizId}/clueSecrets/${progressData.clueId}`));
+        const secretPromise = transaction.get(admin.firestore().doc(`quizzes/${quizId}/questionSecrets/${progressData.questionId}`));
         const [teamSnapshot, secretSnapshot] = await Promise.all([teamPromise, secretPromise]);
 
         if (!teamSnapshot.exists) {
@@ -78,9 +78,9 @@ export const checkIfWallGroupIsInSolution = functions.https.onCall(async (data, 
         }
         
         if (!secretSnapshot.exists) {
-            throw new functions.https.HttpsError('not-found', `Could not find clue secrets at ${secretSnapshot.ref.path}`);
+            throw new functions.https.HttpsError('not-found', `Could not find question secrets at ${secretSnapshot.ref.path}`);
         }
-        const secretData = secretSnapshot.data()! as FourByFourTextClueSecrets;
+        const secretData = secretSnapshot.data()! as WallSecrets;
 
         const remainingLiveSet = typeof progressData.remainingLives === 'number';
         if (remainingLiveSet && progressData.remainingLives! <= 0) {

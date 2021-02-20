@@ -1,6 +1,6 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
-import { Clue, ClueSecrets, CompoundTextClue, Four, FourByFourTextClue, FourByFourTextClueSecrets, MissingVowelsQuestion, Sixteen, Three, WallQuestion } from '.';
+import { Clue, CompoundTextClue, ConnectionQuestion, ConnectionSecrets, Four, FourByFourTextClue, MissingVowelsQuestion, MissingVowelsSecrets, QuestionSecrets, SequenceQuestion, SequenceSecrets, Sixteen, TextClue, Three, WallQuestion, WallSecrets } from '.';
 
 export const createQuiz = (
     quizName: string,
@@ -33,6 +33,7 @@ export interface CompoundClueSpec {
 export interface FourByFourTextClueSpec {
     id?: string;
     solution: Four<{ texts: Four<string>; }>;
+    connections: Four<string>;
     answerLimit: null;
     type: 'four-by-four-text';
 }
@@ -41,6 +42,7 @@ export interface ConnectionQuestionSpec {
     id?: string;
     answerLimit: number | null;
     clues: Four<TextClueSpec>;
+    connection: string;
     type: 'connection';
 }
 
@@ -48,6 +50,8 @@ export interface SequenceQuestionSpec {
     id?: string;
     answerLimit: number | null;
     clues: Three<TextClueSpec>;
+    connection: string;
+    exampleLastInSequence: string;
     type: 'sequence';
 }
 
@@ -62,6 +66,7 @@ export interface MissingVowelsQuestionSpec {
     id?: string;
     answerLimit: number | null;
     clue: CompoundClueSpec;
+    connection: string;
     type: 'missing-vowels';
 }
 
@@ -77,16 +82,29 @@ export const createConnectionOrSequenceQuestion = (
     const clueAndDocs = question.clues.map((clue) => ({ clue, doc: db.collection(`quizzes/${quizId}/clues`).doc() }));
 
     const questionDoc = db.collection(`quizzes/${quizId}/questions`).doc();
+    const secretsDoc = db.doc(`/quizzes/${quizId}/questionSecrets/${questionDoc.id}`);
     const clueIds = clueAndDocs.map((cad) => cad.doc.id);
-    batch.set(questionDoc, {
+    batch.set<ConnectionQuestion|SequenceQuestion>(questionDoc as any, {
         type: question.type,
         answerLimit: question.answerLimit,
         isRevealed: false,
-        clueIds,
+        clueIds: clueIds as any,
     });
+    if (question.type === 'connection') {
+        batch.set<ConnectionSecrets>(secretsDoc as any, {
+            type: question.type,
+            connection: question.connection,
+        });
+    } else {
+        batch.set<SequenceSecrets>(secretsDoc as any, {
+            type: question.type,
+            connection: question.connection,
+            exampleLastInSequence: question.exampleLastInSequence,
+        });
+    }
 
     for (const { clue, doc } of clueAndDocs) {
-        batch.set(doc, {
+        batch.set<TextClue>(doc as any, {
             questionId: questionDoc.id,
             isRevealed: false,
             text: clue.text,
@@ -117,14 +135,20 @@ export const createWallQuestion = (
 
     const quizDoc = db.doc(`quizzes/${quizId}`);
     const clueDoc = db.collection(`quizzes/${quizId}/clues`).doc();
-    const clueSecretsDoc = db.doc(`quizzes/${quizId}/clueSecrets/${clueDoc.id}`);
     const questionDoc = db.collection(`quizzes/${quizId}/questions`).doc();
+    const secretsDoc = db.doc(`quizzes/${quizId}/questionSecrets/${questionDoc.id}`);
 
     batch.set<WallQuestion>(questionDoc as any, {
         type: question.type,
         answerLimit: question.answerLimit,
         isRevealed: false,
         clueId: clueDoc.id,
+    });
+
+    batch.set<WallSecrets>(secretsDoc as any, {
+        solution: question.clue.solution,
+        connections: question.clue.connections,
+        type: question.type,
     });
 
     const flattenedTexts = question.clue.solution.flatMap((group) => group.texts) as Sixteen<string>;
@@ -134,11 +158,6 @@ export const createWallQuestion = (
         isRevealed: false,
         texts: flattenedTexts,
         answerLimit: question.clue.answerLimit,
-        type: question.clue.type,
-    });
-
-    batch.set<FourByFourTextClueSecrets>(clueSecretsDoc as any, {
-        solution: question.clue.solution,
         type: question.clue.type,
     });
 
@@ -161,11 +180,16 @@ export const createMissingVowelsQuestion = (
     const clueDoc = db.collection(`quizzes/${quizId}/clues`).doc();
 
     const questionDoc = db.collection(`quizzes/${quizId}/questions`).doc();
+    const secretsDoc = db.doc(`quizzes/${quizId}/questionSecrets/${questionDoc.id}`);
     batch.set<MissingVowelsQuestion>(questionDoc as any, {
         type: question.type,
         answerLimit: question.answerLimit,
         isRevealed: false,
         clueId: clueDoc.id,
+    });
+    batch.set<MissingVowelsSecrets>(secretsDoc as any, {
+        type: question.type,
+        connection: question.connection,
     });
 
     batch.set<CompoundTextClue>(clueDoc as any, {
@@ -255,11 +279,12 @@ export const closeLastClue = (
 
 export const copySolutionFromSecretToClue = (
     quizId: string,
+    questionId: string,
     clueId: string,
     db: firebase.firestore.Firestore = firebase.app().firestore(),
 ) => {
     const clueDoc = db.doc(`quizzes/${quizId}/clues/${clueId}`);
-    const secretsDoc = db.doc(`quizzes/${quizId}/clueSecrets/${clueId}`);
+    const secretsDoc = db.doc(`quizzes/${quizId}/questionSecrets/${questionId}`);
 
     return db.runTransaction(async (transaction) => {
         const [clueSnapshot, secretsSnapshot] = await Promise.all([transaction.get(clueDoc), transaction.get(secretsDoc)]);
@@ -268,11 +293,14 @@ export const copySolutionFromSecretToClue = (
         }
         const clueData = clueSnapshot.data() as Clue;
         if (!secretsSnapshot.exists) {
-            throw new Error(`Secret for clue ${quizId}/${clueId} does not exist`);
+            throw new Error(`Secret for clue ${quizId}/${questionId} does not exist`);
         }
-        const secretsData = secretsSnapshot.data() as ClueSecrets;
-        if (clueData.type !== 'four-by-four-text' || secretsData.type !== 'four-by-four-text') {
-            throw new Error(`Expected clue and secrets to be four-by-four-text, but clue was ${clueData.type} and secrets was ${secretsData.type}`);
+        const secretsData = secretsSnapshot.data() as QuestionSecrets;
+        if (clueData.type !== 'four-by-four-text') {
+            throw new Error(`Expected clue to be four-by-four-text, but was ${clueData.type}`);
+        }
+        if (secretsData.type !== 'wall') {
+            throw new Error(`Expected question secrets to be of type wall, was of type ${secretsData.type}`);
         }
         transaction.update(clueDoc, {
             solution: secretsData.solution,

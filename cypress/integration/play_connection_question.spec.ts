@@ -25,6 +25,7 @@ describe('Playing a connection question', () => {
                     { answerLimit: 1, text: 'Q1 C3', type: 'text' },
                     { answerLimit: 1, text: 'Q1 C4', type: 'text' },
                 ],
+                connection: 'Q1 Conn',
             };
             return cy.task<CreateConnectionOrSequenceQuestionResult>('createConnectionOrSequenceQuestion', {
                 quizId,

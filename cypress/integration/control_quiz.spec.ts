@@ -21,6 +21,7 @@ describe('Controlling the quiz', () => {
                     { answerLimit: 1, text: 'Q1 C3', type: 'text' },
                     { answerLimit: 1, text: 'Q1 C4', type: 'text' },
                 ],
+                connection: 'Q1 Conn',
             };
             cy.task<CreateConnectionOrSequenceQuestionResult>('createConnectionOrSequenceQuestion', {
                 quizId,
@@ -35,6 +36,8 @@ describe('Controlling the quiz', () => {
                     { answerLimit: 1, text: 'Q2 C2', type: 'text' },
                     { answerLimit: 1, text: 'Q2 C3', type: 'text' },
                 ],
+                connection: 'Q2 Conn',
+                exampleLastInSequence: 'Q2 C4 ex',
             };
             cy.task<CreateConnectionOrSequenceQuestionResult>('createConnectionOrSequenceQuestion', {
                 quizId,
@@ -53,6 +56,7 @@ describe('Controlling the quiz', () => {
                         { texts: ['G3 A', 'G3 B', 'G3 C', 'G3 D'] },
                         { texts: ['G4 A', 'G4 B', 'G4 C', 'G4 D'] },
                     ],
+                    connections: ['G1 conn', 'G2 conn', 'G3 conn', 'G4 conn'],
                 },
             };
             cy.task<CreateMissingVowelsOrWallQuestionResult>('createWallQuestion', { quizId, question: quesiton3 });
@@ -61,6 +65,7 @@ describe('Controlling the quiz', () => {
                 type: 'missing-vowels',
                 answerLimit: null,
                 clue: { answerLimit: null, texts: ['Q4 C1', 'Q4 C2', 'Q4 C3', 'Q4 C4'], type: 'compound-text' },
+                connection: 'Q4 Conn',
             };
             cy.task<CreateMissingVowelsOrWallQuestionResult>('createMissingVowelsQuestion', {
                 quizId,
