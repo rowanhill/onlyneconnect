@@ -136,6 +136,35 @@ describe('Playing a wall question', () => {
             cy.contains('G4 D').should('have.css', 'background-color', group4Colour).and('have.css', 'grid-row', '4 / auto');
         });
 
+        it('shows all groups when they are revealed, with user-found groups first', () => {
+            cy.callFirestore('update', `quizzes/${quizId}/wallInProgress/${wipId}`, {
+                correctGroups: [
+                    { texts: ['G2 B', 'G2 D', 'G2 C', 'G2 A'], solutionGroupIndex: 1 },
+                ],
+            });
+            cy.task('copySolutionFromSecretToClue', { quizId, questionId, clueId });
+
+            cy.contains('G2 A').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
+            cy.contains('G2 B').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
+            cy.contains('G2 C').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
+            cy.contains('G2 D').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
+            
+            cy.contains('G1 A').should('have.css', 'background-color', group2Colour).and('have.css', 'grid-row', '2 / auto');
+            cy.contains('G1 B').should('have.css', 'background-color', group2Colour).and('have.css', 'grid-row', '2 / auto');
+            cy.contains('G1 C').should('have.css', 'background-color', group2Colour).and('have.css', 'grid-row', '2 / auto');
+            cy.contains('G1 D').should('have.css', 'background-color', group2Colour).and('have.css', 'grid-row', '2 / auto');
+            
+            cy.contains('G3 A').should('have.css', 'background-color', group3Colour).and('have.css', 'grid-row', '3 / auto');
+            cy.contains('G3 B').should('have.css', 'background-color', group3Colour).and('have.css', 'grid-row', '3 / auto');
+            cy.contains('G3 C').should('have.css', 'background-color', group3Colour).and('have.css', 'grid-row', '3 / auto');
+            cy.contains('G3 D').should('have.css', 'background-color', group3Colour).and('have.css', 'grid-row', '3 / auto');
+            
+            cy.contains('G4 A').should('have.css', 'background-color', group4Colour).and('have.css', 'grid-row', '4 / auto');
+            cy.contains('G4 B').should('have.css', 'background-color', group4Colour).and('have.css', 'grid-row', '4 / auto');
+            cy.contains('G4 C').should('have.css', 'background-color', group4Colour).and('have.css', 'grid-row', '4 / auto');
+            cy.contains('G4 D').should('have.css', 'background-color', group4Colour).and('have.css', 'grid-row', '4 / auto');
+        });
+
         it('displays the number of lives remaining when applicable', () => {
             cy.callFirestore('update', `quizzes/${quizId}/wallInProgress/${wipId}`, { remainingLives: 2 });
 

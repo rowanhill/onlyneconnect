@@ -305,5 +305,6 @@ export const copySolutionFromSecretToClue = (
         transaction.update(clueDoc, {
             solution: secretsData.solution,
         });
+        return null;
     });
 };
