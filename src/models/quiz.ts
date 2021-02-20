@@ -277,7 +277,7 @@ export const closeLastClue = (
         });
 };
 
-export const copySolutionFromSecretToClue = (
+export const revealWallSolution = (
     quizId: string,
     questionId: string,
     clueId: string,

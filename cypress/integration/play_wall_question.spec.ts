@@ -142,7 +142,7 @@ describe('Playing a wall question', () => {
                     { texts: ['G2 B', 'G2 D', 'G2 C', 'G2 A'], solutionGroupIndex: 1 },
                 ],
             });
-            cy.task('copySolutionFromSecretToClue', { quizId, questionId, clueId });
+            cy.task('revealWallSolution', { quizId, questionId, clueId });
 
             cy.contains('G2 A').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
             cy.contains('G2 B').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');

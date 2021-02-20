@@ -13,7 +13,7 @@
 // the project's config changing)
 import * as admin from 'firebase-admin';
 import firebase from 'firebase';
-import { closeLastClue, copySolutionFromSecretToClue, createConnectionOrSequenceQuestion, createMissingVowelsQuestion, createQuiz, createWallQuestion, revealNextClue, revealNextQuestion } from '../../src/models/quiz';
+import { closeLastClue, revealWallSolution, createConnectionOrSequenceQuestion, createMissingVowelsQuestion, createQuiz, createWallQuestion, revealNextClue, revealNextQuestion } from '../../src/models/quiz';
 import { submitAnswer, submitWallAnswer, updateAnswers, updateWallAnswer } from '../../src/models/answer';
 import { createTeam, joinPlayerToTeam } from '../../src/models/team';
 import { createWallInProgress, updateWallInProgressSelections } from '../../src/models/wallInProgress';
@@ -92,8 +92,8 @@ const config: Cypress.PluginConfig = (on, config) => {
       );
     },
 
-    copySolutionFromSecretToClue({ quizId, questionId, clueId }) {
-      return copySolutionFromSecretToClue(
+    revealWallSolution({ quizId, questionId, clueId }) {
+      return revealWallSolution(
         quizId,
         questionId,
         clueId,

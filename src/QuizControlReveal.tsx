@@ -3,7 +3,7 @@ import { PrimaryButton } from './Button';
 import { useCluesContext, useQuestionsContext, useQuizContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
 import { Question } from './models';
-import { closeLastClue, copySolutionFromSecretToClue, revealNextClue, revealNextQuestion } from './models/quiz';
+import { closeLastClue, revealWallSolution, revealNextClue, revealNextQuestion } from './models/quiz';
 
 export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem: CollectionQueryItem<Question>; }) => {
     const { quizId, quiz } = useQuizContext();
@@ -103,7 +103,7 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
             console.error('Tried to resolve the wall, but a solution is already shown');
             return;
         }
-        copySolutionFromSecretToClue(quizId, currentQuestionItem.id, currentClue.id)
+        revealWallSolution(quizId, currentQuestionItem.id, currentClue.id)
             .then(() => {
                 setDisabled(false);
             })

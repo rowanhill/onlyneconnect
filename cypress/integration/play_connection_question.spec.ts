@@ -102,6 +102,10 @@ describe('Playing a connection question', () => {
             answersHistory().contains('Second answer (4)');
             scoreboard().contains('Universally Challenged: 4');
         });
+
+        it('shows the connection when the question is over', () => {
+
+        });
     });
 
     describe('as team captain', () => {
