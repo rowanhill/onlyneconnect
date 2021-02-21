@@ -167,7 +167,9 @@ describe('Controlling the quiz', () => {
         cy.contains('(Q4 Conn)').should('not.exist');
         cy.contains('Q4 Conn').should('exist');
 
-        // The quiz has ended
+        // End the quiz
+        quizControls().contains('End quiz').click();
+        cy.contains('That\'s the end of the quiz. Thanks for playing!');
         quizControls().contains('You\'ve reached the end of the quiz').should('exist');
     });
 });

@@ -12,7 +12,7 @@ export const createQuiz = (
     const secretsDoc = db.collection('quizSecrets').doc();
     batch.set(secretsDoc, { passcode });
     const quizDoc = db.doc(`quizzes/${secretsDoc.id}`);
-    batch.set(quizDoc, { name: quizName, ownerId, questionIds: [], currentQuestionId: null });
+    batch.set(quizDoc, { name: quizName, ownerId, questionIds: [], currentQuestionId: null, isComplete: false });
     return batch.commit().then(() => secretsDoc.id);
 };
 
@@ -336,4 +336,11 @@ export const revealAnswer = (
         }
         return null;
     });
+};
+
+export const closeQuiz = (
+    quizId: string,
+    db: firebase.firestore.Firestore = firebase.app().firestore(),
+) => {
+    return db.doc(`quizzes/${quizId}`).update({ isComplete: true });
 };

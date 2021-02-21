@@ -3,13 +3,14 @@ import { PrimaryButton } from './Button';
 import { useCluesContext, useQuestionsContext, useQuizContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
 import { Question, throwBadQuestionType } from './models';
-import { revealWallSolution, revealNextClue, revealNextQuestion, revealAnswer } from './models/quiz';
+import { revealWallSolution, revealNextClue, revealNextQuestion, revealAnswer, closeQuiz } from './models/quiz';
 
 type RevealButtonType = 'error'|
     'solve-wall'|
     'reveal-connection'|'reveal-connection-and-last-in-sequence'|'reveal-connections'|
     'next-clue'|
     'next-question'|
+    'end-quiz'|
     'quiz-ended';
 
 export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem: CollectionQueryItem<Question>; }) => {
@@ -126,12 +127,23 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
             });
         setDisabled(true);
     };
+    const handleCloseQuiz = () => {
+        closeQuiz(quizId)
+            .then(() => {
+                setDisabled(false);
+            })
+            .catch((error) => {
+                console.error(`Could not close quiz ${quizId}`, error);
+                setDisabled(false);
+            });
+        setDisabled(true);
+    }
 
     let buttonToShow: RevealButtonType = 'error';
-    if (isWallWithGroupsUnresolved) {
-        buttonToShow = 'solve-wall';
-    } else if (nextClue) {
+    if (nextClue) {
         buttonToShow = 'next-clue';
+    } else if (isWallWithGroupsUnresolved) {
+        buttonToShow = 'solve-wall';
     } else if (connectionsUnrevealed) {
         switch (currentQuestionItem.data.type) {
             case 'connection':
@@ -149,6 +161,8 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
         }
     } else if (nextQuestion) {
         buttonToShow = 'next-question';
+    } else if (!quiz.isComplete) {
+        buttonToShow = 'end-quiz';
     } else if (currentClue && currentClue.data.closedAt) {
         buttonToShow = 'quiz-ended';
     }
@@ -161,6 +175,7 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
             {buttonToShow === 'reveal-connections' && <PrimaryButton disabled={disabled} onClick={handleRevealConnection}>Close question &amp; show group connections</PrimaryButton>}
             {buttonToShow === 'next-clue' && <PrimaryButton disabled={disabled} onClick={handleGoToNextClue}>Next clue</PrimaryButton>}
             {buttonToShow === 'next-question' && <PrimaryButton disabled={disabled} onClick={handleGoToNextQuestion}>Next question</PrimaryButton>}
+            {buttonToShow === 'end-quiz' && <PrimaryButton disabled={disabled} onClick={handleCloseQuiz}>End quiz</PrimaryButton>}
             {buttonToShow === 'quiz-ended' && <p>You've reached the end of the quiz</p>}
             {buttonToShow === 'error' && <p>Error: There is no next clue or question, nor current clue to close</p>}
         </>

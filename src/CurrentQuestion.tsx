@@ -19,6 +19,9 @@ export const CurrentQuestion = ({ currentQuestionItem }: { currentQuestionItem?:
         if (questionsError) {
             return <strong>There was an error loading the question! Please try again.</strong>;
         }
+        if (quiz.isComplete) {
+            return <>That's the end of the quiz. Thanks for playing!</>;
+        }
         const currentQuestionNumber = quiz.questionIds.findIndex((questionId) => questionId === currentQuestionItem.id) + 1;
         const currentSecret = secrets && secrets.find((s) => s.id === currentQuestionItem.id);
         return (

@@ -18,6 +18,7 @@ export interface Quiz {
     ownerId: string;
     questionIds: string[];
     currentQuestionId: string | null;
+    isComplete: boolean;
 }
 
 export interface QuizSecrets {
