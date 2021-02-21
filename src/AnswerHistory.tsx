@@ -197,6 +197,9 @@ interface AnswersForWallQuestionProps {
     ) => void;
 }
 const AnswersForWallQuestion = (props: AnswersForWallQuestionProps) => {
+    if (props.questionAnswers.length === 0) {
+        return null;
+    }
     return (
         <div>
             <h3>Question {props.questionNumber}</h3>
