@@ -55,7 +55,7 @@ export const LastInSequenceClue = ({ allOtherCluesRevealed, example, exampleFrom
     }
     cns.push(styles.connectionOrSequenceClue);
     const defaultedExample = example || exampleFromSecret || '?';
-    const text = example ? defaultedExample : `(${defaultedExample})`;
+    const text = (example || !exampleFromSecret) ? defaultedExample : `(${defaultedExample})`;
     return (
         <div className={cns.join(' ')} data-cy={'last-clue'}>{text}</div>
     );

@@ -3,7 +3,7 @@ import React from 'react';
 import { CluesContext, QuestionsContext, QuestionSecretsContext, QuizContext } from './contexts/quizPage';
 import { CurrentQuestion } from './CurrentQuestion';
 import { CollectionQueryItem, CollectionQueryResult } from './hooks/useCollectionResult';
-import { Clue, CompoundTextClue, ConnectionQuestion, Four, MissingVowelsQuestion, Question, QuestionSecrets, Quiz, SequenceQuestion, TextClue, Three } from './models';
+import { Clue, CompoundTextClue, ConnectionQuestion, Four, MissingVowelsQuestion, Question, QuestionSecrets, Quiz, SequenceQuestion, SequenceSecrets, TextClue, Three } from './models';
 
 describe('<CurrentQuestion>', () => {
     const questionId = 'q1';
@@ -167,6 +167,52 @@ describe('<CurrentQuestion>', () => {
                 expect(clueElements[index]).toHaveTextContent(clue.data.text);
             }
             expect(screen.getByText('?')).toBeInTheDocument();
+        });
+
+        it('shows the example fourth clue when the question is closed', () => {
+            for (const clue of clues) {
+                clue.data.isRevealed = true;
+            }
+            question.data.exampleLastInSequence = 'fourth'
+
+            render(<CurrentQuestionWithProviders question={question} visibleClues={clues} />);
+
+            expect(screen.getByText('fourth')).toBeInTheDocument();
+        });
+
+        describe('when the user is the quiz owner', () => {
+            let secret: CollectionQueryItem<SequenceSecrets>;
+            beforeEach(() => {
+                secret = {
+                    id: question.id,
+                    data: {
+                        type: question.data.type,
+                        connection: 'Some connection',
+                        exampleLastInSequence: 'fourth',
+                    },
+                };
+            });
+
+            it('shows the fourth clue in brackets before the question is cloesd', () => {
+                for (const clue of clues) {
+                    clue.data.isRevealed = true;
+                }
+
+                render(<CurrentQuestionWithProviders question={question} secret={secret} visibleClues={clues} />);
+
+                expect(screen.getByText('(fourth)')).toBeInTheDocument();
+            });
+
+            it('shows the fourth clue without brackets when the question is closed', () => {
+                for (const clue of clues) {
+                    clue.data.isRevealed = true;
+                }
+                question.data.exampleLastInSequence = 'fourth'
+
+                render(<CurrentQuestionWithProviders question={question} secret={secret} visibleClues={clues} />);
+
+                expect(screen.getByText('fourth')).toBeInTheDocument();
+            });
         });
     });
 
