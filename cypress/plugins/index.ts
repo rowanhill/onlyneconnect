@@ -13,7 +13,7 @@
 // the project's config changing)
 import * as admin from 'firebase-admin';
 import firebase from 'firebase';
-import { closeLastClue, revealWallSolution, createConnectionOrSequenceQuestion, createMissingVowelsQuestion, createQuiz, createWallQuestion, revealNextClue, revealNextQuestion, revealAnswer } from '../../src/models/quiz';
+import { revealWallSolution, createConnectionOrSequenceQuestion, createMissingVowelsQuestion, createQuiz, createWallQuestion, revealNextClue, revealNextQuestion, revealAnswer } from '../../src/models/quiz';
 import { submitAnswer, submitWallAnswer, updateAnswers, updateWallAnswer } from '../../src/models/answer';
 import { createTeam, joinPlayerToTeam } from '../../src/models/team';
 import { createWallInProgress, updateWallInProgressSelections } from '../../src/models/wallInProgress';
@@ -82,13 +82,11 @@ const config: Cypress.PluginConfig = (on, config) => {
       );
     },
 
-    revealNextQuestion({ quizId, nextQuestionId, currentClueId }) {
+    revealNextQuestion({ quizId, nextQuestionId }) {
       return revealNextQuestion(
         quizId,
         nextQuestionId,
-        currentClueId,
         admin.app().firestore() as unknown as firebase.firestore.Firestore,
-        admin.firestore.FieldValue.serverTimestamp,
       );
     },
 
@@ -101,17 +99,10 @@ const config: Cypress.PluginConfig = (on, config) => {
       );
     },
 
-    revealAnswer({ quizId, questionId }) {
+    revealAnswer({ quizId, questionId, currentClueId }) {
       return revealAnswer(
         quizId,
         questionId,
-        admin.app().firestore() as unknown as firebase.firestore.Firestore,
-      );
-    },
-
-    closeLastClue({ quizId, currentClueId }) {
-      return closeLastClue(
-        quizId,
         currentClueId,
         admin.app().firestore() as unknown as firebase.firestore.Firestore,
         admin.firestore.FieldValue.serverTimestamp,

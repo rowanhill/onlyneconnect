@@ -236,19 +236,9 @@ export const revealNextClue = (
 export const revealNextQuestion = (
     quizId: string,
     nextQuestionId: string,
-    currentClueId?: string,
     db: firebase.firestore.Firestore = firebase.app().firestore(),
-    serverTimestamp = firebase.firestore.FieldValue.serverTimestamp,
 ) => {
     const batch = db.batch();
-
-    // Close the current clue, if any, for answer submissions
-    if (currentClueId) {
-        const currentClueDoc = db.doc(`quizzes/${quizId}/clues/${currentClueId}`);
-        batch.update(currentClueDoc, {
-            closedAt: serverTimestamp(),
-        });
-    }
 
     // Reveal the next question
     const nextQuestionDoc = db.doc(`quizzes/${quizId}/questions/${nextQuestionId}`);
@@ -263,18 +253,6 @@ export const revealNextQuestion = (
     });
 
     return batch.commit();
-};
-
-export const closeLastClue = (
-    quizId: string,
-    currentClueId: string,
-    db: firebase.firestore.Firestore = firebase.app().firestore(),
-    serverTimestamp = firebase.firestore.FieldValue.serverTimestamp,
-) => {
-    return db.doc(`quizzes/${quizId}/clues/${currentClueId}`)
-        .update({
-            closedAt: serverTimestamp(),
-        });
 };
 
 export const revealWallSolution = (
@@ -312,7 +290,9 @@ export const revealWallSolution = (
 export const revealAnswer = (
     quizId: string,
     questionId: string,
+    currentClueId?: string,
     db: firebase.firestore.Firestore = firebase.app().firestore(),
+    serverTimestamp = firebase.firestore.FieldValue.serverTimestamp,
 ) => {
     const questionDoc = db.doc(`quizzes/${quizId}/questions/${questionId}`);
     const secretsDoc = db.doc(`quizzes/${quizId}/questionSecrets/${questionId}`);
@@ -323,7 +303,16 @@ export const revealAnswer = (
             throw new Error(`Secret for clue ${quizId}/${questionId} does not exist`);
         }
         const secretsData = secretsSnapshot.data() as QuestionSecrets;
+
+        // Close the current clue, if any, for answer submissions
+        if (currentClueId) {
+            const currentClueDoc = db.doc(`quizzes/${quizId}/clues/${currentClueId}`);
+            transaction.update(currentClueDoc, {
+                closedAt: serverTimestamp(),
+            });
+        }
         
+        // Copy the connection(s) (and last in sequence, if appropriate) from the secret to the question
         switch (secretsData.type) {
             case 'connection':
             case 'missing-vowels':

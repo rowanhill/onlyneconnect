@@ -2,8 +2,15 @@ import { useState } from 'react';
 import { PrimaryButton } from './Button';
 import { useCluesContext, useQuestionsContext, useQuizContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { Question } from './models';
-import { closeLastClue, revealWallSolution, revealNextClue, revealNextQuestion } from './models/quiz';
+import { Question, throwBadQuestionType } from './models';
+import { revealWallSolution, revealNextClue, revealNextQuestion, revealAnswer } from './models/quiz';
+
+type RevealButtonType = 'error'|
+    'solve-wall'|
+    'reveal-connection'|'reveal-connection-and-last-in-sequence'|'reveal-connections'|
+    'next-clue'|
+    'next-question'|
+    'quiz-ended';
 
 export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem: CollectionQueryItem<Question>; }) => {
     const { quizId, quiz } = useQuizContext();
@@ -43,6 +50,12 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
     const nextQuestionIndex = currentQuestionNumber;
     const nextQuestion = nextQuestionIndex >= orderedQuestions.length ? undefined : orderedQuestions[nextQuestionIndex];
 
+    // Determine what solutions/connections, if any, are revealed
+    const isWallWithGroupsUnresolved = !!currentClue && currentClue.data.type === 'four-by-four-text' && !currentClue.data.solution;
+    const connectionsUnrevealed = currentQuestionItem && (
+        (currentQuestionItem.data.type === 'wall' && !currentQuestionItem.data.connections) ||
+        (currentQuestionItem.data.type !== 'wall' && !currentQuestionItem.data.connection));
+
     const handleGoToNextClue = () => {
         if (!nextClue) {
             console.error('Tried to go to next clue, but next clue is not defined');
@@ -65,7 +78,7 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
             return;
         }
 
-        revealNextQuestion(quizId, nextQuestion.id, currentClue?.id)
+        revealNextQuestion(quizId, nextQuestion.id)
             .then(() => {
                 setDisabled(false);
             })
@@ -75,17 +88,17 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
             });
         setDisabled(true);
     };
-    const handleCloseLastClue = () => {
-        if (!currentClue) {
-            console.error('Tried to close the last clue with no currentClue set');
+    const handleRevealConnection = () => {
+        if (!currentQuestionItem) {
+            console.error('Tried to reveal connection(s) with no current question set');
             return;
         }
-        closeLastClue(quizId, currentClue.id)
+        revealAnswer(quizId, currentQuestionItem.id, currentClue?.id)
             .then(() => {
                 setDisabled(false);
             })
             .catch((error) => {
-                console.error(`Could not update clue ${quizId}/${currentClue.id} to close it`, error);
+                console.error(`Could not reveal connection(s) of ${quizId}/${currentQuestionItem.id} and close ${currentClue?.id}`, error);
                 setDisabled(false);
             });
         setDisabled(true);
@@ -114,27 +127,40 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
         setDisabled(true);
     };
 
-    let buttonToShow: 'error'|'solve-wall'|'next-clue'|'next-question'|'end-quiz'|'quiz-ended' = 'error';
-    if (currentClue && currentClue.data.type === 'four-by-four-text' && typeof currentClue.data.solution === 'undefined') {
+    let buttonToShow: RevealButtonType = 'error';
+    if (isWallWithGroupsUnresolved) {
         buttonToShow = 'solve-wall';
     } else if (nextClue) {
         buttonToShow = 'next-clue';
+    } else if (connectionsUnrevealed) {
+        switch (currentQuestionItem.data.type) {
+            case 'connection':
+            case 'missing-vowels':
+                buttonToShow = 'reveal-connection';
+                break;
+            case 'sequence':
+                buttonToShow = 'reveal-connection-and-last-in-sequence';
+                break;
+            case 'wall':
+                buttonToShow = 'reveal-connections';
+                break;
+            default:
+                throwBadQuestionType(currentQuestionItem.data);
+        }
     } else if (nextQuestion) {
         buttonToShow = 'next-question';
-    } else if (currentClue) {
-        if (!currentClue.data.closedAt) {
-            buttonToShow = 'end-quiz';
-        } else {
-            buttonToShow = 'quiz-ended';
-        }
+    } else if (currentClue && currentClue.data.closedAt) {
+        buttonToShow = 'quiz-ended';
     }
     return (
         <>
             <p>This is question {currentQuestionNumber} of {totalQuestions}. For this question, it is clue {currentClueNumber} of {totalClues}.</p>
             {buttonToShow === 'solve-wall' && <PrimaryButton disabled={disabled} onClick={handleResolveWallGroups}>Resolve wall groups</PrimaryButton>}
+            {buttonToShow === 'reveal-connection' && <PrimaryButton disabled={disabled} onClick={handleRevealConnection}>Close question &amp; show connection</PrimaryButton>}
+            {buttonToShow === 'reveal-connection-and-last-in-sequence' && <PrimaryButton disabled={disabled} onClick={handleRevealConnection}>Close question &amp; show connection &amp; last in sequence</PrimaryButton>}
+            {buttonToShow === 'reveal-connections' && <PrimaryButton disabled={disabled} onClick={handleRevealConnection}>Close question &amp; show group connections</PrimaryButton>}
             {buttonToShow === 'next-clue' && <PrimaryButton disabled={disabled} onClick={handleGoToNextClue}>Next clue</PrimaryButton>}
             {buttonToShow === 'next-question' && <PrimaryButton disabled={disabled} onClick={handleGoToNextQuestion}>Next question</PrimaryButton>}
-            {buttonToShow === 'end-quiz' && <PrimaryButton disabled={disabled} onClick={handleCloseLastClue}>End quiz</PrimaryButton>}
             {buttonToShow === 'quiz-ended' && <p>You've reached the end of the quiz</p>}
             {buttonToShow === 'error' && <p>Error: There is no next clue or question, nor current clue to close</p>}
         </>

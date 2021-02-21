@@ -97,6 +97,11 @@ describe('Controlling the quiz', () => {
         expectRevealedCluesToBe(['Q1 C1', 'Q1 C2', 'Q1 C3', 'Q1 C4']);
         expectUnrevealedCluesToBe([]);
 
+        // Reveal the connection
+        quizControls().contains('Close question & show connection').click();
+        cy.contains('(Q1 Conn)').should('not.exist');
+        cy.contains('Q1 Conn').should('exist');
+
         // Start the second question (a sequence question)
         quizControls().contains('Next question').click();
         expectRevealedCluesToBe([]);
@@ -110,6 +115,12 @@ describe('Controlling the quiz', () => {
         quizControls().contains('Next clue').click();
         expectRevealedCluesToBe(['Q2 C1', 'Q2 C2', 'Q2 C3']);
         expectUnrevealedCluesToBe([]);
+        finalClue().should('contain.text', '(Q2 C4 ex)');
+
+        // Reveal the connection & last in sequence
+        quizControls().contains('Close question & show connection & last in sequence').click();
+        cy.contains('(Q2 Conn)').should('not.exist');
+        cy.contains('Q2 Conn').should('exist');
         finalClue().should('contain.text', 'Q2 C4 ex');
 
         // Start the third question (a wall)
@@ -129,6 +140,17 @@ describe('Controlling the quiz', () => {
         // Resolve the groups
         quizControls().contains('Resolve wall groups').click();
 
+        // Reveal the group connections
+        quizControls().contains('Close question & show group connections').click();
+        cy.contains('(G1 conn)').should('not.exist');
+        cy.contains('(G2 conn)').should('not.exist');
+        cy.contains('(G3 conn)').should('not.exist');
+        cy.contains('(G4 conn)').should('not.exist');
+        cy.contains('G1 conn').should('exist');
+        cy.contains('G2 conn').should('exist');
+        cy.contains('G3 conn').should('exist');
+        cy.contains('G4 conn').should('exist');
+
         // Start the last question (a missing vowels round)
         quizControls().contains('Next question').click();
         expectRevealedCluesToBe([]);
@@ -140,7 +162,12 @@ describe('Controlling the quiz', () => {
         expectRevealedCluesToBe(['Q4 C1', 'Q4 C2', 'Q4 C3', 'Q4 C4']);
         expectUnrevealedCluesToBe([]);
 
-        // End the quiz
-        quizControls().contains('End quiz').click();
+        // Reveal the connection
+        quizControls().contains('Close question & show connection').click();
+        cy.contains('(Q4 Conn)').should('not.exist');
+        cy.contains('Q4 Conn').should('exist');
+
+        // The quiz has ended
+        quizControls().contains('You\'ve reached the end of the quiz').should('exist');
     });
 });
