@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { CluesContext, QuestionsContext, QuizContext } from './contexts/quizPage';
+import { CluesContext, QuestionsContext, QuestionSecretsContext, QuizContext } from './contexts/quizPage';
 import { CurrentQuestion } from './CurrentQuestion';
 import { CollectionQueryItem, CollectionQueryResult } from './hooks/useCollectionResult';
-import { Clue, CompoundTextClue, ConnectionQuestion, Four, MissingVowelsQuestion, Question, Quiz, SequenceQuestion, TextClue, Three } from './models';
+import { Clue, CompoundTextClue, ConnectionQuestion, Four, MissingVowelsQuestion, Question, QuestionSecrets, Quiz, SequenceQuestion, TextClue, Three } from './models';
 
 describe('<CurrentQuestion>', () => {
     const questionId = 'q1';
@@ -16,10 +16,11 @@ describe('<CurrentQuestion>', () => {
 
     interface CurrentQuestionWithProvidersProps {
         question: CollectionQueryItem<Question>;
+        secret?: CollectionQueryItem<QuestionSecrets>;
         quiz?: Quiz;
         visibleClues: CollectionQueryItem<Clue>[];
     }
-    function CurrentQuestionWithProviders({ question, quiz, visibleClues }: CurrentQuestionWithProvidersProps) {
+    function CurrentQuestionWithProviders({ question, secret, quiz, visibleClues }: CurrentQuestionWithProvidersProps) {
         const questionContext: CollectionQueryResult<Question> = {
             loading: false,
             error: undefined,
@@ -30,12 +31,19 @@ describe('<CurrentQuestion>', () => {
             error: undefined,
             data: visibleClues,
         };
+        const questionSecretsContext: CollectionQueryResult<QuestionSecrets> = {
+            loading: false,
+            error: undefined,
+            data: secret ? [ secret ] : undefined,
+        }
         const defaultedQuiz = quiz || { questionIds: question ? [question.id] : [] } as Quiz;
         return (
             <QuizContext.Provider value={{ quiz: defaultedQuiz, quizId: 'quizid' }}>
             <QuestionsContext.Provider value={questionContext}>
             <CluesContext.Provider value={cluesContext}>
+            <QuestionSecretsContext.Provider value={questionSecretsContext}>
                 <CurrentQuestion currentQuestionItem={question} />
+            </QuestionSecretsContext.Provider>
             </CluesContext.Provider>
             </QuestionsContext.Provider>
             </QuizContext.Provider>
