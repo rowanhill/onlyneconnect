@@ -114,7 +114,8 @@ const SequenceClues = ({ question, clues, secret }: {
             {clues.length === 3 &&
                 <LastInSequenceClue
                     allOtherCluesRevealed={!clues.some((c) => !c.data.isRevealed)}
-                    example={question.data.exampleLastInSequence || secret?.data.exampleLastInSequence}
+                    example={question.data.exampleLastInSequence}
+                    exampleFromSecret={secret?.data.exampleLastInSequence}
                 />
             }
             {clues.length < 3 && arrayUpTo(4 - clues.length).map((n) => (

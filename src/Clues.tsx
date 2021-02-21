@@ -46,7 +46,7 @@ const UnrevealedClue = ({ text, index, className }: { text: string; index: numbe
     );
 };
 
-export const LastInSequenceClue = ({ allOtherCluesRevealed, example }: { allOtherCluesRevealed: boolean; example?: string; }) => {
+export const LastInSequenceClue = ({ allOtherCluesRevealed, example, exampleFromSecret }: { allOtherCluesRevealed: boolean; example?: string; exampleFromSecret?: string; }) => {
     const cns = [];
     if (allOtherCluesRevealed) {
         cns.push(styles.revealedClue);
@@ -54,8 +54,8 @@ export const LastInSequenceClue = ({ allOtherCluesRevealed, example }: { allOthe
         cns.push(styles.unrevealedClue);
     }
     cns.push(styles.connectionOrSequenceClue);
-    const defaultedExample = example || '?';
-    const text = allOtherCluesRevealed ? defaultedExample : `(${defaultedExample})`;
+    const defaultedExample = example || exampleFromSecret || '?';
+    const text = example ? defaultedExample : `(${defaultedExample})`;
     return (
         <div className={cns.join(' ')} data-cy={'last-clue'}>{text}</div>
     );
