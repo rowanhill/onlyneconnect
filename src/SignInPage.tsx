@@ -21,7 +21,7 @@ export const SignInPage = () => {
             if (!storedEmail) {
                 // User opened the link on a different device. To prevent session fixation
                 // attacks, ask the user to provide the associated email again. For example:
-                storedEmail = window.prompt('Please provide your email for confirmation');
+                storedEmail = window.prompt('Please provide your email address for confirmation');
             }
             // The client SDK will parse the code from the link for you.
             firebase.auth().signInWithEmailLink(storedEmail!, window.location.href)
@@ -76,12 +76,12 @@ export const SignInPage = () => {
         <Page title="Sign in with email">
             <form onSubmit={submit}>
                 <fieldset disabled={disabled}>
-                    <p>You must sign in to play Onlyne Connect. Enter your email, and we'll send you a login link.</p>
+                    <p>You need sign in to play Onlyne Connect. Enter your email, and we'll send you a login link.</p>
                     <input type="text" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
                     <PrimaryButton>Log in</PrimaryButton>
                 </fieldset>
             </form>
-            {emailSent && <p>An email has been sent to {email}</p>}
+            {emailSent && <p>Thanks! An email has been sent to {email}. Check your inbox to log in.</p>}
         </Page>
     );
 };
