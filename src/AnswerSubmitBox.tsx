@@ -134,6 +134,10 @@ const FourAnswerSubmitBox = ({ teamId, questionItem, clueItem }: FourAnswerSubmi
         return null;
     }
 
+    const allGroupsAnswered = () => {
+        return !answerTexts.some((t) => typeof t !== 'string' || t === '');
+    };
+
     const onAnswerChange = (answerIndex: number) => {
         return (e: ChangeEvent<HTMLInputElement>) => {
             e.preventDefault();
@@ -145,6 +149,11 @@ const FourAnswerSubmitBox = ({ teamId, questionItem, clueItem }: FourAnswerSubmi
     };
     const submit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
+        if (!allGroupsAnswered()) {
+            return;
+        }
+
         setSubmitting(true);
 
         submitWallAnswer(
@@ -174,6 +183,8 @@ const FourAnswerSubmitBox = ({ teamId, questionItem, clueItem }: FourAnswerSubmi
         }
     }
 
+    const submitDisabled = !allGroupsAnswered();
+
     return (
         <form onSubmit={submit}>
             <fieldset className={styles.submitWallAnswerForm} disabled={submitting || !questionItem || !clueItem || hasAnsweredQuestion}>
@@ -186,7 +197,7 @@ const FourAnswerSubmitBox = ({ teamId, questionItem, clueItem }: FourAnswerSubmi
                         data-cy={`answer-text-${i}`}
                     />
                 )}
-                <PrimaryButton data-cy="answer-submit">Submit</PrimaryButton>
+                <PrimaryButton data-cy="answer-submit" disabled={submitDisabled}>Submit</PrimaryButton>
             </fieldset>
         </form>
     );

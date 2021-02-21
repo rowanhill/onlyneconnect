@@ -253,6 +253,9 @@ describe('Playing a wall question', () => {
             // An input for the connection of each group when in connection naming phase of the wall
             answersHistory().get('input').should('have.length', 4).and('not.be.disabled');
 
+            // The captain can't submit until an answer is provided for all groups
+            answersHistory().get('button').should('be.disabled');
+
             answersHistory().get('input').each(($el, i) => {
                 cy.wrap($el).type(`c${i + 1}`);
             });
