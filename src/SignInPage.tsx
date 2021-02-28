@@ -81,10 +81,11 @@ export const SignInPage = () => {
                     <fieldset disabled={disabled}>
                         <p>You need sign in to play Onlyne Connect. Enter your email, and we'll send you a login link.</p>
                         <input type="text" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
-                        <PrimaryButton>Log in</PrimaryButton>
+                        <PrimaryButton>Send email</PrimaryButton>
                     </fieldset>
                 </form>
                 {emailSent && <p>Thanks! An email has been sent to {email}. Check your inbox to log in.</p>}
+                <p>Don't worry, we promise we won't send you any other emails!</p>
             </Card>
             <GameExplanation />
         </Page>
