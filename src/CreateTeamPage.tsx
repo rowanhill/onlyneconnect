@@ -8,8 +8,9 @@ import { useAuth } from './hooks/useAuth';
 import { Quiz, Team } from './models';
 import { Page } from './Page';
 import { PrimaryButton } from './Button';
-import styles from './CreateTeamPage.module.css';
 import { Card } from './Card';
+import styles from './CreateTeamPage.module.css';
+import formStyles from './form.module.css';
 
 interface CreateTeamPageProps {
     quizId: string;
@@ -81,19 +82,19 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
         <form onSubmit={submit}>
             <fieldset disabled={disabled}>
                 <div>
-                    <h4><label>Quiz passcode</label></h4>
+                    <h4 className={formStyles.fieldTitle}><label>Quiz passcode</label></h4>
                     <input type="text" placeholder="Quiz passcode" value={quizPasscode} onChange={onQuizPasscodeChange} data-cy="quiz-passcode" />
-                    <p>You need the secret passcode for this quiz to create a team. If you're not sure what it is, ask your quizmaster.</p>
+                    <p className={formStyles.fieldDescription}>You need the secret passcode for this quiz to create a team. If you're not sure what it is, ask your quizmaster.</p>
                 </div>
                 <div>
-                    <h4><label>Team name</label></h4>
+                    <h4 className={formStyles.fieldTitle}><label>Team name</label></h4>
                     <input type="text" placeholder="Team name" value={teamName} onChange={onTeamNameChange} data-cy="team-name" />
-                    <p>Your team name will be visible to the quizmaster and all players.</p>
+                    <p className={formStyles.fieldDescription}>Your team name will be visible to the quizmaster and all players.</p>
                 </div>
                 <div>
-                    <h4><label>Team passcode</label></h4>
+                    <h4 className={formStyles.fieldTitle}><label>Team passcode</label></h4>
                     <input type="text" placeholder="Team passcode" value={teamPasscode} onChange={onTeamPasscodeChange} data-cy="team-passcode" />
-                    <p>Your team passcode can be any text. You'll need to give it to your teammates so they can join this team.</p>
+                    <p className={formStyles.fieldDescription}>Your team passcode can be any text. You'll need to give it to your teammates so they can join this team.</p>
                 </div>
                 <PrimaryButton disabled={submitDisabled} data-cy="submit">Create a team</PrimaryButton>
             </fieldset>

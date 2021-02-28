@@ -42,6 +42,9 @@
 .verySmallTopMargin {
     margin-top: var(--very-small);
 }
+.verySmallBottomMargin {
+    margin-bottom: var(--very-small);
+}
 
 .verySmallPadding {
     padding: var(--very-small);

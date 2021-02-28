@@ -6,6 +6,10 @@
     color: var(--red);
 }
 
+.subtleText {
+    color: var(--dark-grey);
+}
+
 .primaryBg {
     background-color: var(--dark-blue);
 }

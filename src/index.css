@@ -52,6 +52,8 @@
 
   --white: white;
   --white-washed-out: lightgrey;
+
+  --dark-grey: hsl(0, 0%, 35%);
 }
 
 body {

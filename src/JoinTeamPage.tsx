@@ -10,6 +10,7 @@ import styles from './JoinTeamPage.module.css';
 import { joinPlayerToTeam } from './models/team';
 import { Card } from './Card';
 import { createChangeHandler } from './forms/changeHandler';
+import formStyles from './form.module.css';
 
 interface JoinTeamPageProps {
     teamId: string;
@@ -87,9 +88,9 @@ const JoinTeamForm = ({ teamId, quizId }: { teamId: string; quizId: string; }) =
         <form onSubmit={submit}>
             <fieldset disabled={disabled}>
                 <div>
-                    <h4><label>Team passcode</label></h4>
+                    <h4 className={formStyles.fieldTitle}><label>Team passcode</label></h4>
                     <input type="text" placeholder="Team passcode" value={passcode} onChange={onPasscodeChange} data-cy="passcode" />
-                    <p>You need the secret passcode for this team to join. If you're not sure what it is, ask your team captain.</p>
+                    <p className={formStyles.fieldDescription}>You need the secret passcode for this team to join. If you're not sure what it is, ask your team captain.</p>
                 </div>
                 <PrimaryButton disabled={submitDisabled} data-cy="submit">Join this team</PrimaryButton>
             </fieldset>

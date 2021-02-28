@@ -1,0 +1,9 @@
+.fieldTitle {
+    composes: verySmallBottomMargin from './layout.module.css';
+}
+
+.fieldDescription {
+    composes: verySmallTopMargin from './layout.module.css';
+    composes: subtleText from './colours.module.css';
+    font-size: 0.8em;
+}
