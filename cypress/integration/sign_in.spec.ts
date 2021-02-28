@@ -17,5 +17,5 @@ function assertIsSignInPage() {
     cy.url().should('include', 'sign-in');
     cy.contains('Sign in with email');
     cy.get('input').should('have.attr', 'placeholder', 'Email address');
-    cy.get('button').contains('Log in');
+    cy.get('button').contains('Send email');
 }
