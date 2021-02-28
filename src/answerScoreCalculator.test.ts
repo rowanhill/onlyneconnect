@@ -1,10 +1,10 @@
 import { calculateUpdatedScores } from './answerScoreCalculator';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { Answer, Question } from './models';
+import { Question, SimpleAnswer } from './models';
 
 describe('calculateUpdatedScores', () => {
     describe('with a connection question', () => {
-        const answer: CollectionQueryItem<Answer> = { id: '123', data: {} as any };
+        const answer: CollectionQueryItem<SimpleAnswer> = { id: '123', data: {} as any };
         const question: Question = { type: 'connection' } as Question;
 
         it.each(
@@ -21,11 +21,11 @@ describe('calculateUpdatedScores', () => {
     });
 
     describe('with a sequence question', () => {
-        const answer: CollectionQueryItem<Answer> = { id: '123', data: {} as any };
+        const answer: CollectionQueryItem<SimpleAnswer> = { id: '123', data: {} as any };
         const question: Question = { type: 'sequence' } as Question;
 
         it.each(
-            [[5, 0], [3, 1], [2, 2], [1, 3]]
+            [[5, 0], [3, 1], [2, 2]]
         )('returns one update with a score of %i for a correct answer with %i previous correct answers', (expectedScore, clueIndex) => {
             const updates = calculateUpdatedScores(answer.id, true, question, clueIndex, [answer]);
             expect(updates).toEqual([{ answerId: '123', score: expectedScore, correct: true }]);
@@ -39,14 +39,14 @@ describe('calculateUpdatedScores', () => {
 
 
     describe('with a missing vowels question', () => {
-        const answer: CollectionQueryItem<Answer> = { id: '123', data: {} as any };
+        const answer: CollectionQueryItem<SimpleAnswer> = { id: '123', data: {} as any };
         const question: Question = { type: 'missing-vowels' } as Question;
 
         describe('with no subsequent marked answers', () => {
             it.each(
                 [[4, 0], [3, 1], [3, 2], [2, 3], [2, 4], [2, 5], [1, 6], [1, 100]]
             )('returns one update with a score of %i for a correct answer with %i previous correct answers and some incorrect / unscored', (expectedScore, prevCorrect) => {
-                const answers: Array<CollectionQueryItem<Answer>> = [
+                const answers: Array<CollectionQueryItem<SimpleAnswer>> = [
                     { id: 'other-1', data: { correct: false } as any },
                     { id: 'other-2', data: { correct: undefined } as any },
                 ];
@@ -65,7 +65,7 @@ describe('calculateUpdatedScores', () => {
         });
 
         it('returns updates for subsequent marked answers when marking correct', () => {
-            const answers: Array<CollectionQueryItem<Answer>> = [
+            const answers: Array<CollectionQueryItem<SimpleAnswer>> = [
                 { id: 'other-1', data: { correct: false } as any },
                 { id: 'other-2', data: { correct: undefined } as any },
                 answer,
@@ -86,7 +86,7 @@ describe('calculateUpdatedScores', () => {
         it('returns updates for subsequent marked answers when marking previously correct to incorrect', () => {
             answer.data.correct = true;
             answer.data.points = 4;
-            const answers: Array<CollectionQueryItem<Answer>> = [
+            const answers: Array<CollectionQueryItem<SimpleAnswer>> = [
                 { id: 'other-1', data: { correct: false } as any },
                 { id: 'other-2', data: { correct: undefined } as any },
                 answer,
