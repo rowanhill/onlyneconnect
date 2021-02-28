@@ -6,6 +6,7 @@ import { useCollectionResult } from './hooks/useCollectionResult';
 import { Quiz } from './models';
 import { Page } from './Page';
 import { LinkButton } from './Button';
+import { GameExplanation } from './GameExplanation';
 
 export const Home = () => {
     const db = firebase.firestore();
@@ -18,8 +19,7 @@ export const Home = () => {
         firebase.auth().signOut()
     };
     return (
-        <Page>
-            <h1>Onlyne Connect</h1>
+        <Page title={"Onlyne Connect"}>
             <p>You're logged in with {user?.email}. If that's not you, you can <LinkButton onClick={signOut}>sign out</LinkButton>.</p>
             <p>If you'd like to play a quiz, you'll need an invitation link from the quiz owner (to start a team) or your team captain (to join a team).</p>
             {ownedQuizzes.data !== undefined &&
@@ -41,6 +41,7 @@ export const Home = () => {
                 }
             </>
             }
+            <GameExplanation />
         </Page>
     );
 };

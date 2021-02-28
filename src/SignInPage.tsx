@@ -3,6 +3,8 @@ import { Redirect } from 'react-router-dom';
 import firebase from './firebase';
 import { Page } from './Page';
 import { PrimaryButton } from './Button';
+import { Card } from './Card';
+import { GameExplanation } from './GameExplanation';
 
 export const SignInPage = () => {
     const [email, setEmail] = useState('');
@@ -73,15 +75,18 @@ export const SignInPage = () => {
     };
 
     return (
-        <Page title="Sign in with email">
-            <form onSubmit={submit}>
-                <fieldset disabled={disabled}>
-                    <p>You need sign in to play Onlyne Connect. Enter your email, and we'll send you a login link.</p>
-                    <input type="text" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
-                    <PrimaryButton>Log in</PrimaryButton>
-                </fieldset>
-            </form>
-            {emailSent && <p>Thanks! An email has been sent to {email}. Check your inbox to log in.</p>}
+        <Page title="Onlyne Connect">
+            <Card title="Sign in with email">
+                <form onSubmit={submit}>
+                    <fieldset disabled={disabled}>
+                        <p>You need sign in to play Onlyne Connect. Enter your email, and we'll send you a login link.</p>
+                        <input type="text" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
+                        <PrimaryButton>Log in</PrimaryButton>
+                    </fieldset>
+                </form>
+                {emailSent && <p>Thanks! An email has been sent to {email}. Check your inbox to log in.</p>}
+            </Card>
+            <GameExplanation />
         </Page>
     );
 };
