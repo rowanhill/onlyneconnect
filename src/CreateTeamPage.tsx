@@ -73,6 +73,10 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
             });
     };
 
+    const submitDisabled = quizPasscode.trim().length === 0 ||
+        teamName.trim().length === 0 ||
+        teamPasscode.trim().length === 0;
+
     return (
         <form onSubmit={submit}>
             <fieldset disabled={disabled}>
@@ -91,7 +95,7 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
                     <input type="text" placeholder="Team passcode" value={teamPasscode} onChange={onTeamPasscodeChange} data-cy="team-passcode" />
                     <p>Your team passcode can be any text. You'll need to give it to your teammates so they can join this team.</p>
                 </div>
-                <PrimaryButton data-cy="submit">Create a team</PrimaryButton>
+                <PrimaryButton disabled={submitDisabled} data-cy="submit">Create a team</PrimaryButton>
             </fieldset>
             {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
         </form>

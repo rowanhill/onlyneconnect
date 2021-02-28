@@ -80,6 +80,8 @@ const JoinTeamForm = ({ teamId, quizId }: { teamId: string; quizId: string; }) =
             setDisabled(false);
         });
     };
+    
+    const submitDisabled = passcode.trim().length === 0;
 
     return (
         <form onSubmit={submit}>
@@ -89,7 +91,7 @@ const JoinTeamForm = ({ teamId, quizId }: { teamId: string; quizId: string; }) =
                     <input type="text" placeholder="Team passcode" value={passcode} onChange={onPasscodeChange} data-cy="passcode" />
                     <p>You need the secret passcode for this team to join. If you're not sure what it is, ask your team captain.</p>
                 </div>
-                <PrimaryButton data-cy="submit">Join this team</PrimaryButton>
+                <PrimaryButton disabled={submitDisabled} data-cy="submit">Join this team</PrimaryButton>
             </fieldset>
             {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
         </form>
