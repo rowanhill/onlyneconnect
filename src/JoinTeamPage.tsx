@@ -8,6 +8,7 @@ import { Page } from './Page';
 import { PrimaryButton } from './Button';
 import styles from './JoinTeamPage.module.css';
 import { joinPlayerToTeam } from './models/team';
+import { Card } from './Card';
 
 interface JoinTeamPageProps {
     teamId: string;
@@ -35,21 +36,24 @@ export const JoinTeamPage = ({ teamId }: JoinTeamPageProps) => {
 
         return (
             <>
-            {playerTeam && playerTeam.teamId === teamId &&
-                <p>You're already a member of this team. Would you like to <Link to={`/quiz/${teamData.quizId}`}>go to your quiz</Link>?</p>
-            }
-            {playerTeam && playerTeam.teamId !== teamId &&
-                <p>Careful! You're already a member of a different team. You can only be a member in one team at once.</p>
-            }
-            <p>To join your team, enter your team's passcode. You can get this from your captain.</p>
-            <JoinTeamForm teamId={teamId} quizId={teamData.quizId} />
-            
-            <h2>Want to start your own team?</h2>
-            <p>If you'd rather start your own team (as captain), you can <Link to={`/quiz/${teamData.quizId}/create-team`}>click here</Link>.</p>
+            <Card title={teamData ? `Join "${teamData.name}"` : 'Join this team'}>
+                {playerTeam && playerTeam.teamId === teamId &&
+                    <p>You're already a member of this team. Would you like to <Link to={`/quiz/${teamData.quizId}`}>go to your quiz</Link>?</p>
+                }
+                {playerTeam && playerTeam.teamId !== teamId &&
+                    <p>Careful! You're already a member of a different team. You can only be a member of one team at once,
+                        so if you join this team you'll be leaving your current team.</p>
+                }
+                <p>To join this team, enter the team's passcode. You can get this from your captain.</p>
+                <JoinTeamForm teamId={teamId} quizId={teamData.quizId} />
+            </Card>
+            <Card title="Start your own team">
+                <p>If you'd rather start your own team (as captain), you can <Link to={`/quiz/${teamData.quizId}/create-team`}>click here</Link>.</p>
+            </Card>
             </>
         );
     }
-    return <Page title={teamData ? `Join ${teamData.name}` : 'Join'}>{inner()}</Page>;
+    return <Page>{inner()}</Page>;
 };
 
 const createChangeHandler = (setValue: React.Dispatch<React.SetStateAction<string>>) => {
@@ -86,8 +90,12 @@ const JoinTeamForm = ({ teamId, quizId }: { teamId: string; quizId: string; }) =
     return (
         <form onSubmit={submit}>
             <fieldset disabled={disabled}>
-                <input type="text" placeholder="Team passcode" value={passcode} onChange={onPasscodeChange} data-cy="passcode" />
-                <PrimaryButton data-cy="submit">Join a team</PrimaryButton>
+                <div>
+                    <h4><label>Team passcode</label></h4>
+                    <input type="text" placeholder="Team passcode" value={passcode} onChange={onPasscodeChange} data-cy="passcode" />
+                    <p>You need the secret passcode for this team to join. If you're not sure what it is, ask your team captain.</p>
+                </div>
+                <PrimaryButton data-cy="submit">Join this team</PrimaryButton>
             </fieldset>
             {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
         </form>

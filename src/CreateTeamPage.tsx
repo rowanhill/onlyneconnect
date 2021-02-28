@@ -9,6 +9,7 @@ import { Quiz, Team } from './models';
 import { Page } from './Page';
 import { PrimaryButton } from './Button';
 import styles from './CreateTeamPage.module.css';
+import { Card } from './Card';
 
 interface CreateTeamPageProps {
     quizId: string;
@@ -30,15 +31,15 @@ const CreateTeamPage = ({ quizId }: CreateTeamPageProps) => {
         }
         return (
             <>
-            <h2>Starting a new team?</h2>
-            <p>Team captains must start the team. Only team captains can submit answers.</p>
-            <p>To create a new team, enter the ID passcode for the quiz you're joining. You can get these from your quizmaster.</p>
-            <CreateTeamForm quizId={quizId} />
+            <Card title="Start a new team">
+                <p>If you start your own team, you'll be the team captain. Other people can join your team, but only team captains can submit answers.</p>
+                <CreateTeamForm quizId={quizId} />
+            </Card>
             <TeamsList quizId={quizId} />
             </>
         );
     }
-    return <Page title={quiz ? `Join a team in ${quiz.name}` : 'Join a team'}>{inner()}</Page>;
+    return <Page title={quiz ? `Create a team for "${quiz.name}"` : 'Create a team'}>{inner()}</Page>;
 };
 
 export default CreateTeamPage;
@@ -75,9 +76,21 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
     return (
         <form onSubmit={submit}>
             <fieldset disabled={disabled}>
-                <input type="text" placeholder="Quiz passcode" value={quizPasscode} onChange={onQuizPasscodeChange} data-cy="quiz-passcode" />
-                <input type="text" placeholder="Team name" value={teamName} onChange={onTeamNameChange} data-cy="team-name" />
-                <input type="text" placeholder="Team passcode" value={teamPasscode} onChange={onTeamPasscodeChange} data-cy="team-passcode" />
+                <div>
+                    <h4><label>Quiz passcode</label></h4>
+                    <input type="text" placeholder="Quiz passcode" value={quizPasscode} onChange={onQuizPasscodeChange} data-cy="quiz-passcode" />
+                    <p>You need the secret passcode for this quiz to create a team. If you're not sure what it is, ask your quizmaster.</p>
+                </div>
+                <div>
+                    <h4><label>Team name</label></h4>
+                    <input type="text" placeholder="Team name" value={teamName} onChange={onTeamNameChange} data-cy="team-name" />
+                    <p>Your team name will be visible to the quizmaster and all players.</p>
+                </div>
+                <div>
+                    <h4><label>Team passcode</label></h4>
+                    <input type="text" placeholder="Team passcode" value={teamPasscode} onChange={onTeamPasscodeChange} data-cy="team-passcode" />
+                    <p>Your team passcode can be any text. You'll need to give it to your teammates so they can join this team.</p>
+                </div>
                 <PrimaryButton data-cy="submit">Create a team</PrimaryButton>
             </fieldset>
             {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
@@ -96,15 +109,20 @@ const TeamsList = ({ quizId }: { quizId: string }) => {
         return null;
     }
     return (
-        <>
-        <h2>Want to join an existing team?</h2>
-        <p>Pick one of the below. You'll need the team passcode to join.</p>
-        <ul>
-            {teamsSnapshot.docs.map((teamDoc: any) => {
-                const team: Team = teamDoc.data();
-                return <li key={teamDoc.id}><Link to={`/team/${teamDoc.id}/join-team`}>{team.name}</Link></li>;
-            })}
-        </ul>
-        </>
+        <Card title="Join an existing team">
+            {teamsSnapshot.docs.length > 0 ?
+            <>
+                <p>Pick one of the below. You'll need the team passcode to join.</p>
+                <ul>
+                    {teamsSnapshot.docs.map((teamDoc: any) => {
+                        const team: Team = teamDoc.data();
+                        return <li key={teamDoc.id}><Link to={`/team/${teamDoc.id}/join-team`}>{team.name}</Link></li>;
+                    })}
+                </ul>
+            </> :
+            <>
+                <p>Sorry, nobody's started a team for this quiz yet.</p>
+            </>}
+        </Card>
     );
 };
