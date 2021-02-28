@@ -20,7 +20,7 @@ import {
 interface QuizEditPageProps {
     quizId: string;
 }
-export const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
+const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
     const db = firebase.firestore();
     const { user } = useAuth();
 
@@ -60,6 +60,8 @@ export const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
     }
     return <Page title={quizData ? `Edit ${quizData.name}` : 'Edit quiz'}>{inner()}</Page>;
 };
+
+export default QuizEditPage;
 
 type ClueSpec = TextClueSpec | FourByFourTextClueSpec | CompoundClueSpec;
 type QuestionSpec = ConnectionQuestionSpec | SequenceQuestionSpec | WallQuestionSpec | MissingVowelsQuestionSpec;

@@ -14,7 +14,7 @@ interface CreateTeamPageProps {
     quizId: string;
 }
 
-export const CreateTeamPage = ({ quizId }: CreateTeamPageProps) => {
+const CreateTeamPage = ({ quizId }: CreateTeamPageProps) => {
     const [quiz, quizLoading, quizError] = useDocumentData<Quiz>(firebase.firestore().collection('quizzes').doc(quizId));
     function inner() {
         if (quizError) {
@@ -40,6 +40,8 @@ export const CreateTeamPage = ({ quizId }: CreateTeamPageProps) => {
     }
     return <Page title={quiz ? `Join a team in ${quiz.name}` : 'Join a team'}>{inner()}</Page>;
 };
+
+export default CreateTeamPage;
 
 const CreateTeamForm = ({ quizId }: { quizId: string }) => {
     const [quizPasscode, setQuizPasscode] = useState('');

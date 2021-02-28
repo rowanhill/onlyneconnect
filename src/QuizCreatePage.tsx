@@ -6,7 +6,7 @@ import { Card } from './Card';
 import { PrimaryButton } from './Button';
 import { createQuiz } from './models/quiz';
 
-export const QuizCreatePage = () => {
+const QuizCreatePage = () => {
     const { user } = useAuth();
     const [quizName, setQuizName] = useState('');
     const [passcode, setPasscode] = useState('');
@@ -52,3 +52,5 @@ export const QuizCreatePage = () => {
         </Page>
     )
 };
+
+export default QuizCreatePage;

@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { Redirect, Route, Switch, useHistory } from 'react-router-dom';
 import { Home } from './Home';
-import { CreateTeamPage } from './CreateTeamPage';
 import { JoinTeamPage } from './JoinTeamPage';
 import { QuizPage } from './QuizPage';
-import { QuizCreatePage } from './QuizCreatePage';
-import { QuizEditPage } from './QuizEditPage';
+
+const CreateTeamPage = lazy(() => import('./CreateTeamPage'));
+const QuizCreatePage = lazy(() => import('./QuizCreatePage'));
+const QuizEditPage = lazy(() => import('./QuizEditPage'));
 
 export function LoggedInApp() {
     const { initialising, user } = useAuth();
@@ -22,6 +23,7 @@ export function LoggedInApp() {
     }
 
     return (
+        <Suspense fallback={<div>Loading...</div>}>
         <Switch>
             <Route path="/quiz/:id/create-team" render={(props) => 
                 <CreateTeamPage quizId={props.match.params.id} />
@@ -42,5 +44,6 @@ export function LoggedInApp() {
                 <Home />
             </Route>
         </Switch>
+        </Suspense>
     );
 }
