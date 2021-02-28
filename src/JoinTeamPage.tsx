@@ -1,4 +1,4 @@
-import React, { ChangeEvent, FormEvent, useState } from 'react';
+import React, { FormEvent, useState } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
@@ -9,6 +9,7 @@ import { PrimaryButton } from './Button';
 import styles from './JoinTeamPage.module.css';
 import { joinPlayerToTeam } from './models/team';
 import { Card } from './Card';
+import { createChangeHandler } from './forms/changeHandler';
 
 interface JoinTeamPageProps {
     teamId: string;
@@ -54,13 +55,6 @@ export const JoinTeamPage = ({ teamId }: JoinTeamPageProps) => {
         );
     }
     return <Page>{inner()}</Page>;
-};
-
-const createChangeHandler = (setValue: React.Dispatch<React.SetStateAction<string>>) => {
-    return (e: ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault();
-        setValue(e.target.value);
-    }
 };
 
 const JoinTeamForm = ({ teamId, quizId }: { teamId: string; quizId: string; }) => {
