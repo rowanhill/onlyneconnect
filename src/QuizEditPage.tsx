@@ -491,6 +491,8 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
                             key={questionSpec.id!}
                             question={questionSpec}
                             questionNumber={questionIndex + 1}
+                            moveUp={questionIndex > 0 ? () => moveUp(questionSpec.id!) : undefined}
+                            moveDown={questionIndex < questionSpecs.length - 1 ? () => moveDown(questionSpec.id!) : undefined}
                             expand={() => expand(questionSpec.id!)}
                         />
                 ))}
@@ -518,13 +520,17 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
 interface CollapsedQuestionProps {
     question: QuestionSpec;
     questionNumber: number;
+    moveUp?: () => void;
+    moveDown?: () => void;
     expand: () => void;
 }
-const CollapsedQuestion = ({ question, questionNumber, expand }: CollapsedQuestionProps) => {
+const CollapsedQuestion = ({ question, questionNumber, moveUp, moveDown, expand }: CollapsedQuestionProps) => {
     return (
         <Card>
             <h3>
                 Question {questionNumber}{' '}
+                {moveUp && <PrimaryButton onClick={moveUp}>⬆️</PrimaryButton>}{' '}
+                {moveDown && <PrimaryButton onClick={moveDown}>⬇️</PrimaryButton>}{' '}
                 <PrimaryButton onClick={expand}>➕</PrimaryButton>
             </h3>
             <p>
