@@ -2,7 +2,7 @@ import React, { ChangeEvent, FormEvent, Fragment, useState } from 'react';
 import { useDocumentData } from 'react-firebase-hooks/firestore';
 import { Link } from 'react-router-dom';
 import firebase from './firebase';
-import { createChangeHandler } from './forms/changeHandler';
+import { createChangeHandler, createNullingChangeHandler } from './forms/changeHandler';
 import { useAuth } from './hooks/useAuth';
 import { CollectionQueryData, CollectionQueryItem, useCollectionResult } from './hooks/useCollectionResult';
 import { Clue, ConnectionSecrets, Four, MissingVowelsSecrets, Question, QuestionSecrets, Quiz, QuizSecrets, SequenceSecrets, Three, throwBadClueType, throwBadQuestionType, WallSecrets } from './models';
@@ -10,6 +10,7 @@ import { Page } from './Page';
 import { Card } from './Card';
 import { PrimaryButton } from './Button';
 import styles from './QuizEditPage.module.css';
+import formStyles from './form.module.css';
 import {
     CompoundClueSpec, ConnectionQuestionSpec, createConnectionOrSequenceQuestion, createMissingVowelsQuestion,
     createWallQuestion,
@@ -87,6 +88,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
     const db = firebase.firestore();
     const [name, setName] = useState(quiz.name);
     const [passcode, setPasscode] = useState(secrets.passcode);
+    const [youTubeVideoId, setYouTubeVideoId] = useState(quiz.youTubeVideoId);
     const [isSubmittingQuiz, setIsSubmittingQuiz] = useState(false);
     const [isSubmittingSecrets, setIsSubmittingSecrets] = useState(false);
     const [newQuestion, setNewQuestion] = useState<QuestionSpec|null>(null);
@@ -101,9 +103,9 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
                 .finally(() => setIsSubmittingSecrets(false));
             setIsSubmittingSecrets(true);
         }
-        if (name !== quiz.name) {
+        if (name !== quiz.name || youTubeVideoId !== quiz.youTubeVideoId) {
             firebase.firestore().doc(`quizzes/${quizId}`)
-                .update({ name })
+                .update({ name, youTubeVideoId })
                 .catch((error) => console.error('Error updating quiz:', error))
                 .finally(() => setIsSubmittingQuiz(false));
             setIsSubmittingQuiz(true);
@@ -452,13 +454,20 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
         <p>Invite people to create teams at {joinQuizUrl.href} or <Link to={`/quiz/${quizId}`}>click here</Link> to play.</p>
         <form onSubmit={submit}>
             <Card>
-                <p className={styles.row}>
-                    <label>Quiz title</label>
+                <p>
+                    <h4 className={formStyles.fieldTitle}><label>Quiz title</label></h4>
                     <input type="text" value={name} onChange={createChangeHandler(setName)} />
+                    <p className={formStyles.fieldDescription}>The quiz name is the title your quiz will have. All players will be able to see this name.</p>
                 </p>
-                <p className={styles.row}>
-                    <label>Quiz passcode</label>
+                <p>
+                    <h4 className={formStyles.fieldTitle}><label>Quiz passcode</label></h4>
                     <input type="text" value={passcode} onChange={createChangeHandler(setPasscode)} />
+                    <p className={formStyles.fieldDescription}>The passcode is a secret phrase people must enter to create a team.</p>
+                </p>
+                <p>
+                    <h4 className={formStyles.fieldTitle}><label>YouTube video ID</label></h4>
+                    <input type="text" value={youTubeVideoId || ''} onChange={createNullingChangeHandler(setYouTubeVideoId)} />
+                    <p className={formStyles.fieldDescription}>Optional. The ID of a YouTube live stream video of the host.</p>
                 </p>
                 <p>
                     <PrimaryButton disabled={isSubmittingQuiz || isSubmittingSecrets}>Save</PrimaryButton>
