@@ -1,4 +1,4 @@
-export const answerInput = () => cy.get('[data-cy="answer-text"]');
+export const answerInput = () => cy.get('[data-cy^="answer-text"]');
 export const answerSubmit = () => cy.get('[data-cy="answer-submit"]');
 export const revealedClues = () => cy.get('[data-cy^="revealed-clue"]');
 export const unrevealedClues = () => cy.get('[data-cy^="unrevealed-clue"]');

@@ -24,6 +24,7 @@ import { Scoreboard } from './Scoreboard';
 import { AnswersHistory } from './AnswerHistory';
 import { AnswerSubmitBox } from './AnswerSubmitBox';
 import { createWipLookup } from './wallInProgressLookup';
+import { CopyableText } from './CopyableText';
 
 interface QuizPageProps {
     quizId: string;
@@ -174,8 +175,12 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                 <div className={styles.leftPanel}>
                     <div>
                         <h1 className={styles.pageTitle}>{quizData.name}</h1>
-                        {joinTeamUrl && <p>Invite others to your team with this link: {joinTeamUrl.href}</p>}
-                        {joinQuizUrl && <p>Invite team captains to your quiz with this link: {joinQuizUrl.href}</p>}
+                        {joinTeamUrl && <p>
+                            Invite others to your team with this link: <CopyableText value={joinTeamUrl.href} />
+                        </p>}
+                        {joinQuizUrl && <p>
+                            Invite team captains to your quiz with this link: <CopyableText value={joinQuizUrl.href} />
+                        </p>}
                     </div>
                     <CurrentQuestion currentQuestionItem={currentQuestionItem} />
                     {isQuizOwner &&

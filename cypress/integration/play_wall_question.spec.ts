@@ -1,5 +1,5 @@
 import { WallQuestionSpec } from '../../src/models/quiz';
-import { answersHistory, revealedClues } from '../pages/quizPage';
+import { answerInput, answersHistory, answerSubmit, revealedClues } from '../pages/quizPage';
 import { CreateMissingVowelsOrWallQuestionResult } from '../plugins';
 
 describe('Playing a wall question', () => {
@@ -241,7 +241,7 @@ describe('Playing a wall question', () => {
 
         it('allows submitting connections when solution is revealed', () => {
             // No inputs when in grouping phase of the wall
-            answersHistory().get('input').should('not.exist');
+            answerInput().should('not.exist');
 
             cy.callFirestore('update', `/quizzes/${quizId}/clues/${clueId}`, { solution: [
                 { texts: ['G1 A', 'G1 B', 'G1 C', 'G1 D'] },
@@ -251,19 +251,19 @@ describe('Playing a wall question', () => {
             ] });
 
             // An input for the connection of each group when in connection naming phase of the wall
-            answersHistory().get('input').should('have.length', 4).and('not.be.disabled');
+            answerInput().should('have.length', 4).and('not.be.disabled');
 
             // The captain can't submit until an answer is provided for all groups
-            answersHistory().get('button').should('be.disabled');
+            answerSubmit().should('be.disabled');
 
-            answersHistory().get('input').each(($el, i) => {
+            answerInput().each(($el, i) => {
                 cy.wrap($el).type(`c${i + 1}`);
             });
-            answersHistory().get('button').click();
+            answerSubmit().click();
 
             // Inputs and button are disabled after submitting
-            answersHistory().get('input').should('be.disabled');
-            answersHistory().get('button').should('be.disabled');
+            answerInput().should('be.disabled');
+            answerSubmit().should('be.disabled');
 
             // Submitted connections appear in answer history
             answersHistory()
