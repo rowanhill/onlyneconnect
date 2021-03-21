@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
@@ -18,12 +18,6 @@ export const Home = () => {
     const signOut = () => {
         firebase.auth().signOut()
     };
-    const reset = (quizId: string) => {
-        const resetQuiz = firebase.functions().httpsCallable('resetQuiz');
-        resetQuiz({ quizId })
-            .then((result) => console.log('Reset quiz', result))
-            .catch((e) => console.error('Error resetting quiz', e));
-    }
     return (
         <Page title={"Onlyne Connect"}>
             <p>You're logged in with {user?.email}. If that's not you, you can <LinkButton onClick={signOut}>sign out</LinkButton>.</p>
@@ -38,7 +32,7 @@ export const Home = () => {
                             {ownedQuizzes.data.map((quiz) => (
                                 <li key={quiz.id}>
                                     <Link to={`/quiz/${quiz.id}/edit`}>{quiz.data.name}</Link>{' '}
-                                    <DangerButton onClick={() => reset(quiz.id)}>Reset</DangerButton>
+                                    <ResetButton quizId={quiz.id} />
                                 </li>
                             ))}
                         </ul>
@@ -53,4 +47,23 @@ export const Home = () => {
             <GameExplanation />
         </Page>
     );
+};
+
+const ResetButton = ({ quizId }: { quizId: string; }) => {
+    const [disabled, setDisabled] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const successTimeout = useRef<number>();
+    const reset = (quizId: string) => {
+        const resetQuiz = firebase.functions().httpsCallable('resetQuiz');
+        resetQuiz({ quizId })
+            .then(() => {
+                setDisabled(false);
+                setShowSuccess(true);
+                clearTimeout(successTimeout.current);
+                successTimeout.current = setTimeout(() => setShowSuccess(false), 1000) as unknown as number;
+            })
+            .catch((e) => console.error('Error resetting quiz', e));
+        setDisabled(true);
+    };
+    return <DangerButton disabled={disabled} onClick={() => reset(quizId)}>{showSuccess ? 'Done!' : 'Reset'}</DangerButton>;
 };
