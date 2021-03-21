@@ -81,12 +81,8 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
     } else {
         // Get only revealed clues for revealed questions
         if (questionsResult.data) {
-            const revealedQuestionIds = questionsResult.data.map((questionItem) => questionItem.id);
             cluesQuery = db.collection(`quizzes/${quizId}/clues`)
                 .where('isRevealed', '==', true);
-            if (revealedQuestionIds.length > 0) {
-                cluesQuery = cluesQuery.where('questionId', 'in', revealedQuestionIds);
-            }
         }
     }
     const cluesResult = useCollectionResult<Clue>(cluesQuery);
