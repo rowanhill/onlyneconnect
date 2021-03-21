@@ -8,6 +8,10 @@
     margin-top: 0;
 }
 
+.editLink {
+    font-size: 0.8rem;
+}
+
 .leftPanel {
     flex-grow: 1;
     display: flex;

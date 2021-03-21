@@ -171,7 +171,10 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
             <WallInProgressContext.Provider value={{ queryResult: wipResult, wipByTeamByClue: createWipLookup(wipResult) }}>
                 <div className={styles.leftPanel}>
                     <div>
-                        <h1 className={styles.pageTitle}>{quizData.name}</h1>
+                        <h1 className={styles.pageTitle}>
+                            {quizData.name}
+                            {isQuizOwner && <>{' '}<Link className={styles.editLink} to={`/quiz/${quizId}/edit`}>[Edit]</Link></>}
+                        </h1>
                         {joinTeamUrl && <p>
                             Invite others to your team with this link: <CopyableText value={joinTeamUrl.href} />
                         </p>}
