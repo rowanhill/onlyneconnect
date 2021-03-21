@@ -5,7 +5,7 @@ import { useAuth } from './hooks/useAuth';
 import { useCollectionResult } from './hooks/useCollectionResult';
 import { Quiz } from './models';
 import { Page } from './Page';
-import { LinkButton } from './Button';
+import { LinkButton, DangerButton } from './Button';
 import { GameExplanation } from './GameExplanation';
 
 export const Home = () => {
@@ -18,6 +18,12 @@ export const Home = () => {
     const signOut = () => {
         firebase.auth().signOut()
     };
+    const reset = (quizId: string) => {
+        const resetQuiz = firebase.functions().httpsCallable('resetQuiz');
+        resetQuiz({ quizId })
+            .then((result) => console.log('Reset quiz', result))
+            .catch((e) => console.error('Error resetting quiz', e));
+    }
     return (
         <Page title={"Onlyne Connect"}>
             <p>You're logged in with {user?.email}. If that's not you, you can <LinkButton onClick={signOut}>sign out</LinkButton>.</p>
@@ -30,7 +36,10 @@ export const Home = () => {
                         <p>You can edit one of your existing quizzes:</p>
                         <ul>
                             {ownedQuizzes.data.map((quiz) => (
-                                <li key={quiz.id}><Link to={`/quiz/${quiz.id}/edit`}>{quiz.data.name}</Link></li>
+                                <li key={quiz.id}>
+                                    <Link to={`/quiz/${quiz.id}/edit`}>{quiz.data.name}</Link>{' '}
+                                    <DangerButton onClick={() => reset(quiz.id)}>Reset</DangerButton>
+                                </li>
                             ))}
                         </ul>
                         <p>Or you could <Link to="/quiz/create">create a new one</Link>.</p>

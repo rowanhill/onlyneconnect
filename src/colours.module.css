@@ -23,3 +23,17 @@
 .textOnPrimaryBg:disabled {
     color: var(--white-washed-out);
 }
+
+.dangerBg {
+    background-color: var(--red);
+}
+.danger:disabled {
+    background-color: var(--red-washed-out);
+}
+.textOnDangerBg {
+    composes: dangerBg;
+    color: var(--white);
+}
+.textOnDangerBg:disabled {
+    color: var(--white-washed-out);
+}

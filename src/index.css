@@ -44,6 +44,7 @@
   --mid-green-shadow: hsl(160, 10%, 20%);
 
   --red: hsl(350, 85%, 45%);
+  --red-washed-out: hsl(350, 65%, 65%);
 
   --dark-red-lowlight: hsl(340, 55%, 27%);
   --dark-red: hsl(340, 56%, 30%);

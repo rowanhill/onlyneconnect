@@ -9,6 +9,10 @@ export const PrimaryButton: FunctionComponent<ButtonProps> = (props) => {
     return <StyledButton btnStyle={styles.primary} {...props} />;
 };
 
+export const DangerButton: FunctionComponent<ButtonProps> = (props) => {
+    return <StyledButton btnStyle={styles.danger} {...props} />;
+};
+
 export const LinkButton: FunctionComponent<ButtonProps> = (props) => {
     return <StyledButton btnStyle={styles.asLink} {...props} />;
 };
