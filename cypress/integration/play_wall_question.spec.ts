@@ -168,7 +168,7 @@ describe('Playing a wall question', () => {
         it('displays the number of lives remaining when applicable', () => {
             cy.callFirestore('update', `quizzes/${quizId}/wallInProgress/${wipId}`, { remainingLives: 2 });
 
-            cy.contains('Tries remaining: 💙💙')
+            cy.contains('2 attempt(s) remaining. 💙💙')
         });
 
         it('displays the connections (in the same order as the groups are displayed) when the question is over', () => {

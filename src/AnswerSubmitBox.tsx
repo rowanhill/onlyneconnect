@@ -7,28 +7,29 @@ import { submitAnswer, submitWallAnswer } from './models/answer';
 import styles from './AnswerSubmitBox.module.css';
 import { GenericErrorBoundary } from './GenericErrorBoundary';
 
-function hasReachedAnswerLimit(
+function attemptsRemaining(
     clueItem: CollectionQueryItem<Clue>|undefined,
     questionItem: CollectionQueryItem<Question>|undefined,
     answersResult: CollectionQueryResult<Answer>,
     teamId: string,
-): boolean {
-    if (!answersResult.data) {
-        return false;
-    }
-    if (questionItem && questionItem.data.answerLimit) {
-        const answersForQuestion = answersResult.data.filter((answer) => answer.data.questionId === questionItem.id && answer.data.teamId === teamId);
-        if (answersForQuestion.length >= questionItem.data.answerLimit) {
-            return true;
+): { attemptsRemainingForClue: number|null; attemptsRemainingForQuestion: number|null; } {
+    let attemptsRemainingForClue: number|null = 0;
+    let attemptsRemainingForQuestion: number|null = 0;
+    if (answersResult.data) {
+        if (questionItem?.data.answerLimit) {
+            const answersForQuestion = answersResult.data.filter((answer) => answer.data.questionId === questionItem.id && answer.data.teamId === teamId);
+            attemptsRemainingForQuestion = questionItem.data.answerLimit - answersForQuestion.length;
+        } else {
+            attemptsRemainingForQuestion = null;
+        }
+        if (clueItem?.data.answerLimit) {
+            const answersForClue = answersResult.data.filter((answer) => answer.data.clueId === clueItem.id && answer.data.teamId === teamId);
+            attemptsRemainingForClue = clueItem.data.answerLimit - answersForClue.length;
+        } else {
+            attemptsRemainingForClue = null;
         }
     }
-    if (clueItem && clueItem.data.answerLimit) {
-        const answersForClue = answersResult.data.filter((answer) => answer.data.clueId === clueItem.id && answer.data.teamId === teamId);
-        if (answersForClue.length >= clueItem.data.answerLimit) {
-            return true;
-        }
-    }
-    return false;
+    return { attemptsRemainingForClue, attemptsRemainingForQuestion };
 }
 
 function hasAnsweredQuestionCorrectly(
@@ -80,7 +81,8 @@ const SingleAnswerSubmitBox = ({ teamId, questionItem, clueItem }: AnswerSubmitB
     const [answerText, setAnswerText] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
-    const hasReachedLimit = hasReachedAnswerLimit(clueItem, questionItem, answersResult, teamId);
+    const { attemptsRemainingForClue, attemptsRemainingForQuestion } = attemptsRemaining(clueItem, questionItem, answersResult, teamId);
+    const hasReachedLimit = attemptsRemainingForClue === 0 || attemptsRemainingForQuestion === 0;
     const alreadyAnsweredCorrectly = hasAnsweredQuestionCorrectly(questionItem, answersResult, teamId);
     const onAnswerChange = (e: ChangeEvent<HTMLInputElement>) => {
         e.preventDefault();
@@ -121,6 +123,10 @@ const SingleAnswerSubmitBox = ({ teamId, questionItem, clueItem }: AnswerSubmitB
                 <input type="text" placeholder="Type your answer here" value={answerText} onChange={onAnswerChange} data-cy="answer-text" />
                 <PrimaryButton data-cy="answer-submit">Submit</PrimaryButton>
             </fieldset>
+            <p>
+                {attemptsRemainingForClue !== null && `${attemptsRemainingForClue} attempt(s) remaining for this clue.`}
+                {attemptsRemainingForQuestion !== null && `${attemptsRemainingForQuestion} attempt(s) remaining for this question.`}
+            </p>
         </form>
     );
 };
@@ -208,6 +214,7 @@ const FourAnswerSubmitBox = ({ teamId, questionItem, clueItem }: FourAnswerSubmi
                 )}
                 <PrimaryButton data-cy="answer-submit" disabled={submitDisabled}>Submit</PrimaryButton>
             </fieldset>
+            <p>{hasAnsweredQuestion ? '0 attempts remaining for this question' : '1 attempt remaining for this question'}</p>
         </form>
     );
 };

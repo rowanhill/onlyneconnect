@@ -128,14 +128,20 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
                     />
             )}
         </div>
-        {progressData?.remainingLives !== undefined && 
-            <h4>
-                Tries remaining:{' '}
-                {progressData.remainingLives === 0 && 'none! The wall is frozen.'}
+        {clue.data.solution === undefined && progressData &&
+            <h4>Find groups of four by clicking on clues to select them.</h4>
+        }
+        {clue.data.solution === undefined && progressData && progressData.remainingLives === undefined &&
+            <p>You have as many attempts as you like until you find two groups.</p>
+        }
+        {clue.data.solution === undefined && progressData?.remainingLives !== undefined && 
+            <p>
+                {progressData.remainingLives} attempt(s) remaining.{' '}
+                {progressData.remainingLives === 0 && 'The wall is frozen! Wait for groups to be revealed.'}
                 {progressData.remainingLives === 1 && '💙'}
                 {progressData.remainingLives === 2 && '💙💙'}
                 {progressData.remainingLives >= 3 && '💙💙💙'}
-            </h4>
+            </p>
         }
         </>
     );
