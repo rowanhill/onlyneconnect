@@ -505,9 +505,9 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
                     />
                 :
                     <>
-                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewConnectionQuestion}>Add connection question</PrimaryButton>
-                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewSequenceQuestion}>Add sequence question</PrimaryButton>
-                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewWallQuestion}>Add wall question</PrimaryButton>
+                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewConnectionQuestion}>Add connection question</PrimaryButton>{' '}
+                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewSequenceQuestion}>Add sequence question</PrimaryButton>{' '}
+                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewWallQuestion}>Add wall question</PrimaryButton>{' '}
                     <PrimaryButton className={styles.addQuestionButton} onClick={addNewMissingVowelsQuestion}>Add missing vowels question</PrimaryButton>
                     </>
                 }
