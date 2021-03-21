@@ -5,6 +5,7 @@ import { CollectionQueryItem, CollectionQueryResult } from './hooks/useCollectio
 import { Clue, Question, Answer, FourByFourTextClue, WallQuestion, Four } from './models';
 import { submitAnswer, submitWallAnswer } from './models/answer';
 import styles from './AnswerSubmitBox.module.css';
+import { GenericErrorBoundary } from './GenericErrorBoundary';
 
 function hasReachedAnswerLimit(
     clueItem: CollectionQueryItem<Clue>|undefined,
@@ -56,12 +57,20 @@ export const AnswerSubmitBox = ({ teamId, questionItem, clueItem }: AnswerSubmit
         const wallQuestion = questionItem as CollectionQueryItem<WallQuestion>;
         const wallClueItem = clueItem as CollectionQueryItem<FourByFourTextClue>|undefined;
         if (wallClueItem?.data.solution !== undefined) {
-            return <FourAnswerSubmitBox teamId={teamId} questionItem={wallQuestion} clueItem={wallClueItem} />;
+            return (
+                <GenericErrorBoundary>
+                    <FourAnswerSubmitBox teamId={teamId} questionItem={wallQuestion} clueItem={wallClueItem} />
+                </GenericErrorBoundary>
+            );
         } else {
             return null;
         }
     } else {
-        return <SingleAnswerSubmitBox teamId={teamId} questionItem={questionItem} clueItem={clueItem} />;
+        return (
+            <GenericErrorBoundary>
+                <SingleAnswerSubmitBox teamId={teamId} questionItem={questionItem} clueItem={clueItem} />
+            </GenericErrorBoundary>
+        );
     }
 };
 

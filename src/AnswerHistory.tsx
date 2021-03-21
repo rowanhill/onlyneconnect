@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React from 'react';
 import { PrimaryButton } from './Button';
 import { useAnswersContext, useCluesContext, useQuestionsContext, useQuizContext, useTeamsContext, useWallInProgressContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
@@ -6,6 +6,7 @@ import { Answer, Clue, FourByFourTextClue, Question, SimpleAnswer, WallAnswer, W
 import { AnswerUpdate, updateAnswers, updateWallAnswer } from './models/answer';
 import styles from './AnswerHistory.module.css';
 import { calculateUpdatedScores } from './answerScoreCalculator';
+import { GenericErrorBoundary } from './GenericErrorBoundary';
 
 export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
     const { quizId, quiz } = useQuizContext();
@@ -57,6 +58,7 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
 
     return (
         <div className={styles.answersHistory} data-cy="answers-history">
+            <GenericErrorBoundary>
             {quiz.questionIds.map((questionId, groupIndex) => (
                 questionsById[questionId]?.type !== 'wall' ?
                 <AnswersForQuestion
@@ -81,6 +83,7 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
                     updateWallAnswerScoreAndCorrectFlag={updateWallAnswerScoreAndCorrectFlag}
                 />
             ))}
+            </GenericErrorBoundary>
         </div>
     );
 };

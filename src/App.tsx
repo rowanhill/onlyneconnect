@@ -4,12 +4,14 @@ import { UserContext } from './contexts/user';
 import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import { SignInPage } from './SignInPage';
 import { LoggedInApp } from './LoggedInApp';
+import { GenericErrorBoundary } from './GenericErrorBoundary';
 
 function App() {
     const { initialising, user } = useAuth();
 
     return (
     <UserContext.Provider value={{initialising, user}}>
+    <GenericErrorBoundary>
     <Router>
         <Switch>
             <Route exact path="/sign-in">
@@ -20,6 +22,7 @@ function App() {
             </Route>
         </Switch>
     </Router>
+    </GenericErrorBoundary>
     </UserContext.Provider>
     );
 }

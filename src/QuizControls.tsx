@@ -4,6 +4,7 @@ import { Question } from './models';
 import { QuizControlStart } from './QuizControlStart';
 import { QuizControlReveal } from './QuizControlReveal';
 import styles from './QuizControls.module.css';
+import { GenericErrorBoundary } from './GenericErrorBoundary';
 
 export const QuizControls = ({ currentQuestionItem }: { currentQuestionItem?: CollectionQueryItem<Question>; }) => {
     const { data: questionsData } = useQuestionsContext();
@@ -13,13 +14,17 @@ export const QuizControls = ({ currentQuestionItem }: { currentQuestionItem?: Co
     if (currentQuestionItem) {
         return (
             <div className={styles.quizControls} data-cy="quiz-controls">
-                <QuizControlReveal currentQuestionItem={currentQuestionItem} />
+                <GenericErrorBoundary>
+                    <QuizControlReveal currentQuestionItem={currentQuestionItem} />
+                </GenericErrorBoundary>
             </div>
         );
     } else {
         return (
             <div className={styles.quizControls} data-cy="quiz-controls">
-                <QuizControlStart />
+                <GenericErrorBoundary>
+                    <QuizControlStart />
+                </GenericErrorBoundary>
             </div>
         );
     }

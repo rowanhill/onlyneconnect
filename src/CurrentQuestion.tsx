@@ -6,6 +6,7 @@ import { CompoundTextClue, ConnectionQuestion, ConnectionSecrets, FourByFourText
 import { VisibleClue, HiddenClue, LastInSequenceClue } from './Clues';
 import { WallClues } from './WallClues';
 import styles from './CurrentQuestion.module.css';
+import { GenericErrorBoundary } from './GenericErrorBoundary';
 
 export const CurrentQuestion = ({ currentQuestionItem }: { currentQuestionItem?: CollectionQueryItem<Question>; }) => {
     const { error: questionsError } = useQuestionsContext();
@@ -33,7 +34,7 @@ export const CurrentQuestion = ({ currentQuestionItem }: { currentQuestionItem?:
             </>
         );
     }
-    return <Card className={styles.questionPanel} data-cy="clue-holder">{inner()}</Card>;
+    return <Card className={styles.questionPanel} data-cy="clue-holder"><GenericErrorBoundary>{inner()}</GenericErrorBoundary></Card>;
 };
 
 const QuestionInstructions = ({ currentQuestionItem }: { currentQuestionItem: CollectionQueryItem<Question>; }) => {
