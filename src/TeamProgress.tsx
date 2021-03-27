@@ -4,6 +4,7 @@ import { useAnswersContext, useTeamsContext, useWallInProgressContext } from './
 import { GenericErrorBoundary } from './GenericErrorBoundary';
 import { CollectionQueryData, CollectionQueryItem } from './hooks/useCollectionResult';
 import { Clue, FourByFourTextClue, Question, Team, throwBadQuestionType } from './models';
+import styles from './TeamProgress.module.css';
 
 interface TeamProgressProps {
     currentQuestionItem?: CollectionQueryItem<Question>;
@@ -137,7 +138,7 @@ const TeamProgressWall = ({ clueItem, teamsData }: { clueItem: CollectionQueryIt
         progressByFoundGroups[0].unfrozen = progressByFoundGroups[0].unfrozen + (teamsData.length - totalWithWip);
 
         return (
-        <table>
+        <table className={styles.wallProgressTable}>
             <thead>
                 <tr>
                     <th>Groups found</th>
@@ -149,7 +150,7 @@ const TeamProgressWall = ({ clueItem, teamsData }: { clueItem: CollectionQueryIt
             <tbody>
             {progressByFoundGroups.map((row) =>
                 <tr key={row.numGroupsFound}>
-                    <th>{row.title}</th>
+                    <th className={styles.rowLabel}>{row.title}</th>
                     <td>{row.unfrozen}</td>
                     <td>{row.frozen}</td>
                     <td>{row.frozen + row.unfrozen}</td>

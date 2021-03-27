@@ -53,6 +53,7 @@
 
   --white: white;
   --white-washed-out: lightgrey;
+  --white-very-slightly-washed-out: hsl(0, 0%, 95%);
 
   --dark-grey: hsl(0, 0%, 35%);
 }

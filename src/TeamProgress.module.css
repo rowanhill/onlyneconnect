@@ -1,0 +1,23 @@
+.wallProgressTable {
+    composes: smallTopMargin from './layout.module.css';
+    border-spacing: 0;
+    border-collapse: collapse;
+}
+
+.wallProgressTable th,
+.wallProgressTable td {
+    padding: 0 var(--very-small);
+}
+
+.wallProgressTable td {
+    text-align: center;
+}
+
+.wallProgressTable tbody tr:nth-child(odd) {
+    background-color: var(--white-very-slightly-washed-out);
+}
+
+.rowLabel {
+    text-align: right;
+    font-weight: normal;
+}
