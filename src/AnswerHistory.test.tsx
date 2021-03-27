@@ -25,10 +25,28 @@ describe('<AnswersForQuestion>', () => {
                 'c3': { id: 'c3', data: { revealedAt: time(500), closedAt: time(600) } as Clue },
                 'c4': { id: 'c4', data: { revealedAt: time(700),                     } as Clue },
             },
-            questionAnswers: [
-                { id: 'a1', data: { submittedAt: time(150), teamId: 't1', clueId: 'c1', text: 'Answer one' } as SimpleAnswer },
-                { id: 'a2', data: { submittedAt: time(170), teamId: 't2', clueId: 'c1', text: 'Answer two' } as SimpleAnswer },
-                { id: 'a3', data: { submittedAt: time(750), teamId: 't3', clueId: 'c4', text: 'Answer three' } as SimpleAnswer },
+            questionAnswersGroupedByClue: [
+                {
+                    answers : [
+                        { id: 'a1', data: { submittedAt: time(150), teamId: 't1', clueId: 'c1', text: 'Answer one' } as SimpleAnswer },
+                        { id: 'a2', data: { submittedAt: time(170), teamId: 't2', clueId: 'c1', text: 'Answer two' } as SimpleAnswer },
+                    ],
+                    clueId: 'c1',
+                },
+                {
+                    answers : [],
+                    clueId: 'c2',
+                },
+                {
+                    answers : [],
+                    clueId: 'c3',
+                },
+                {
+                    answers : [
+                        { id: 'a3', data: { submittedAt: time(750), teamId: 't3', clueId: 'c4', text: 'Answer three' } as SimpleAnswer }
+                    ],
+                    clueId: 'c4',
+                },
             ],
             teamNamesById: {
                 't1': 'Team One',
@@ -40,8 +58,8 @@ describe('<AnswersForQuestion>', () => {
         };
     });
 
-    it('returns null if there are no questionAnswers', () => {
-        const result = AnswersForQuestion({ questionAnswers: [] } as any);
+    it('returns null if there are no answers for the question', () => {
+        const result = AnswersForQuestion({ questionAnswersGroupedByClue: [] } as any);
         expect(result).toBeNull();
     });
 
@@ -66,10 +84,10 @@ describe('<AnswersForQuestion>', () => {
     });
 
     it('displays an answer\'s score once it is marked', () => {
-        props.questionAnswers[0].data.correct = true;
-        props.questionAnswers[0].data.points = 5;
-        props.questionAnswers[1].data.correct = false;
-        props.questionAnswers[1].data.points = 0;
+        props.questionAnswersGroupedByClue[0].answers[0].data.correct = true;
+        props.questionAnswersGroupedByClue[0].answers[0].data.points = 5;
+        props.questionAnswersGroupedByClue[0].answers[1].data.correct = false;
+        props.questionAnswersGroupedByClue[0].answers[1].data.points = 0;
 
         renderWithProps();
 
@@ -78,7 +96,7 @@ describe('<AnswersForQuestion>', () => {
     });
 
     it('displays an answer as invalid if it was submitted before the clue was revealed', () => {
-        props.questionAnswers[0].data.submittedAt = time(90);
+        props.questionAnswersGroupedByClue[0].answers[0].data.submittedAt = time(90);
 
         renderWithProps();
 
@@ -86,7 +104,7 @@ describe('<AnswersForQuestion>', () => {
     });
 
     it('displays an answer as invalid if it was submitted after the clue was closed', () => {
-        props.questionAnswers[0].data.submittedAt = time(210);
+        props.questionAnswersGroupedByClue[0].answers[0].data.submittedAt = time(210);
 
         renderWithProps();
 
@@ -125,7 +143,7 @@ describe('<AnswersForQuestion>', () => {
         });
 
         it('disables the mark correct button if already marked correct', () => {
-            props.questionAnswers[0].data.correct = true;
+            props.questionAnswersGroupedByClue[0].answers[0].data.correct = true;
 
             renderWithProps();
 
@@ -135,7 +153,7 @@ describe('<AnswersForQuestion>', () => {
         });
 
         it('disables the mark incorrect button if already marked incorrect', () => {
-            props.questionAnswers[0].data.correct = false;
+            props.questionAnswersGroupedByClue[0].answers[0].data.correct = false;
 
             renderWithProps();
 
@@ -145,8 +163,8 @@ describe('<AnswersForQuestion>', () => {
         });
 
         it('hides the mark correct/incorrect buttons if the team has already answered correctly', () => {
-            props.questionAnswers[0].data.correct = true;
-            props.questionAnswers[2].data.teamId = props.questionAnswers[0].data.teamId;
+            props.questionAnswersGroupedByClue[0].answers[0].data.correct = true;
+            props.questionAnswersGroupedByClue[3].answers[0].data.teamId = props.questionAnswersGroupedByClue[0].answers[0].data.teamId;
 
             renderWithProps();
 
@@ -161,12 +179,12 @@ describe('<AnswersForQuestion>', () => {
                     type: 'missing-vowels',
                     clueId: 'c1'
                 } as MissingVowelsQuestion;
-                props.questionAnswers[2].data.clueId = 'c1';
-                props.questionAnswers[2].data.submittedAt = time(180);
+                props.questionAnswersGroupedByClue[3].answers[0].data.clueId = 'c1';
+                props.questionAnswersGroupedByClue[3].answers[0].data.submittedAt = time(180);
             });
 
             it('disables the mark correct button for everything but the first unmarked answer', () => {
-                props.questionAnswers[1].data.correct = true;
+                props.questionAnswersGroupedByClue[0].answers[1].data.correct = true;
 
                 renderWithProps();
 
@@ -179,9 +197,9 @@ describe('<AnswersForQuestion>', () => {
             });
 
             it('ignores answers from teams with the correct answer when determining the first unmarked answer', () => {
-                props.questionAnswers[0].data.correct = true;
-                props.questionAnswers[1].data.teamId = props.questionAnswers[0].data.teamId;
-                props.questionAnswers.push({ id: 'a4', data: { clueId: 'c1', submittedAt: time(190), text: 'Answer four', teamId: 't4' } as SimpleAnswer })
+                props.questionAnswersGroupedByClue[0].answers[0].data.correct = true;
+                props.questionAnswersGroupedByClue[0].answers[1].data.teamId = props.questionAnswersGroupedByClue[0].answers[0].data.teamId;
+                props.questionAnswersGroupedByClue[0].answers.push({ id: 'a4', data: { clueId: 'c1', submittedAt: time(190), text: 'Answer four', teamId: 't4' } as SimpleAnswer })
 
                 renderWithProps();
 

@@ -2,6 +2,14 @@
     flex-grow: 1;
 }
 
+.clueAnswerGroup {
+    composes: verySmallBottomPadding, verySmallPadding from './layout.module.css';
+    border-bottom: 1px solid var(--white-washed-out);
+}
+.clueAnswerGroup:last-child {
+    border-bottom: none;
+}
+
 .answer {
     display: flex;
     flex-direction: row;

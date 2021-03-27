@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import { PrimaryButton } from './Button';
 import { useAnswersContext, useCluesContext, useQuestionsContext, useQuizContext, useTeamsContext, useWallInProgressContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
@@ -26,11 +26,14 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
     const teamNamesById = isQuizOwner && teamsData ? Object.fromEntries(teamsData.map((team) => [team.id, team.data.name])) : {};
     const answersByQuestionId = answersData.reduce((acc, answer) => {
         if (!acc[answer.data.questionId]) {
-            acc[answer.data.questionId] = [];
+            acc[answer.data.questionId] = {};
         }
-        acc[answer.data.questionId].push(answer);
+        if (!acc[answer.data.questionId][answer.data.clueId]) {
+            acc[answer.data.questionId][answer.data.clueId] = [];
+        }
+        acc[answer.data.questionId][answer.data.clueId].push(answer);
         return acc;
-    }, {} as { [questionId: string]: CollectionQueryItem<Answer>[] });
+    }, {} as { [questionId: string]: { [clueId: string]: CollectionQueryItem<Answer>[] }; });
 
     const updateAnswerScoresAndCorrectFlags = (answerUpdates: AnswerUpdate[]) => {
         updateAnswers(quizId, answerUpdates)
@@ -56,32 +59,55 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
         });
     }
 
-    return (
-        <div className={styles.answersHistory} data-cy="answers-history">
-            <GenericErrorBoundary>
-            {quiz.questionIds.map((questionId, groupIndex) => (
-                questionsById[questionId]?.type !== 'wall' ?
+    const Answers = ({ questionId, groupIndex }: { questionId: string; groupIndex: number }) => {
+        const question = questionsById[questionId] as Question|undefined;
+        if (!question) {
+            return null;
+        }
+        const questionAnswers = answersByQuestionId[questionId];
+        if (question.type !== 'wall') {
+            const clueIds = question.type === 'missing-vowels' ? [question.clueId] : question.clueIds;
+            const questionAnswersGroupedByClue = clueIds.map((id) => ({
+                answers: ((questionAnswers && questionAnswers[id]) || []) as CollectionQueryItem<SimpleAnswer>[],
+                clueId: id,
+            }));
+            return (
                 <AnswersForQuestion
                     key={questionId}
                     questionNumber={groupIndex + 1}
                     isQuizOwner={isQuizOwner}
-                    question={questionsById[questionId]}
-                    questionAnswers={answersByQuestionId[questionId] as CollectionQueryItem<SimpleAnswer>[] || []}
+                    question={question}
+                    questionAnswersGroupedByClue={questionAnswersGroupedByClue}
                     cluesById={cluesById}
                     teamNamesById={teamNamesById}
                     updateAnswerScoresAndCorrectFlags={updateAnswerScoresAndCorrectFlags}
-                /> :
+                /> 
+            );
+        } else {
+            const clue = cluesById[question.clueId] as CollectionQueryItem<FourByFourTextClue>;
+            const wallInProgressByTeam = wallInProgressByTeamIdByClueId && wallInProgressByTeamIdByClueId[question.clueId];
+            const questionAnswersGroupedByClue = questionAnswers && questionAnswers[question.clueId] as CollectionQueryItem<WallAnswer>[];
+            return (
                 <AnswersForWallQuestion
                     key={questionId}
                     questionNumber={groupIndex + 1}
-                    question={questionsById[questionId] as WallQuestion}
-                    clue={cluesById[(questionsById[questionId] as WallQuestion).clueId] as CollectionQueryItem<FourByFourTextClue>}
-                    wallInProgressByTeam={(wallInProgressByTeamIdByClueId && wallInProgressByTeamIdByClueId[(questionsById[questionId] as WallQuestion).clueId]) || {}}
+                    question={question}
+                    clue={clue}
+                    wallInProgressByTeam={wallInProgressByTeam || {}}
                     isQuizOwner={isQuizOwner}
                     teamNamesById={teamNamesById}
-                    questionAnswers={answersByQuestionId[questionId] as CollectionQueryItem<WallAnswer>[] || []}
+                    questionAnswers={questionAnswersGroupedByClue || []}
                     updateWallAnswerScoreAndCorrectFlag={updateWallAnswerScoreAndCorrectFlag}
                 />
+            );
+        }
+    };
+
+    return (
+        <div className={styles.answersHistory} data-cy="answers-history">
+            <GenericErrorBoundary>
+            {quiz.questionIds.map((questionId, groupIndex) => (
+                <Answers key={questionId} questionId={questionId} groupIndex={groupIndex} />
             ))}
             </GenericErrorBoundary>
         </div>
@@ -105,80 +131,90 @@ interface AnswersForQuestionProps {
     questionNumber: number;
     isQuizOwner: boolean;
     question: Question;
-    questionAnswers: CollectionQueryItem<SimpleAnswer>[];
+    questionAnswersGroupedByClue: { answers: CollectionQueryItem<SimpleAnswer>[]; clueId: string; }[];
     cluesById: { [clueId: string]: CollectionQueryItem<Clue>; };
     teamNamesById: { [teamId: string]: string; }
     updateAnswerScoresAndCorrectFlags: (updates: AnswerUpdate[]) => void;
 }
 export const AnswersForQuestion = (props: AnswersForQuestionProps) => {
-    if (props.questionAnswers.length === 0) {
+    const allQuestionAnswers = props.questionAnswersGroupedByClue.flatMap((answers) => answers.answers);
+    if (allQuestionAnswers.length === 0) {
         return null;
     }
 
     const markCorrect = (answerId: string, clueIndex: number) => {
-        const updates = calculateUpdatedScores(answerId, true, props.question, clueIndex, props.questionAnswers);
+        const updates = calculateUpdatedScores(answerId, true, props.question, clueIndex, allQuestionAnswers);
         props.updateAnswerScoresAndCorrectFlags(updates);
     };
     const markIncorrect = (answerId: string, clueIndex: number) => {
-        const updates = calculateUpdatedScores(answerId, false, props.question, clueIndex, props.questionAnswers);
+        const updates = calculateUpdatedScores(answerId, false, props.question, clueIndex, allQuestionAnswers);
         props.updateAnswerScoresAndCorrectFlags(updates);
     };
 
     const hasAnsweredCorrectlyByTeam = Object.fromEntries(
-        props.questionAnswers
+        allQuestionAnswers
             .filter((answerItem) => answerItem.data.correct === true)
             .map((answerItem) => [answerItem.data.teamId, true])
     );
     const earlierAnswersAreUnmarked = (submittedAtMillis: number) => {
-        return props.questionAnswers.some((item) => {
+        return allQuestionAnswers.some((item) => {
             return item.data.correct === undefined && // Item is umarked...
                 item.data.submittedAt && item.data.submittedAt.toMillis() < submittedAtMillis && // ...and prior to answer...
                 hasAnsweredCorrectlyByTeam[item.data.teamId] !== true; // ...and not by a team with correct answer elsewhere...
         });
     };
 
-    const answerInfoProps = props.questionAnswers.map((answerItem) => {
-        const clue = props.cluesById[answerItem.data.clueId];
-        const valid = clue && answerIsValid(answerItem.data, clue.data);
-
-        const clueIndex = (props.question.type === 'connection' || props.question.type === 'sequence') ? 
-            props.question.clueIds.indexOf(answerItem.data.clueId) :
-            0;
-
-        const canBeMarkedCorrect = answerItem.data.correct !== true &&
-            !(props.question.type === 'missing-vowels' && answerItem.data.submittedAt && earlierAnswersAreUnmarked(answerItem.data.submittedAt.toMillis()));
-        const canBeMarkedIncorrect = answerItem.data.correct !== false;
-        const buttonsAreVisible = props.isQuizOwner && valid && !props.questionAnswers
-            .some((a) => a.data.correct === true && a.data.teamId === answerItem.data.teamId && a.id !== answerItem.id);
-        return {
-            answerInfo: {
-                id: answerItem.id,
-                text: answerItem.data.text,
-                isValid: valid,
-                points: answerItem.data.points,
-                teamName: props.teamNamesById[answerItem.data.teamId],
-            },
-            rest: {
-                canBeMarkedCorrect,
-                canBeMarkedIncorrect,
-                buttonsAreVisible
-            },
-            clueIndex,
-        }
+    const answerInfoPropsGroupedByClue = props.questionAnswersGroupedByClue.map((questionAnswers) => {
+        const answerInfoProps = questionAnswers.answers.map((answerItem) => {
+            const clue = props.cluesById[answerItem.data.clueId];
+            const valid = clue && answerIsValid(answerItem.data, clue.data);
+    
+            const clueIndex = (props.question.type === 'connection' || props.question.type === 'sequence') ? 
+                props.question.clueIds.indexOf(answerItem.data.clueId) :
+                0;
+    
+            const canBeMarkedCorrect = answerItem.data.correct !== true &&
+                !(props.question.type === 'missing-vowels' && answerItem.data.submittedAt && earlierAnswersAreUnmarked(answerItem.data.submittedAt.toMillis()));
+            const canBeMarkedIncorrect = answerItem.data.correct !== false;
+            const buttonsAreVisible = props.isQuizOwner && valid && !allQuestionAnswers
+                .some((a) => a.data.correct === true && a.data.teamId === answerItem.data.teamId && a.id !== answerItem.id);
+            return {
+                answerInfo: {
+                    id: answerItem.id,
+                    text: answerItem.data.text,
+                    isValid: valid,
+                    points: answerItem.data.points,
+                    teamName: props.teamNamesById[answerItem.data.teamId],
+                },
+                rest: {
+                    canBeMarkedCorrect,
+                    canBeMarkedIncorrect,
+                    buttonsAreVisible
+                },
+                clueIndex,
+            }
+        });
+        return { answerInfoProps, clueId: questionAnswers.clueId };
     });
 
     return (
         <div>
             <h3>Question {props.questionNumber}</h3>
-            {answerInfoProps.map((infoProps) => (
-                <AnswerInfo
-                    key={infoProps.answerInfo.id}
-                    answer={infoProps.answerInfo}
-                    {...infoProps.rest}
-                    isQuizOwner={props.isQuizOwner}
-                    markCorrect={() => markCorrect(infoProps.answerInfo.id, infoProps.clueIndex)}
-                    markIncorrect={() => markIncorrect(infoProps.answerInfo.id, infoProps.clueIndex)}
-                />
+            {answerInfoPropsGroupedByClue.map((clueGroup) => (
+                clueGroup.answerInfoProps.length === 0 ?
+                    null :
+                    <div key={clueGroup.clueId} className={props.isQuizOwner ? styles.clueAnswerGroup : undefined}>
+                        {clueGroup.answerInfoProps.map((infoProps) => (
+                            <AnswerInfo
+                                key={infoProps.answerInfo.id}
+                                answer={infoProps.answerInfo}
+                                {...infoProps.rest}
+                                isQuizOwner={props.isQuizOwner}
+                                markCorrect={() => markCorrect(infoProps.answerInfo.id, infoProps.clueIndex)}
+                                markIncorrect={() => markIncorrect(infoProps.answerInfo.id, infoProps.clueIndex)}
+                            />
+                        ))}
+                    </div>
             ))}
         </div>
     );

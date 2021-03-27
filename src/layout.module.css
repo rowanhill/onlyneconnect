@@ -46,6 +46,9 @@
     margin-bottom: var(--very-small);
 }
 
+.verySmallBottomPadding {
+    padding-bottom: var(--very-small);
+}
 .verySmallPadding {
     padding: var(--very-small);
 }
