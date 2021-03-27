@@ -30,15 +30,15 @@ export const TeamProgress = ({ currentQuestionItem, currentClueItem }: TeamProgr
     }
 
     return (
-        <GenericErrorBoundary>
-            <Card title="Progress">
+        <Card title="Progress">
+            <GenericErrorBoundary>
                 <TeamProgressInner
                     currentQuestionItem={currentQuestionItem}
                     currentClueItem={currentClueItem}
                     teamsData={teamsData}
                 />
-            </Card>
-        </GenericErrorBoundary>
+            </GenericErrorBoundary>
+        </Card>
     );
 };
 
