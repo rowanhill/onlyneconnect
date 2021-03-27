@@ -26,6 +26,7 @@ import { AnswerSubmitBox } from './AnswerSubmitBox';
 import { createWipLookup } from './wallInProgressLookup';
 import { CopyableText } from './CopyableText';
 import { HostVideoPlayer } from './HostVideoPlayer';
+import { TeamProgress } from './TeamProgress';
 
 interface QuizPageProps {
     quizId: string;
@@ -183,6 +184,9 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                         </p>}
                     </div>
                     <CurrentQuestion currentQuestionItem={currentQuestionItem} />
+                    {isQuizOwner &&
+                        <TeamProgress currentQuestionItem={currentQuestionItem} currentClueItem={currentClueItem} />
+                    }
                     {isQuizOwner &&
                         <QuizControls currentQuestionItem={currentQuestionItem} />
                     }

@@ -1,52 +1,12 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import { PrimaryButton } from './Button';
 import { useQuizContext, useAnswersContext, useWallInProgressContext } from './contexts/quizPage';
-import { CollectionQueryItem, CollectionQueryResult } from './hooks/useCollectionResult';
-import { Clue, Question, Answer, FourByFourTextClue, WallQuestion, Four } from './models';
+import { CollectionQueryItem } from './hooks/useCollectionResult';
+import { Clue, Question, FourByFourTextClue, WallQuestion, Four } from './models';
 import { submitAnswer, submitWallAnswer } from './models/answer';
 import styles from './AnswerSubmitBox.module.css';
 import { GenericErrorBoundary } from './GenericErrorBoundary';
-
-function attemptsRemaining(
-    clueItem: CollectionQueryItem<Clue>|undefined,
-    questionItem: CollectionQueryItem<Question>|undefined,
-    answersResult: CollectionQueryResult<Answer>,
-    teamId: string,
-): { attemptsRemainingForClue: number|null; attemptsRemainingForQuestion: number|null; } {
-    let attemptsRemainingForClue: number|null = 0;
-    let attemptsRemainingForQuestion: number|null = 0;
-    if (answersResult.data) {
-        if (questionItem?.data.answerLimit) {
-            const answersForQuestion = answersResult.data.filter((answer) => answer.data.questionId === questionItem.id && answer.data.teamId === teamId);
-            attemptsRemainingForQuestion = questionItem.data.answerLimit - answersForQuestion.length;
-        } else {
-            attemptsRemainingForQuestion = null;
-        }
-        if (clueItem?.data.answerLimit) {
-            const answersForClue = answersResult.data.filter((answer) => answer.data.clueId === clueItem.id && answer.data.teamId === teamId);
-            attemptsRemainingForClue = clueItem.data.answerLimit - answersForClue.length;
-        } else {
-            attemptsRemainingForClue = null;
-        }
-    }
-    return { attemptsRemainingForClue, attemptsRemainingForQuestion };
-}
-
-function hasAnsweredQuestionCorrectly(
-    questionItem: CollectionQueryItem<Question>|undefined,
-    answersResult: CollectionQueryResult<Answer>,
-    teamId: string,
-): boolean {
-    if (!questionItem || !answersResult.data) {
-        return false;
-    }
-    return answersResult.data.some((answer) =>
-        answer.data.questionId === questionItem.id &&
-        answer.data.teamId === teamId &&
-        answer.data.type === 'simple' &&
-        answer.data.correct === true
-    );
-}
+import { attemptsRemaining, hasAnsweredQuestionCorrectly } from './answerAttemptsCalculator';
 
 interface AnswerSubmitBoxProps {
     teamId: string;
