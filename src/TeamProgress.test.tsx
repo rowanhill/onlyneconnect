@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { AnswersContext, TeamsContext, WallInProgressContext } from './contexts/quizPage';
 import { CollectionQueryData, CollectionQueryItem } from './hooks/useCollectionResult';
 import { Question, Clue, WallInProgress, Team, Answer, FourByFourTextClue } from './models';
@@ -95,7 +95,7 @@ describe('<TeamProgress />', () => {
             }
             const { getByText } = render(<TeamProgressWithContext answers={answersData} />);
 
-            expect(getByText(new RegExp(`${3 - numAnsweringTeams} out of 3 teams with attempts remaining`))).toBeVisible();
+            expect(getByText(new RegExp(`${3 - numAnsweringTeams} out of 3 teams with attempts remaining`))).toBeInTheDocument();
         });
     });
 
@@ -139,7 +139,7 @@ describe('<TeamProgress />', () => {
             it('renders the number of teams who have not yet submitted and the number of teams with attempts remaining', () => {
                 const { getByText } = render(<TeamProgressWithContext />);
 
-                expect(getByText(new RegExp(`${3 - numSubmitted} out of 3 teams yet to guess, and ${3 - numSubmittedAll} out of 3 teams with attempts remaining`))).toBeVisible();
+                expect(getByText(new RegExp(`${3 - numSubmitted} out of 3 teams yet to guess, and ${3 - numSubmittedAll} out of 3 teams with attempts remaining`))).toBeInTheDocument();
             });
         });
     });
@@ -157,6 +157,8 @@ describe('<TeamProgress />', () => {
                 defaults.wipByTeamByClue = { 'clue-id': {} };
             });
 
+            const getRowText = (title: string) => within(screen.getByText(title).closest('tr')!).getAllByRole('cell').map((node) => node.textContent);
+
             it.each([
                 [0, 0, 0],
                 [0, 1, 2],
@@ -172,33 +174,38 @@ describe('<TeamProgress />', () => {
                     }
                     defaults.wipByTeamByClue!['clue-id'][`team-${i}-id`] = {
                         data: {
-                            correctGroups
+                            correctGroups,
+                            remainingLives: 3,
                         }
                     } as CollectionQueryItem<WallInProgress>;
                     expected[numGroups] = expected[numGroups] + 1;
                     i++;
                 }
             
-                const { getByText } = render(<TeamProgressWithContext />);
+                render(<TeamProgressWithContext />);
     
-                expect(getByText(/Team breakdown by number of found groups \(0-4\):/)).toBeVisible();
-                expect(getByText(new RegExp(`\\[${expected[0]}\\D*,\\D*${expected[1]}\\D*,\\D*${expected[2]}\\D*,\\D*${expected[3]}\\D*,\\D*${expected[4]}\\]`))).toBeVisible();
+                expect(getRowText('No groups')).toEqual([expected[0].toString(), '0', expected[0].toString()]);
+                expect(getRowText('One group')).toEqual([expected[1].toString(), '0', expected[1].toString()]);
+                expect(getRowText('Two groups')).toEqual([expected[2].toString(), '0', expected[2].toString()]);
+                expect(getRowText('Three groups')).toEqual([expected[3].toString(), '0', expected[3].toString()]);
+                expect(getRowText('Four groups')).toEqual([expected[4].toString(), '0', expected[4].toString()]);
             });
     
             it.each([
                 [0], [1], [2], [3]
-            ])('displays the count of %i teams with frozen walls', (numFrozen) => {
+            ])('displays a breakdown when %i teams with frozen walls', (numFrozen) => {
                 for (let i = 0; i < 3; i++) {
                     defaults.wipByTeamByClue!['clue-id'][`team-${i + 1}-id`] = {
                         data: {
+                            correctGroups: ['dummy group 1', 'dummy group 2'] as any,
                             remainingLives: i < numFrozen ? 0 : 3,
                         }
                     } as CollectionQueryItem<WallInProgress>;
                 }
     
-                const { getByText } = render(<TeamProgressWithContext />);
+                render(<TeamProgressWithContext />);
     
-                expect(getByText(new RegExp(`There are ${numFrozen} teams with frozen walls out of 3 teams`))).toBeVisible();
+                expect(getRowText('Two groups')).toEqual([(3 - numFrozen).toString(), numFrozen.toString(), '3']);
             });
         });
 
@@ -227,7 +234,7 @@ describe('<TeamProgress />', () => {
 
                 const { getByText } = render(<TeamProgressWithContext answers={answersData} />);
 
-                expect(getByText(new RegExp(`There are ${numTeamsToSubmit} out of 3 teams yet to submit an answer`))).toBeVisible();
+                expect(getByText(new RegExp(`There are ${numTeamsToSubmit} out of 3 teams yet to submit an answer`))).toBeInTheDocument();
             });
         });
     });

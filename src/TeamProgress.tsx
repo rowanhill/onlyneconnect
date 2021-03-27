@@ -31,7 +31,7 @@ export const TeamProgress = ({ currentQuestionItem, currentClueItem }: TeamProgr
 
     return (
         <GenericErrorBoundary>
-            <Card>
+            <Card title="Progress">
                 <TeamProgressInner
                     currentQuestionItem={currentQuestionItem}
                     currentClueItem={currentClueItem}
@@ -113,27 +113,51 @@ const TeamProgressWall = ({ clueItem, teamsData }: { clueItem: CollectionQueryIt
         if (!wipByTeam) {
             return (<p>No in-progress wall data for this question.</p>);
         }
-        const countsForFoundGroups = [0, 0, 0, 0, 0];
-        let frozenCount = 0;
+        const progressByFoundGroups = [
+            { numGroupsFound: 0, title: 'No groups', unfrozen: 0, frozen: 0 },
+            { numGroupsFound: 1, title: 'One group', unfrozen: 0, frozen: 0 },
+            { numGroupsFound: 2, title: 'Two groups', unfrozen: 0, frozen: 0 },
+            { numGroupsFound: 3, title: 'Three groups', unfrozen: 0, frozen: 0 },
+            { numGroupsFound: 4, title: 'Four groups', unfrozen: 0, frozen: 0 },
+        ];
+        let totalWithWip = 0;
         for (const team of teamsData) {
             const wip = wipByTeam[team.id];
             if (wip) {
+                totalWithWip += 1;
                 const numFoundGroups = wip.data.correctGroups?.length || 0;
-                countsForFoundGroups[numFoundGroups] = countsForFoundGroups[numFoundGroups] + 1;
                 if (wip.data.remainingLives === 0) {
-                    frozenCount++;
+                    progressByFoundGroups[numFoundGroups].frozen = progressByFoundGroups[numFoundGroups].frozen + 1;
+                } else {
+                    progressByFoundGroups[numFoundGroups].unfrozen = progressByFoundGroups[numFoundGroups].unfrozen + 1;
                 }
             }
         }
         // Include teams without a WIP as having zero found groups
-        countsForFoundGroups[0] = teamsData.length - countsForFoundGroups[1] - countsForFoundGroups[2] - countsForFoundGroups[3] - countsForFoundGroups[4];
+        progressByFoundGroups[0].unfrozen = progressByFoundGroups[0].unfrozen + (teamsData.length - totalWithWip);
 
-        return (<p>
-            Team breakdown by number of found groups (0-4):
-            [{countsForFoundGroups[0]}, {countsForFoundGroups[1]},
-            {countsForFoundGroups[2]}, {countsForFoundGroups[3]}, {countsForFoundGroups[4]}].
-            There are {frozenCount} teams with frozen walls out of {teamsData.length} teams.
-        </p>);
+        return (
+        <table>
+            <thead>
+                <tr>
+                    <th>Groups found</th>
+                    <th>Teams (unfrozen)</th>
+                    <th>Teams (frozen)</th>
+                    <th>Teams (total)</th>
+                </tr>
+            </thead>
+            <tbody>
+            {progressByFoundGroups.map((row) =>
+                <tr key={row.numGroupsFound}>
+                    <th>{row.title}</th>
+                    <td>{row.unfrozen}</td>
+                    <td>{row.frozen}</td>
+                    <td>{row.frozen + row.unfrozen}</td>
+                </tr>
+            )}
+            </tbody>
+        </table>
+        );
     } else {
         if (!answersResult.data) {
             return (<p>Answer data not loaded.</p>);
