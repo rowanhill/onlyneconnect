@@ -1,5 +1,5 @@
 import { MissingVowelsQuestionSpec } from '../../src/models/quiz';
-import { submittedAnswer } from '../pages/quizPage';
+import { markAnswerCorrectButton, markAnswerIncorrectButton } from '../pages/quizPage';
 import { CreateMissingVowelsOrWallQuestionResult } from '../plugins';
 
 describe('Marking a missing vowels question', () => {
@@ -78,18 +78,18 @@ describe('Marking a missing vowels question', () => {
 
         cy.get('@firstAnswerId').then((answerId) => {
             // Can mark either correct or incorrect at first
-            submittedAnswer(answerId).contains('✔️').should('not.be.disabled');
-            submittedAnswer(answerId).contains('❌').should('not.be.disabled');
+            markAnswerCorrectButton(answerId).should('not.be.disabled');
+            markAnswerIncorrectButton(answerId).should('not.be.disabled');
 
             // Mark correct - then can only mark incorrect
-            submittedAnswer(answerId).contains('✔️').click();
-            submittedAnswer(answerId).contains('✔️').should('be.disabled');
-            submittedAnswer(answerId).contains('❌').should('not.be.disabled');
+            markAnswerCorrectButton(answerId).should('not.be.disabled').click();
+            markAnswerCorrectButton(answerId).should('be.disabled');
+            markAnswerIncorrectButton(answerId).should('not.be.disabled');
 
             // Mark incorrect - then can only mark correct
-            submittedAnswer(answerId).contains('❌').click();
-            submittedAnswer(answerId).contains('❌').should('be.disabled');
-            submittedAnswer(answerId).contains('✔️').should('not.be.disabled');
+            markAnswerIncorrectButton(answerId).should('not.be.disabled').click();
+            markAnswerIncorrectButton(answerId).should('be.disabled');
+            markAnswerCorrectButton(answerId).should('not.be.disabled');
         });
 
         // Team captains submit more answers
@@ -98,39 +98,39 @@ describe('Marking a missing vowels question', () => {
 
         // Second answer can be marked, but third answer can only be marked incorrect (until second question is marked)
         cy.get('@secondAnswerId').then((answerId) => {
-            submittedAnswer(answerId).contains('✔️').should('not.be.disabled');
-            submittedAnswer(answerId).contains('❌').should('not.be.disabled');
+            markAnswerCorrectButton(answerId).should('not.be.disabled');
+            markAnswerIncorrectButton(answerId).should('not.be.disabled');
         });
         cy.get('@thirdAnswerId').then((answerId) => {
-            submittedAnswer(answerId).contains('✔️').should('be.disabled');
-            submittedAnswer(answerId).contains('❌').should('not.be.disabled');
+            markAnswerCorrectButton(answerId).should('be.disabled');
+            markAnswerIncorrectButton(answerId).should('not.be.disabled');
         });
 
         // When first answer is marked correct, second answer buttons go away (as this team has answered correctly)
         cy.get('@firstAnswerId').then((answerId) => {
-            submittedAnswer(answerId).contains('✔️').click();
+            markAnswerCorrectButton(answerId).should('not.be.disabled').click();
         });
         cy.get('@secondAnswerId').then((answerId) => {
-            submittedAnswer(answerId).contains('✔️').should('not.exist');
-            submittedAnswer(answerId).contains('❌').should('not.exist');
+            markAnswerCorrectButton(answerId).should('not.exist');
+            markAnswerIncorrectButton(answerId).should('not.exist');
         });
 
         // When first answer is marked incorrect and second answer correct, first answer buttons go away
         cy.get('@firstAnswerId').then((answerId) => {
-            submittedAnswer(answerId).contains('❌').click();
+            markAnswerIncorrectButton(answerId).should('not.be.disabled').click();
         });
         cy.get('@secondAnswerId').then((answerId) => {
-            submittedAnswer(answerId).contains('✔️').click();
+            markAnswerCorrectButton(answerId).should('not.be.disabled').click();
         });
         cy.get('@firstAnswerId').then((answerId) => {
-            submittedAnswer(answerId).contains('✔️').should('not.exist');
-            submittedAnswer(answerId).contains('❌').should('not.exist');
+            markAnswerCorrectButton(answerId).should('not.exist');
+            markAnswerIncorrectButton(answerId).should('not.exist');
         });
 
         // Third answer can now be marked (because second answer has been marked)
         cy.get('@thirdAnswerId').then((answerId) => {
-            submittedAnswer(answerId).contains('✔️').should('not.be.disabled');
-            submittedAnswer(answerId).contains('❌').should('not.be.disabled');
+            markAnswerCorrectButton(answerId).should('not.be.disabled');
+            markAnswerIncorrectButton(answerId).should('not.be.disabled');
         });
     });
 });

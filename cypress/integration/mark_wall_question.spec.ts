@@ -1,5 +1,5 @@
 import { WallQuestionSpec } from '../../src/models/quiz';
-import { submittedAnswer, submittedAnswerConnection } from '../pages/quizPage';
+import { markAnswerConnectionCorrectButton, markAnswerConnectionIncorrectButton, submittedAnswer, submittedAnswerSelector } from '../pages/quizPage';
 import { CreateMissingVowelsOrWallQuestionResult } from '../plugins';
 
 describe('Marking a wall question', () => {
@@ -72,33 +72,33 @@ describe('Marking a wall question', () => {
             submittedAnswer(answerId).contains('Found 4 group(s)').should('exist');
 
             // Can mark either correct or incorrect at first
-            submittedAnswerConnection(answerId, 0).contains('✔️').should('not.be.disabled');
-            submittedAnswerConnection(answerId, 0).contains('❌').should('not.be.disabled');
+            markAnswerConnectionCorrectButton(answerId, 0).should('not.be.disabled');
+            markAnswerConnectionIncorrectButton(answerId, 0).should('not.be.disabled');
 
             // Mark correct - then can only mark incorrect
-            submittedAnswerConnection(answerId, 0).contains('✔️').click();
-            submittedAnswerConnection(answerId, 0).contains('✔️').should('be.disabled');
-            submittedAnswerConnection(answerId, 0).contains('❌').should('not.be.disabled');
+            markAnswerConnectionCorrectButton(answerId, 0).should('not.be.disabled').click();
+            markAnswerConnectionCorrectButton(answerId, 0).should('be.disabled');
+            markAnswerConnectionIncorrectButton(answerId, 0).should('not.be.disabled');
 
             // Mark incorrect - then can only mark correct
-            submittedAnswerConnection(answerId, 0).contains('❌').click();
-            submittedAnswerConnection(answerId, 0).contains('❌').should('be.disabled');
-            submittedAnswerConnection(answerId, 0).contains('✔️').should('not.be.disabled');
+            markAnswerConnectionIncorrectButton(answerId, 0).should('not.be.disabled').click();
+            markAnswerConnectionIncorrectButton(answerId, 0).should('be.disabled');
+            markAnswerConnectionCorrectButton(answerId, 0).should('not.be.disabled');
 
             // With first connection marked incorrect, have 4 points from found groups
-            submittedAnswer(answerId).contains('Total: 4').should('exist');
+            cy.contains(submittedAnswerSelector(answerId), 'Total: 4').should('exist');
 
             // Mark connections 2-4 correct
-            submittedAnswerConnection(answerId, 1).contains('✔️').click();
-            submittedAnswerConnection(answerId, 2).contains('✔️').click();
-            submittedAnswerConnection(answerId, 3).contains('✔️').click();
+            markAnswerConnectionCorrectButton(answerId, 1).should('not.be.disabled').click();
+            markAnswerConnectionCorrectButton(answerId, 2).should('not.be.disabled').click();
+            markAnswerConnectionCorrectButton(answerId, 3).should('not.be.disabled').click();
 
             // Now have 7 points from found groups and correct answers
-            submittedAnswer(answerId).contains('Total: 7').should('exist');
+            cy.contains(submittedAnswerSelector(answerId), 'Total: 7').should('exist');
 
             // Mark connection 1 correct awards 2 bonus points for total of 10
-            submittedAnswerConnection(answerId, 0).contains('✔️').click();
-            submittedAnswer(answerId).contains('Total: 10').should('exist');
+            markAnswerConnectionCorrectButton(answerId, 0).should('not.be.disabled').click();
+            cy.contains(submittedAnswerSelector(answerId), 'Total: 10').should('exist');
         });
     });
 });
