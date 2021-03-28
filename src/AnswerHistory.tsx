@@ -165,7 +165,7 @@ export const AnswersForQuestion = (props: AnswersForQuestionProps) => {
     };
 
     const answerInfoPropsGroupedByClue = props.questionAnswersGroupedByClue.map((questionAnswers) => {
-        const answerInfoProps = questionAnswers.answers.map((answerItem) => {
+        const markableAnswerPropsList = questionAnswers.answers.map((answerItem): MarkableAnswerProps => {
             const clue = props.cluesById[answerItem.data.clueId];
             const valid = clue && answerIsValid(answerItem.data, clue.data);
     
@@ -179,42 +179,40 @@ export const AnswersForQuestion = (props: AnswersForQuestionProps) => {
             const buttonsAreVisible = props.isQuizOwner && valid && !allQuestionAnswers
                 .some((a) => a.data.correct === true && a.data.teamId === answerItem.data.teamId && a.id !== answerItem.id);
             return {
-                answerInfo: {
+                answer: {
                     id: answerItem.id,
                     text: answerItem.data.text,
                     isValid: valid,
                     points: answerItem.data.points,
                     teamName: props.teamNamesById[answerItem.data.teamId],
                 },
-                rest: {
-                    canBeMarkedCorrect,
-                    canBeMarkedIncorrect,
-                    buttonsAreVisible
-                },
-                clueIndex,
-            }
+                canBeMarkedCorrect,
+                canBeMarkedIncorrect,
+                buttonsAreVisible,
+                cySuffix: answerItem.id,
+                isQuizOwner: props.isQuizOwner,
+                markCorrect: () => markCorrect(answerItem.id, clueIndex),
+                markIncorrect: () => markIncorrect(answerItem.id, clueIndex),
+            };
         });
-        return { answerInfoProps, clueId: questionAnswers.clueId };
+        return { markableAnswerPropsList, clueId: questionAnswers.clueId };
     });
+
+    const nonEmptyClueGroups = answerInfoPropsGroupedByClue.filter((group) => group.markableAnswerPropsList.length > 0);
+    const clueGroupClassName = props.isQuizOwner ? styles.clueAnswerGroup : undefined;
 
     return (
         <div>
             <h3>Question {props.questionNumber}</h3>
-            {answerInfoPropsGroupedByClue.map((clueGroup) => (
-                clueGroup.answerInfoProps.length === 0 ?
-                    null :
-                    <div key={clueGroup.clueId} className={props.isQuizOwner ? styles.clueAnswerGroup : undefined}>
-                        {clueGroup.answerInfoProps.map((infoProps) => (
-                            <AnswerInfo
-                                key={infoProps.answerInfo.id}
-                                answer={infoProps.answerInfo}
-                                {...infoProps.rest}
-                                isQuizOwner={props.isQuizOwner}
-                                markCorrect={() => markCorrect(infoProps.answerInfo.id, infoProps.clueIndex)}
-                                markIncorrect={() => markIncorrect(infoProps.answerInfo.id, infoProps.clueIndex)}
-                            />
-                        ))}
-                    </div>
+            {nonEmptyClueGroups.map((clueGroup) => (
+                <div key={clueGroup.clueId} className={clueGroupClassName}>
+                    {clueGroup.markableAnswerPropsList.map((markableAnswerProps) => (
+                        <MarkableAnswer
+                            key={markableAnswerProps.cySuffix}
+                            {...markableAnswerProps}
+                         />
+                    ))}
+                </div>
             ))}
         </div>
     );
@@ -287,7 +285,7 @@ const AnswerForWallQuestion = (props: AnswerForWallQuestionProps) => {
         <div data-cy={`submitted-answer-${props.answer.id}`}>
             <h4>{teamName}</h4>
             <ConnectionsFound wallInProgress={wallInProgress} />
-            <AnswerInfosForWallAnswer
+            <MarkableAnswersForWallAnswerGroup
                 answer={props.answer}
                 wallInProgress={wallInProgress}
                 valid={valid}
@@ -312,7 +310,7 @@ const ConnectionsFound = (props: ConnectionsFoundProps) => {
     return <div>Found {props.wallInProgress.data.correctGroups.length} group(s)</div>;
 };
 
-interface AnswerInfosForWallAnswerProps {
+interface MarkableAnswersForWallAnswerGroupProps {
     answer: CollectionQueryItem<WallAnswer>;
     wallInProgress: CollectionQueryItem<WallInProgress> | undefined;
     valid: boolean;
@@ -320,36 +318,32 @@ interface AnswerInfosForWallAnswerProps {
     markCorrect: (connectionIndex: number) => void;
     markIncorrect: (connectionIndex: number) => void;
 }
-const AnswerInfosForWallAnswer = (props: AnswerInfosForWallAnswerProps) => {
-    const answerInfoPropObjs = props.answer.data.connections.map((connection, i) => {
-        const infoProps = {
+const MarkableAnswersForWallAnswerGroup = (props: MarkableAnswersForWallAnswerGroupProps) => {
+    const markableAnswerPropsList = props.answer.data.connections.map((connection, i) => {
+        const infoProps: MarkableAnswerProps = {
             answer: {
                 id: props.answer.id,
                 text: connection.text,
                 isValid: props.valid,
-            } as AnswerInfoProps['answer'],
-            connectionIndex: i,
+                points: connection.correct === true ? 1 : (connection.correct === false ? 0 : undefined),
+            },
+            cySuffix: `${props.answer.id}-connection-${i}`,
             canBeMarkedCorrect: connection.correct !== true && props.wallInProgress !== undefined,
             canBeMarkedIncorrect: connection.correct !== false && props.wallInProgress !== undefined,
             buttonsAreVisible: props.isQuizOwner && props.valid && props.wallInProgress !== undefined,
+            isQuizOwner: props.isQuizOwner,
+            markCorrect: () => props.markCorrect(i),
+            markIncorrect: () => props.markIncorrect(i),
         };
-        if (connection.correct === true) {
-            infoProps.answer!.points = 1;
-        } else if (connection.correct === false) {
-            infoProps.answer!.points = 0;
-        }
         return infoProps;
     });
 
     return (
         <>
-            {answerInfoPropObjs.map((answerInfoProps, i) =>
-                <AnswerInfo
-                    key={i}
-                    {...answerInfoProps}
-                    isQuizOwner={props.isQuizOwner}
-                    markCorrect={() => props.markCorrect(i)}
-                    markIncorrect={() => props.markIncorrect(i)}
+            {markableAnswerPropsList.map((markableAnswerProps) =>
+                <MarkableAnswer
+                    key={markableAnswerProps.cySuffix}
+                    {...markableAnswerProps}
                 />
             )}
             Total: {props.answer.data.points || 0}
@@ -357,7 +351,7 @@ const AnswerInfosForWallAnswer = (props: AnswerInfosForWallAnswerProps) => {
     );
 };
 
-interface AnswerInfoProps {
+interface MarkableAnswerProps {
     answer: {
         id: string;
         text: string;
@@ -365,7 +359,7 @@ interface AnswerInfoProps {
         points?: number;
         teamName?: string;
     };
-    connectionIndex?: number;
+    cySuffix: string;
     isQuizOwner: boolean;
     buttonsAreVisible: boolean;
     canBeMarkedCorrect: boolean;
@@ -373,12 +367,11 @@ interface AnswerInfoProps {
     markCorrect: () => void;
     markIncorrect: () => void;
 }
-const AnswerInfo = (props: AnswerInfoProps) => {
+const MarkableAnswer = (props: MarkableAnswerProps) => {
     return (
         <div
-            key={props.answer.id}
             className={props.answer.isValid ? styles.answer : styles.invalidAnswer}
-            data-cy={props.connectionIndex !== undefined ? `submitted-answer-${props.answer.id}-connection-${props.connectionIndex}` : `submitted-answer-${props.answer.id}`}
+            data-cy={`submitted-answer-${props.cySuffix}`}
         >
             <div className={styles.answerInfo}>
                 {props.isQuizOwner && props.answer.teamName && <>{props.answer.teamName}:<br/></>}
