@@ -1,11 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import firebase from './firebase';
 import { useAuth } from './hooks/useAuth';
 import { useCollectionResult } from './hooks/useCollectionResult';
 import { Quiz } from './models';
 import { Page } from './Page';
-import { LinkButton, DangerButton } from './Button';
+import { LinkButton, DangerButton, FlashMessageButton } from './Button';
 import { GameExplanation } from './GameExplanation';
 
 export const Home = () => {
@@ -50,20 +50,16 @@ export const Home = () => {
 };
 
 const ResetButton = ({ quizId }: { quizId: string; }) => {
-    const [disabled, setDisabled] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
-    const successTimeout = useRef<number>();
-    const reset = (quizId: string) => {
+    const reset = () => {
         const resetQuiz = firebase.functions().httpsCallable('resetQuiz');
-        resetQuiz({ quizId })
-            .then(() => {
-                setDisabled(false);
-                setShowSuccess(true);
-                clearTimeout(successTimeout.current);
-                successTimeout.current = setTimeout(() => setShowSuccess(false), 1000) as unknown as number;
-            })
+        return resetQuiz({ quizId })
             .catch((e) => console.error('Error resetting quiz', e));
-        setDisabled(true);
     };
-    return <DangerButton disabled={disabled} onClick={() => reset(quizId)}>{showSuccess ? 'Done!' : 'Reset'}</DangerButton>;
+    return (
+        <FlashMessageButton
+            component={DangerButton}
+            performAction={reset}
+            labelTexts={{ normal: 'Reset', success: 'Done!', error: 'Error!' }}
+        />
+    );
 };

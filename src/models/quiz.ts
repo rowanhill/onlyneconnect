@@ -1,6 +1,6 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
-import { Clue, CompoundTextClue, ConnectionQuestion, ConnectionSecrets, Four, FourByFourTextClue, MissingVowelsQuestion, MissingVowelsSecrets, QuestionSecrets, SequenceQuestion, SequenceSecrets, Sixteen, TextClue, Three, throwBadQuestionType, WallQuestion, WallSecrets } from '.';
+import { Clue, CompoundTextClue, ConnectionQuestion, ConnectionSecrets, Four, FourByFourTextClue, MissingVowelsQuestion, MissingVowelsSecrets, QuestionSecrets, Quiz, SequenceQuestion, SequenceSecrets, Sixteen, TextClue, Three, throwBadQuestionType, WallQuestion, WallSecrets } from '.';
 
 export const createQuiz = (
     quizName: string,
@@ -12,21 +12,21 @@ export const createQuiz = (
     const secretsDoc = db.collection('quizSecrets').doc();
     batch.set(secretsDoc, { passcode });
     const quizDoc = db.doc(`quizzes/${secretsDoc.id}`);
-    batch.set(quizDoc, { name: quizName, ownerId, questionIds: [], currentQuestionId: null, isComplete: false });
+    batch.set<Quiz>(quizDoc as any, { name: quizName, ownerId, questionIds: [], currentQuestionId: null, isComplete: false, youTubeVideoId: null });
     return batch.commit().then(() => secretsDoc.id);
 };
 
 export interface TextClueSpec {
     id?: string;
     text: string;
-    answerLimit: number | null;
+    answerLimit: number;
     type: 'text';
 }
 
 export interface CompoundClueSpec {
     id?: string;
     texts: Four<string>;
-    answerLimit: number | null;
+    answerLimit: null;
     type: 'compound-text';
 }
 
@@ -40,7 +40,7 @@ export interface FourByFourTextClueSpec {
 
 export interface ConnectionQuestionSpec {
     id?: string;
-    answerLimit: number | null;
+    answerLimit: null;
     clues: Four<TextClueSpec>;
     connection: string;
     type: 'connection';
@@ -48,7 +48,7 @@ export interface ConnectionQuestionSpec {
 
 export interface SequenceQuestionSpec {
     id?: string;
-    answerLimit: number | null;
+    answerLimit: null;
     clues: Three<TextClueSpec>;
     connection: string;
     exampleLastInSequence: string;
@@ -64,7 +64,7 @@ export interface WallQuestionSpec {
 
 export interface MissingVowelsQuestionSpec {
     id?: string;
-    answerLimit: number | null;
+    answerLimit: number;
     clue: CompoundClueSpec;
     connection: string;
     type: 'missing-vowels';

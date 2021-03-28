@@ -1,4 +1,4 @@
-import React, { ChangeEvent, FormEvent, Fragment, useState } from 'react';
+import React, { ChangeEvent, Fragment, useState } from 'react';
 import { useDocumentData } from 'react-firebase-hooks/firestore';
 import { Link } from 'react-router-dom';
 import firebase from './firebase';
@@ -8,7 +8,7 @@ import { CollectionQueryData, CollectionQueryItem, useCollectionResult } from '.
 import { Clue, ConnectionSecrets, Four, MissingVowelsSecrets, Question, QuestionSecrets, Quiz, QuizSecrets, SequenceSecrets, Three, throwBadClueType, throwBadQuestionType, WallSecrets } from './models';
 import { Page } from './Page';
 import { Card } from './Card';
-import { PrimaryButton } from './Button';
+import { DangerButton, FlashMessageButton, PrimaryButton } from './Button';
 import styles from './QuizEditPage.module.css';
 import formStyles from './form.module.css';
 import {
@@ -17,6 +17,7 @@ import {
     FourByFourTextClueSpec,
     MissingVowelsQuestionSpec, SequenceQuestionSpec, TextClueSpec, WallQuestionSpec,
 } from './models/quiz';
+import { CopyableText } from './CopyableText';
 
 interface QuizEditPageProps {
     quizId: string;
@@ -89,31 +90,27 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
     const [name, setName] = useState(quiz.name);
     const [passcode, setPasscode] = useState(secrets.passcode);
     const [youTubeVideoId, setYouTubeVideoId] = useState(quiz.youTubeVideoId);
-    const [isSubmittingQuiz, setIsSubmittingQuiz] = useState(false);
-    const [isSubmittingSecrets, setIsSubmittingSecrets] = useState(false);
     const [newQuestion, setNewQuestion] = useState<QuestionSpec|null>(null);
     const [expandedQuestions, setExpandedQuestions] = useState<{ [questionId: string]: true }>({});
 
-    const submit = (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    const submit = () => {
+        const promises = [];
         if (passcode !== secrets.passcode) {
-            firebase.firestore().doc(`quizSecrets/${quizId}`)
+            const promise = firebase.firestore().doc(`quizSecrets/${quizId}`)
                 .update({ passcode })
-                .catch((error) => console.error('Error updating quiz secrets:', error))
-                .finally(() => setIsSubmittingSecrets(false));
-            setIsSubmittingSecrets(true);
+                .catch((error) => console.error('Error updating quiz secrets:', error));
+            promises.push(promise);
         }
         if (name !== quiz.name || youTubeVideoId !== quiz.youTubeVideoId) {
-            firebase.firestore().doc(`quizzes/${quizId}`)
+            const promise = firebase.firestore().doc(`quizzes/${quizId}`)
                 .update({ name, youTubeVideoId })
-                .catch((error) => console.error('Error updating quiz:', error))
-                .finally(() => setIsSubmittingQuiz(false));
-            setIsSubmittingQuiz(true);
+                .catch((error) => console.error('Error updating quiz:', error));
+            promises.push(promise);
         }
+        return Promise.all(promises);
     };
 
-    const addNewConnectionQuestion = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault();
+    const addNewConnectionQuestion = () => {
         setNewQuestion({
             type: 'connection',
             answerLimit: null,
@@ -126,8 +123,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
             ],
         });
     };
-    const addNewSequenceQuestion = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault();
+    const addNewSequenceQuestion = () => {
         setNewQuestion({
             type: 'sequence',
             answerLimit: null,
@@ -140,8 +136,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
             ],
         });
     };
-    const addNewWallQuestion = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault();
+    const addNewWallQuestion = () => {
         setNewQuestion({
             type: 'wall',
             answerLimit: null,
@@ -158,8 +153,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
             },
         });
     }
-    const addNewMissingVowelsQuestion = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault();
+    const addNewMissingVowelsQuestion = () => {
         setNewQuestion({
             type: 'missing-vowels',
             answerLimit: 5,
@@ -167,8 +161,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
             clue: { texts: ['', '', '', ''], answerLimit: null, type: 'compound-text' },
         });
     };
-    const clearNewQuestion = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.preventDefault();
+    const clearNewQuestion = () => {
         setNewQuestion(null);
     };
     const saveNewQuestion = (question: QuestionSpec) => {
@@ -187,7 +180,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
             default:
                 throwBadQuestionType(question);
         }
-        promise
+        return promise
             .then(() => setNewQuestion(null))
             .catch((error) => console.error('Failed to create question', error));
     };
@@ -230,7 +223,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
             }
             batch.update(db.doc(`quizzes/${quizId}/clues/${clue.id}`), clue);
         }
-        batch.commit()
+        return batch.commit()
             .catch((error) => console.error('Failed to update question', error));
     };
     const deleteQuestion = (questionSpec: QuestionSpec) => {
@@ -451,26 +444,26 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
 
     return (
         <>
-        <p>Invite people to create teams at {joinQuizUrl.href} or <Link to={`/quiz/${quizId}`}>click here</Link> to play.</p>
-        <form onSubmit={submit}>
+        <p>Invite team captains to your quiz with this link: <CopyableText value={joinQuizUrl.href} /></p>
+        <p><Link to={`/quiz/${quizId}`}>Click here</Link> to play.</p>
             <Card>
-                <p>
+                <div>
                     <h4 className={formStyles.fieldTitle}><label>Quiz title</label></h4>
                     <input type="text" value={name} onChange={createChangeHandler(setName)} />
                     <p className={formStyles.fieldDescription}>The quiz name is the title your quiz will have. All players will be able to see this name.</p>
-                </p>
-                <p>
+                </div>
+                <div>
                     <h4 className={formStyles.fieldTitle}><label>Quiz passcode</label></h4>
                     <input type="text" value={passcode} onChange={createChangeHandler(setPasscode)} />
                     <p className={formStyles.fieldDescription}>The passcode is a secret phrase people must enter to create a team.</p>
-                </p>
-                <p>
+                </div>
+                <div>
                     <h4 className={formStyles.fieldTitle}><label>YouTube video ID</label></h4>
                     <input type="text" value={youTubeVideoId || ''} onChange={createNullingChangeHandler(setYouTubeVideoId)} />
                     <p className={formStyles.fieldDescription}>Optional. The ID of a YouTube live stream video of the host.</p>
-                </p>
+                </div>
                 <p>
-                    <PrimaryButton disabled={isSubmittingQuiz || isSubmittingSecrets}>Save</PrimaryButton>
+                    <FlashMessageButton performAction={submit} labelTexts={{ normal: 'Save', success: 'Saved!', error: 'Error!' }} />
                 </p>
             </Card>
             <div>
@@ -512,7 +505,6 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
                     </>
                 }
             </div>
-        </form>
         </>
     );
 };
@@ -530,24 +522,27 @@ const CollapsedQuestion = ({ question, questionNumber, moveUp, moveDown, expand 
             <h3>
                 Question {questionNumber}{' '}
                 {moveUp && <PrimaryButton onClick={moveUp}>⬆️</PrimaryButton>}{' '}
-                {moveDown && <PrimaryButton onClick={moveDown}>⬇️</PrimaryButton>}{' '}
-                <PrimaryButton onClick={expand}>➕</PrimaryButton>
+                {moveDown && <PrimaryButton onClick={moveDown}>⬇️</PrimaryButton>}
             </h3>
-            <p>
-                {clueTextSummary(question)}
-            </p>
+            <p className={styles.questionType}><QuestionTypeName question={question} /></p>
+            <p>{clueTextSummary(question)}</p>
+            <p><PrimaryButton onClick={expand}>Edit</PrimaryButton></p>
         </Card>
     );
 };
 const clueTextSummary = (question: QuestionSpec) => {
     switch (question.type) {
         case 'connection':
+            return `${question.connection}: ${question.clues.map((c) => c.text).join(' | ')}`;
         case 'sequence':
-            return question.clues.map((c) => c.text).join(' | ');
+            return `${question.connection}: ${question.clues.map((c) => c.text).join(' | ')} | (${question.exampleLastInSequence})`;
         case 'wall':
-            return question.clue.solution.map((group) => group.texts.join(' | ')).join(' // ');
+            return [0, 1, 2, 3].flatMap((i) => [
+                `${question.clue.connections[i]}: ${question.clue.solution[i].texts.join(' | ')}`,
+                <br key={i} />
+            ]);
         case 'missing-vowels':
-            return question.clue.texts.join(' | ');
+            return `${question.connection}: ${question.clue.texts.join(' | ')}`;
         default:
             throwBadQuestionType(question);
     }
@@ -556,8 +551,8 @@ const clueTextSummary = (question: QuestionSpec) => {
 interface QuestionFormProps {
     initialQuestion: QuestionSpec;
     questionNumber: number;
-    save?: (question: QuestionSpec) => void;
-    remove: (e: React.MouseEvent<HTMLButtonElement>) => void;
+    save?: (question: QuestionSpec) => Promise<void>;
+    remove: () => void;
     moveUp?: () => void;
     moveDown?: () => void;
     collapse?: () => void;
@@ -565,6 +560,12 @@ interface QuestionFormProps {
 const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, moveDown, collapse }: QuestionFormProps) => {
     const [question, setQuestion] = useState(initialQuestion);
     const [isValid, setIsValid] = useState(true);
+    const removeIfConfirmed = () => {
+        const shouldRemove = window.confirm('Delete this question?');
+        if (shouldRemove) {
+            remove();
+        }
+    }
     const changeTextClue = (clueIndex: number, clue: TextClueSpec) => {
         if (question.type !== 'connection' && question.type !== 'sequence') {
             throw new Error(`Tried to update a text clue, but parent question is of type ${question.type}`);
@@ -630,41 +631,58 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
             <h3>
                 Question {questionNumber}{' '}
                 {moveUp && <PrimaryButton onClick={moveUp}>⬆️</PrimaryButton>}{' '}
-                {moveDown && <PrimaryButton onClick={moveDown}>⬇️</PrimaryButton>}{' '}
-                {save && <PrimaryButton onClick={() => save(question)} disabled={!isValid}>✔️</PrimaryButton>}{' '}
-                <PrimaryButton onClick={remove}>❌</PrimaryButton>{' '}
-                {collapse && <PrimaryButton onClick={collapse}>➖</PrimaryButton>}
+                {moveDown && <PrimaryButton onClick={moveDown}>⬇️</PrimaryButton>}
             </h3>
-            <p className={styles.row}>
-                <label>Question type</label>
-                <span>
-                    <QuestionTypeName question={question} />
-                </span>
-            </p>
+            <p className={styles.questionType}><QuestionTypeName question={question} /></p>
+            {question.type === 'missing-vowels' &&
+                <p className={styles.row}>
+                    <label>Question answer limit</label>
+                    <input type="number" value={question.answerLimit || ''} placeholder="No limit" onChange={changeAnswerLimit} />
+                </p>
+            }
             {question.type !== 'wall' &&
-            <>
-            <p className={styles.row}>
-                <label>Question answer limit</label>
-                <input type="number" value={question.answerLimit || ''} placeholder="No limit" onChange={changeAnswerLimit} />
-            </p>
-            <p className={styles.row}>
-                <label>Connection</label>
-                <input type="text" value={question.connection} onChange={changeConnection} />
-            </p>
-            </>
+                <p className={styles.row}>
+                    <label>Connection</label>
+                    <input type="text" value={question.connection} onChange={changeConnection} />
+                </p>
             }
             <h4>Clues</h4>
             {getClues(question).map((clue, clueIndex) => (
                 getClueForm(clue, clueIndex)
             ))}
             {question.type === 'sequence' &&
-            <p className={styles.row}>
-                <label>Example last item in sequence</label>
-                <input type="text" value={question.exampleLastInSequence} onChange={changeExampleLastInSequence} />
-            </p>
+                <>
+                <h5>Example last in sequence</h5>
+                <p className={styles.row}>
+                    <label className={styles.cluePropLabel}>Example text</label>
+                    <input type="text" value={question.exampleLastInSequence} onChange={changeExampleLastInSequence} />
+                </p>
+                </>
             }
+            <SaveButton save={save} question={question} isValid={isValid} />{' '}
+            {collapse && <PrimaryButton onClick={collapse}>Cancel</PrimaryButton>}{' '}
+            <DangerButton onClick={removeIfConfirmed}>{question.id ? 'Delete' : 'Discard'}</DangerButton>
         </Card>
     );
+};
+
+const SaveButton = ({ save, question, isValid }: { save: QuestionFormProps['save']; question: QuestionSpec; isValid: boolean; }) => {
+    if (!save) {
+        return null;
+    }
+    return (
+        <FlashMessageButton component={PrimaryButton} performAction={() => save(question)} disabled={!isValid} render=
+            {({showSuccess, showError}) => {
+                if (showSuccess) {
+                    return <>{question.id ? 'Updated!' : 'Saved!'}</>;
+                } else if (showError) {
+                    return <>Error!</>;
+                } else {
+                    return <>{question.id ? 'Update' : 'Save'}</>;
+                }
+            }}
+        />
+    )
 };
 
 const QuestionTypeName = ({ question }: { question: QuestionSpec }) => {
@@ -717,12 +735,6 @@ const CompoundTextClueForm = ({ clue, onChange }: { clue: CompoundClueSpec; onCh
                 texts: clue.texts.map((oldText, i) => i === textIndex ? e.target.value : oldText) as Four<string>,
             });
         };
-    const changeAnswerLimit = (e: ChangeEvent<HTMLInputElement>) => {
-        onChange({
-            ...clue,
-            answerLimit: e.target.valueAsNumber,
-        });
-    };
     return (
         <>
         {clue.texts.map((text, i) =>
@@ -731,10 +743,6 @@ const CompoundTextClueForm = ({ clue, onChange }: { clue: CompoundClueSpec; onCh
                 <input type="text" value={text} onChange={changeText(i)} />
             </p>
         )}
-        <p className={styles.row + ' ' + styles.clueRow}>
-            <label className={styles.cluePropLabel}>Clue answer limit</label>
-            <input type="number" value={clue.answerLimit || ''} placeholder="No limit" onChange={changeAnswerLimit} />
-        </p>
         </>
     );
 };
@@ -766,9 +774,7 @@ const FourByFourClueForm = ({ clue, onChange }: { clue: FourByFourTextClueSpec; 
         <>
         {clue.solution.map((group, groupIndex) =>
             <Fragment key={groupIndex}>
-                <p className={styles.row}>
-                    <label className={styles.cluePropLabel}>Group {groupIndex + 1}:</label>
-                </p>
+                <h5>Group {groupIndex + 1}</h5>
                 <p className={styles.row}>
                     <label className={styles.cluePropLabel}>Connection</label>
                     <input type="text" value={clue.connections[groupIndex]} onChange={changeConnection(groupIndex)} />

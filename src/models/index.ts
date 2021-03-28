@@ -38,7 +38,7 @@ export interface ConnectionQuestion {
     clueIds: Four<string>;
     isRevealed: boolean;
     connection?: string;
-    answerLimit: number|null;
+    answerLimit: null;
     type: 'connection';
 }
 export interface SequenceQuestion {
@@ -46,7 +46,7 @@ export interface SequenceQuestion {
     isRevealed: boolean;
     connection?: string;
     exampleLastInSequence?: string;
-    answerLimit: number|null;
+    answerLimit: null;
     type: 'sequence';
 }
 export interface WallQuestion {
@@ -60,7 +60,7 @@ export interface MissingVowelsQuestion {
     clueId: string;
     isRevealed: boolean;
     connection?: string;
-    answerLimit: number|null;
+    answerLimit: number;
     type: 'missing-vowels';
 }
 export type Question = ConnectionQuestion | SequenceQuestion | WallQuestion | MissingVowelsQuestion;
@@ -99,7 +99,7 @@ export interface TextClue {
     questionId: string;
     isRevealed: boolean;
     text: string;
-    answerLimit: number|null;
+    answerLimit: number;
     revealedAt?: firebase.firestore.Timestamp;
     closedAt?: firebase.firestore.Timestamp;
 }
@@ -108,7 +108,7 @@ export interface CompoundTextClue {
     questionId: string;
     isRevealed: boolean;
     texts: Four<string>;
-    answerLimit: number|null;
+    answerLimit: null;
     revealedAt?: firebase.firestore.Timestamp;
     closedAt?: firebase.firestore.Timestamp;
 }

@@ -8,6 +8,13 @@ p.row label {
     width: 25%;
 }
 
+.questionType {
+    composes: subtleText from './colours.module.css';
+    margin-top: 0;
+    font-variant: small-caps;
+    font-size: 0.8em;
+}
+
 .cluePropLabel {
     composes: smallLeftPadding from './layout.module.css';
 }
