@@ -1,3 +1,21 @@
+.timers {
+    display: flex;
+    flex-direction: row;
+}
+
+.timerBlock {
+    width: 33%;
+    float: left;
+    text-align: center;
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+.timerTitle {
+    font-variant: small-caps;
+    font-size: 0.8em;
+}
+
 .time {
     font-variant-numeric: tabular-nums;
 }

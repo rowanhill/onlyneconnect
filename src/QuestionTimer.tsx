@@ -34,11 +34,24 @@ export const QuestionTimer = ({ currentQuestionItem, currentClueItem, quiz }: Qu
     if (currentQuestionItem === undefined) {
         return (null);
     }
+
+    const TimerBlock = ({ title, start }: { title: string; start: number; }) => {
+        return (
+            <div className={styles.timerBlock}>
+                <span className={styles.timerTitle}>{title}</span>
+                <TimeSince start={start} now={time} />
+            </div>
+        );
+    };
+    const QuizTimer = () => <TimerBlock title="Quiz" start={quizStartTime} />;
+    const QuestionTimer = () => <TimerBlock title="Question" start={questionStartTime} />;
+    const ClueTimer = () => <TimerBlock title="Clue" start={clueStartTime} />;
+
     if (currentClueItem === undefined || !currentQuestionItem.data.isRevealed) {
         return (
-            <div>
-                Quiz: <TimeSince start={quizStartTime} now={time}/>
-                {!quiz.isComplete && <>{' '}Question: <TimeSince start={questionStartTime} now={time} /></>}
+            <div className={styles.timers}>
+                <QuizTimer />
+                {!quiz.isComplete && <QuestionTimer />}
             </div>
         );
     } else {
@@ -50,10 +63,10 @@ export const QuestionTimer = ({ currentQuestionItem, currentClueItem, quiz }: Qu
         } else {
             const showClueTimer = clueIds.length > 1;
             return (
-                <div>
-                    Quiz: <TimeSince start={quizStartTime} now={time} />{' '}
-                    Question: <TimeSince start={questionStartTime} now={time} />
-                    {showClueTimer && <>{' '}Clue: <TimeSince start={clueStartTime} now={time} /></>}
+                <div className={styles.timers}>
+                    <QuizTimer />
+                    <QuestionTimer />
+                    {showClueTimer && <ClueTimer />}
                 </div>
             );
         }
