@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useAnimationTimer } from './hooks/useAnimationFrame';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { Question, Clue, getClueIds } from './models';
+import { Question, Clue, getClueIds, Quiz } from './models';
 import styles from './QuestionTimer.module.css';
 
 const initialResetKeySentinal = {};
@@ -23,8 +23,9 @@ function useStartTime<T>(resetKey: T, predicate?: (resetKey: T, hasBeenSet: bool
 interface QuestionTimerProps {
     currentQuestionItem?: CollectionQueryItem<Question>;
     currentClueItem?: CollectionQueryItem<Clue>;
+    quiz: Quiz;
 }
-export const QuestionTimer = ({ currentQuestionItem, currentClueItem }: QuestionTimerProps) => {
+export const QuestionTimer = ({ currentQuestionItem, currentClueItem, quiz }: QuestionTimerProps) => {
     const time = useAnimationTimer(1000);
     const quizStartTime = useStartTime(currentQuestionItem, (item, hasBeenSet) => !hasBeenSet && item !== undefined);
     const questionStartTime = useStartTime(currentQuestionItem?.id);
@@ -36,8 +37,8 @@ export const QuestionTimer = ({ currentQuestionItem, currentClueItem }: Question
     if (currentClueItem === undefined || !currentQuestionItem.data.isRevealed) {
         return (
             <div>
-                Quiz: <TimeSince start={quizStartTime} now={time}/>{' '}
-                Question: <TimeSince start={questionStartTime} now={time} />
+                Quiz: <TimeSince start={quizStartTime} now={time}/>
+                {!quiz.isComplete && <>{' '}Question: <TimeSince start={questionStartTime} now={time} /></>}
             </div>
         );
     } else {

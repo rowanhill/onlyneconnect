@@ -187,7 +187,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                     <CurrentQuestion currentQuestionItem={currentQuestionItem} />
                     {isQuizOwner &&
                         <Card>
-                            <QuestionTimer currentQuestionItem={currentQuestionItem} currentClueItem={currentClueItem} />
+                            <QuestionTimer currentQuestionItem={currentQuestionItem} currentClueItem={currentClueItem} quiz={quizData} />
                             <TeamProgress currentQuestionItem={currentQuestionItem} currentClueItem={currentClueItem} />
                             <QuizControls currentQuestionItem={currentQuestionItem} />
                         </Card>
