@@ -166,7 +166,17 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
     }
     return (
         <>
-            <p>This is question {currentQuestionNumber} of {totalQuestions}. For this question, it is clue {currentClueNumber} of {totalClues}.</p>
+            <p>
+                This is question {currentQuestionNumber} of {totalQuestions}.{' '}
+                {currentQuestionItem.data.type === 'wall' && <>The whole grid is revealed at once.</>}
+                {currentQuestionItem.data.type === 'missing-vowels' && <>All the clues are revealed at once.</>}
+                {totalClues > 1 && currentClueNumber === 0 &&
+                    <>It has {totalClues} clues, revealed individually.</>
+                }
+                {totalClues > 1 && currentClueNumber > 0 &&
+                    <>This is clue {currentClueNumber} of {totalClues}</>
+                }
+            </p>
             {buttonToShow === 'solve-wall' && <PrimaryButton disabled={disabled} onClick={handleResolveWallGroups}>Resolve wall groups</PrimaryButton>}
             {buttonToShow === 'reveal-connection' && <PrimaryButton disabled={disabled} onClick={handleRevealConnection}>Close question &amp; show connection</PrimaryButton>}
             {buttonToShow === 'reveal-connection-and-last-in-sequence' && <PrimaryButton disabled={disabled} onClick={handleRevealConnection}>Close question &amp; show connection &amp; last in sequence</PrimaryButton>}
