@@ -63,12 +63,6 @@ describe('<TeamProgress />', () => {
         expect(container.children.length).toEqual(0);
     });
 
-    it('does not render if the current clue is closed', () => {
-        defaults.currentClueItem!.data.closedAt = 'dummy timestamp' as any;
-        const { container } = render(<TeamProgressWithContext />);
-        expect(container.children.length).toEqual(0);
-    });
-
     it('does not render if the teams data is not loaded', () => {
         const { container } = render(<TeamProgressWithContext
             teams={undefined}
