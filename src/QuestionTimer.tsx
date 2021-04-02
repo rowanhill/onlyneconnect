@@ -64,10 +64,11 @@ const TimeSince = ({ start, now }: { start: number; now: number; }) => {
 const MinsSecs = ({ millis }: { millis: number; }) => {
     const roundedSeconds = Math.max(0, Math.round(millis / 1000));
 
-    const mins = Math.floor(roundedSeconds / 60);
+    const hours = Math.floor(roundedSeconds / 3600)
+    const mins = Math.floor(roundedSeconds / 60) % 60;
     const secs = roundedSeconds % 60;
 
-    return <span className={styles.time}>{pad(mins)}:{pad(secs)}</span>;
+    return <span className={styles.time}>{hours > 0 && pad(hours) + ':'}{pad(mins)}:{pad(secs)}</span>;
 };
 
 function getCurrentTime(): number {
