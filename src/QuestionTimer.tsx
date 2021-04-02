@@ -1,18 +1,21 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { useAnimationTimer } from './hooks/useAnimationFrame';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
 import { Question, Clue, getClueIds } from './models';
 import styles from './QuestionTimer.module.css';
 
+const initialResetKeySentinal = {};
 function useStartTime<T>(resetKey: T, predicate?: (resetKey: T, hasBeenSet: boolean) => boolean) {
     const startTimeRef = useRef(getCurrentTime());
     const hasBeenSetRef = useRef(false);
-    useEffect(() => {
-        if (!predicate || predicate(resetKey, hasBeenSetRef.current)) {
-            startTimeRef.current = getCurrentTime();
-            hasBeenSetRef.current = true;
-        }
-    }, [resetKey, predicate]);
+    const oldValue = useRef(initialResetKeySentinal as unknown as T);
+
+    const resetKeyChanged = oldValue.current === initialResetKeySentinal || oldValue.current !== resetKey;
+    if (resetKeyChanged && (!predicate || predicate(resetKey, hasBeenSetRef.current))) {
+        startTimeRef.current = getCurrentTime();
+        hasBeenSetRef.current = true;
+        oldValue.current = resetKey;
+    }
 
     return startTimeRef.current;
 }
