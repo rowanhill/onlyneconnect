@@ -1,4 +1,4 @@
-import { WallQuestionSpec } from '../../src/models/quiz';
+import { WallQuestionSpec } from '../../src/models/questionSpec';
 import { markAnswerConnectionCorrectButton, markAnswerConnectionIncorrectButton, submittedAnswer, submittedAnswerSelector } from '../pages/quizPage';
 import { CreateMissingVowelsOrWallQuestionResult } from '../plugins';
 

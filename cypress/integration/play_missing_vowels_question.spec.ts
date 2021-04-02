@@ -1,4 +1,4 @@
-import { MissingVowelsQuestionSpec } from '../../src/models/quiz';
+import { MissingVowelsQuestionSpec } from '../../src/models/questionSpec';
 import { expectRevealedCluesToBe, answersHistory, scoreboard, answerInput, answerSubmit } from '../pages/quizPage';
 import { CreateMissingVowelsOrWallQuestionResult } from '../plugins';
 

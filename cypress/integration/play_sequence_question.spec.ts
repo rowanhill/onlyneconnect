@@ -1,4 +1,4 @@
-import { SequenceQuestionSpec } from '../../src/models/quiz';
+import { SequenceQuestionSpec } from '../../src/models/questionSpec';
 import { expectRevealedCluesToBe, answersHistory, scoreboard, answerInput, answerSubmit, finalClue } from '../pages/quizPage';
 import { CreateConnectionOrSequenceQuestionResult } from '../plugins';
 

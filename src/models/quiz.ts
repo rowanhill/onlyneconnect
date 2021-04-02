@@ -1,6 +1,7 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
-import { Clue, CompoundTextClue, ConnectionQuestion, ConnectionSecrets, Four, FourByFourTextClue, MissingVowelsQuestion, MissingVowelsSecrets, QuestionSecrets, Quiz, SequenceQuestion, SequenceSecrets, Sixteen, TextClue, Three, throwBadQuestionType, WallQuestion, WallSecrets } from '.';
+import { Clue, CompoundTextClue, ConnectionQuestion, ConnectionSecrets, FourByFourTextClue, MissingVowelsQuestion, MissingVowelsSecrets, QuestionSecrets, Quiz, SequenceQuestion, SequenceSecrets, TextClue, throwBadQuestionType, WallQuestion, WallSecrets } from '.';
+import { ConnectionQuestionSpec, SequenceQuestionSpec, WallQuestionSpec, MissingVowelsQuestionSpec, newFromSpec } from './questionSpec';
 
 export const createQuiz = (
     quizName: string,
@@ -16,102 +17,31 @@ export const createQuiz = (
     return batch.commit().then(() => secretsDoc.id);
 };
 
-export interface TextClueSpec {
-    id?: string;
-    text: string;
-    answerLimit: number;
-    type: 'text';
-}
-
-export interface CompoundClueSpec {
-    id?: string;
-    texts: Four<string>;
-    answerLimit: null;
-    type: 'compound-text';
-}
-
-export interface FourByFourTextClueSpec {
-    id?: string;
-    solution: Four<{ texts: Four<string>; }>;
-    connections: Four<string>;
-    answerLimit: null;
-    type: 'four-by-four-text';
-}
-
-export interface ConnectionQuestionSpec {
-    id?: string;
-    answerLimit: null;
-    clues: Four<TextClueSpec>;
-    connection: string;
-    type: 'connection';
-}
-
-export interface SequenceQuestionSpec {
-    id?: string;
-    answerLimit: null;
-    clues: Three<TextClueSpec>;
-    connection: string;
-    exampleLastInSequence: string;
-    type: 'sequence';
-}
-
-export interface WallQuestionSpec {
-    id?: string;
-    answerLimit: null;
-    clue: FourByFourTextClueSpec;
-    type: 'wall';
-}
-
-export interface MissingVowelsQuestionSpec {
-    id?: string;
-    answerLimit: number;
-    clue: CompoundClueSpec;
-    connection: string;
-    type: 'missing-vowels';
-}
-
 export const createConnectionOrSequenceQuestion = (
     quizId: string,
-    question: ConnectionQuestionSpec | SequenceQuestionSpec,
+    questionSpec: ConnectionQuestionSpec | SequenceQuestionSpec,
     db: firebase.firestore.Firestore = firebase.app().firestore(),
     arrayUnion = firebase.firestore.FieldValue.arrayUnion,
 ) => {
     const batch = db.batch();
 
+    const newData = newFromSpec(questionSpec);
+
     const quizDoc = db.doc(`quizzes/${quizId}`);
-    const clueAndDocs = question.clues.map((clue) => ({ clue, doc: db.collection(`quizzes/${quizId}/clues`).doc() }));
-
     const questionDoc = db.collection(`quizzes/${quizId}/questions`).doc();
+    const clues = newData.clues.map((clue) => ({ ...clue.data, questionId: questionDoc.id } as TextClue));
+    const cluesAndDocs = clues.map((clue) => ({ clue, doc: db.collection(`quizzes/${quizId}/clues`).doc() }));
+
+    const clueIds = cluesAndDocs.map((cad) => cad.doc.id) as any;
+    batch.set<ConnectionQuestion|SequenceQuestion>(questionDoc as any, { ...newData.question, clueIds });
+
     const secretsDoc = db.doc(`/quizzes/${quizId}/questionSecrets/${questionDoc.id}`);
-    const clueIds = clueAndDocs.map((cad) => cad.doc.id);
-    batch.set<ConnectionQuestion|SequenceQuestion>(questionDoc as any, {
-        type: question.type,
-        answerLimit: question.answerLimit,
-        isRevealed: false,
-        clueIds: clueIds as any,
-    });
-    if (question.type === 'connection') {
-        batch.set<ConnectionSecrets>(secretsDoc as any, {
-            type: question.type,
-            connection: question.connection,
-        });
-    } else {
-        batch.set<SequenceSecrets>(secretsDoc as any, {
-            type: question.type,
-            connection: question.connection,
-            exampleLastInSequence: question.exampleLastInSequence,
-        });
+    batch.set<ConnectionSecrets|SequenceSecrets>(secretsDoc as any, newData.secrets);
+
+    for (const { clue, doc } of cluesAndDocs) {
+        batch.set<TextClue>(doc as any, { ...clue, questionId: questionDoc.id });
     }
 
-    for (const { clue, doc } of clueAndDocs) {
-        batch.set<TextClue>(doc as any, {
-            questionId: questionDoc.id,
-            isRevealed: false,
-            text: clue.text,
-            answerLimit: clue.answerLimit,
-            type: 'text',
-        });
-    }
     batch.update(quizDoc, {
         questionIds: arrayUnion(questionDoc.id),
     });
@@ -119,47 +49,24 @@ export const createConnectionOrSequenceQuestion = (
     return batch.commit().then(() => ({ questionId: questionDoc.id, clueIds }));
 };
 
-function shuffleArray<T>(array: T[]) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-}
 export const createWallQuestion = (
     quizId: string,
-    question: WallQuestionSpec,
+    questionSpec: WallQuestionSpec,
     db: firebase.firestore.Firestore = firebase.app().firestore(),
     arrayUnion = firebase.firestore.FieldValue.arrayUnion,
 ) => {
     const batch = db.batch();
+
+    const newData = newFromSpec(questionSpec);
 
     const quizDoc = db.doc(`quizzes/${quizId}`);
     const clueDoc = db.collection(`quizzes/${quizId}/clues`).doc();
     const questionDoc = db.collection(`quizzes/${quizId}/questions`).doc();
     const secretsDoc = db.doc(`quizzes/${quizId}/questionSecrets/${questionDoc.id}`);
 
-    batch.set<WallQuestion>(questionDoc as any, {
-        type: question.type,
-        answerLimit: question.answerLimit,
-        isRevealed: false,
-        clueId: clueDoc.id,
-    });
-
-    batch.set<WallSecrets>(secretsDoc as any, {
-        solution: question.clue.solution,
-        connections: question.clue.connections,
-        type: question.type,
-    });
-
-    const flattenedTexts = question.clue.solution.flatMap((group) => group.texts) as Sixteen<string>;
-    shuffleArray(flattenedTexts);
-    batch.set<FourByFourTextClue>(clueDoc as any, {
-        questionId: questionDoc.id,
-        isRevealed: false,
-        texts: flattenedTexts,
-        answerLimit: question.clue.answerLimit,
-        type: question.clue.type,
-    });
+    batch.set<WallQuestion>(questionDoc as any, { ...newData.question, clueId: clueDoc.id });
+    batch.set<WallSecrets>(secretsDoc as any, newData.secrets);
+    batch.set<FourByFourTextClue>(clueDoc as any, { ...newData.clue.data, questionId: questionDoc.id });
 
     batch.update(quizDoc, {
         questionIds: arrayUnion(questionDoc.id),
@@ -170,35 +77,23 @@ export const createWallQuestion = (
 
 export const createMissingVowelsQuestion = (
     quizId: string,
-    question: MissingVowelsQuestionSpec,
+    questionSpec: MissingVowelsQuestionSpec,
     db: firebase.firestore.Firestore = firebase.app().firestore(),
     arrayUnion = firebase.firestore.FieldValue.arrayUnion,
 ) => {
     const batch = db.batch();
 
+    const newData = newFromSpec(questionSpec);
+
     const quizDoc = db.doc(`quizzes/${quizId}`);
     const clueDoc = db.collection(`quizzes/${quizId}/clues`).doc();
-
     const questionDoc = db.collection(`quizzes/${quizId}/questions`).doc();
     const secretsDoc = db.doc(`quizzes/${quizId}/questionSecrets/${questionDoc.id}`);
-    batch.set<MissingVowelsQuestion>(questionDoc as any, {
-        type: question.type,
-        answerLimit: question.answerLimit,
-        isRevealed: false,
-        clueId: clueDoc.id,
-    });
-    batch.set<MissingVowelsSecrets>(secretsDoc as any, {
-        type: question.type,
-        connection: question.connection,
-    });
 
-    batch.set<CompoundTextClue>(clueDoc as any, {
-        questionId: questionDoc.id,
-        isRevealed: false,
-        texts: question.clue.texts,
-        answerLimit: question.clue.answerLimit,
-        type: question.clue.type,
-    });
+    batch.set<MissingVowelsQuestion>(questionDoc as any, { ...newData.question, clueId: clueDoc.id });
+    batch.set<MissingVowelsSecrets>(secretsDoc as any, newData.secrets);
+    batch.set<CompoundTextClue>(clueDoc as any, { ...newData.clue.data, questionId: questionDoc.id });
+
     batch.update(quizDoc, {
         questionIds: arrayUnion(questionDoc.id),
     });

@@ -1,4 +1,4 @@
-import { ConnectionQuestionSpec, MissingVowelsQuestionSpec, SequenceQuestionSpec, WallQuestionSpec } from '../../src/models/quiz';
+import { ConnectionQuestionSpec, MissingVowelsQuestionSpec, SequenceQuestionSpec, WallQuestionSpec } from '../../src/models/questionSpec';
 import { quizControls, expectRevealedCluesToBe, expectUnrevealedCluesToBe, unrevealedClues, revealedClues, finalClue } from '../pages/quizPage';
 import { CreateConnectionOrSequenceQuestionResult, CreateMissingVowelsOrWallQuestionResult } from '../plugins';
 

@@ -11,13 +11,9 @@ import { Card } from './Card';
 import { DangerButton, FlashMessageButton, PrimaryButton } from './Button';
 import styles from './QuizEditPage.module.css';
 import formStyles from './form.module.css';
-import {
-    CompoundClueSpec, ConnectionQuestionSpec, createConnectionOrSequenceQuestion, createMissingVowelsQuestion,
-    createWallQuestion,
-    FourByFourTextClueSpec,
-    MissingVowelsQuestionSpec, SequenceQuestionSpec, TextClueSpec, WallQuestionSpec,
-} from './models/quiz';
+import { createConnectionOrSequenceQuestion, createMissingVowelsQuestion, createWallQuestion } from './models/quiz';
 import { CopyableText } from './CopyableText';
+import { TextClueSpec, FourByFourTextClueSpec, CompoundClueSpec, ConnectionQuestionSpec, SequenceQuestionSpec, WallQuestionSpec, MissingVowelsQuestionSpec, deltaFromSpec } from './models/questionSpec';
 
 interface QuizEditPageProps {
     quizId: string;
@@ -193,36 +189,24 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
             throw new Error(`Tried to update a question from type ${oldSpec.type} to ${newSpec.type}`);
         }
         const questionId = oldSpec.id;
+        const updateDeltas = deltaFromSpec(newSpec);
+        
         const batch = db.batch();
-        batch.update(db.doc(`quizzes/${quizId}/questions/${questionId}`), {
-            answerLimit: newSpec.answerLimit
-        });
+        
+        batch.update(db.doc(`quizzes/${quizId}/questions/${questionId}`), updateDeltas.question);
+        
         const secretDoc = db.doc(`quizzes/${quizId}/questionSecrets/${questionId}`);
-        switch (newSpec.type) {
-            case 'connection':
-            case 'missing-vowels':
-                const conSecretUpdate = { connection: newSpec.connection };
-                batch.update(secretDoc, conSecretUpdate);
-                break;
-            case 'sequence':
-                const seqSecretUpdate = { connection: newSpec.connection, exampleLastInSequence: newSpec.exampleLastInSequence };
-                batch.update(secretDoc, seqSecretUpdate);
-                break;
-            case 'wall':
-                const wallSecretUpdate = { connections: newSpec.clue.connections, solution: newSpec.clue.solution };
-                batch.update(secretDoc, wallSecretUpdate);
-                break;
-            default:
-                throwBadQuestionType(newSpec);
-        }
-        const clues = getClues(newSpec);
-        for (let i=0; i < clues.length; i++) {
-            const clue = clues[i];
-            if (clue.id === undefined) {
-                throw new Error('Tried to update clue without id');
+        batch.update(secretDoc, updateDeltas.secrets);
+        
+        if (updateDeltas.type === 'connection' || updateDeltas.type === 'sequence') {
+            for (const clueDelta of updateDeltas.clues) {
+                batch.update(db.doc(`quizzes/${quizId}/clues/${clueDelta.id}`), clueDelta.data);
             }
-            batch.update(db.doc(`quizzes/${quizId}/clues/${clue.id}`), clue);
+        } else {
+            const clueDelta = updateDeltas.clue;
+            batch.update(db.doc(`quizzes/${quizId}/clues/${clueDelta.id}`), clueDelta.data);
         }
+
         return batch.commit()
             .catch((error) => console.error('Failed to update question', error));
     };

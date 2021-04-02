@@ -1,4 +1,4 @@
-import { WallQuestionSpec } from '../../src/models/quiz';
+import { WallQuestionSpec } from '../../src/models/questionSpec';
 import { answerInput, answersHistory, answerSubmit, revealedClues } from '../pages/quizPage';
 import { CreateMissingVowelsOrWallQuestionResult } from '../plugins';
 

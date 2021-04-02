@@ -1,4 +1,4 @@
-import { ConnectionQuestionSpec } from '../../src/models/quiz';
+import { ConnectionQuestionSpec } from '../../src/models/questionSpec';
 import { expectRevealedCluesToBe, answersHistory, scoreboard, answerInput, answerSubmit } from '../pages/quizPage';
 import { CreateConnectionOrSequenceQuestionResult } from '../plugins';
 
