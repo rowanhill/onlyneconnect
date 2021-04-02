@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useAnimationTimer } from './hooks/useAnimationFrame';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
 import { Question, Clue, getClueIds } from './models';
+import styles from './QuestionTimer.module.css';
 
 function useStartTime<T>(resetKey: T, predicate?: (resetKey: T, hasBeenSet: boolean) => boolean) {
     const startTimeRef = useRef(getCurrentTime());
@@ -66,7 +67,7 @@ const MinsSecs = ({ millis }: { millis: number; }) => {
     const mins = Math.floor(roundedSeconds / 60);
     const secs = roundedSeconds % 60;
 
-    return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{pad(mins)}:{pad(secs)}</span>;
+    return <span className={styles.time}>{pad(mins)}:{pad(secs)}</span>;
 };
 
 function getCurrentTime(): number {

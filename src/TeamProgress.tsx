@@ -1,5 +1,4 @@
 import { hasAttemptsRemaining } from './answerAttemptsCalculator';
-import { Card } from './Card';
 import { useAnswersContext, useTeamsContext, useWallInProgressContext } from './contexts/quizPage';
 import { GenericErrorBoundary } from './GenericErrorBoundary';
 import { CollectionQueryData, CollectionQueryItem } from './hooks/useCollectionResult';
@@ -26,20 +25,14 @@ export const TeamProgress = ({ currentQuestionItem, currentClueItem }: TeamProgr
         return null;
     }
 
-    if (currentClueItem.data.closedAt !== undefined) {
-        return null;
-    }
-
     return (
-        <Card title="Progress">
-            <GenericErrorBoundary>
-                <TeamProgressInner
-                    currentQuestionItem={currentQuestionItem}
-                    currentClueItem={currentClueItem}
-                    teamsData={teamsData}
-                />
-            </GenericErrorBoundary>
-        </Card>
+        <GenericErrorBoundary>
+            <TeamProgressInner
+                currentQuestionItem={currentQuestionItem}
+                currentClueItem={currentClueItem}
+                teamsData={teamsData}
+            />
+        </GenericErrorBoundary>
     );
 };
 

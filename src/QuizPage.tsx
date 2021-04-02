@@ -186,13 +186,11 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                     </div>
                     <CurrentQuestion currentQuestionItem={currentQuestionItem} />
                     {isQuizOwner &&
-                        <TeamProgress currentQuestionItem={currentQuestionItem} currentClueItem={currentClueItem} />
-                    }
-                    {isQuizOwner &&
-                        <QuestionTimer currentQuestionItem={currentQuestionItem} currentClueItem={currentClueItem} />
-                    }
-                    {isQuizOwner &&
-                        <QuizControls currentQuestionItem={currentQuestionItem} />
+                        <Card>
+                            <QuestionTimer currentQuestionItem={currentQuestionItem} currentClueItem={currentClueItem} />
+                            <TeamProgress currentQuestionItem={currentQuestionItem} currentClueItem={currentClueItem} />
+                            <QuizControls currentQuestionItem={currentQuestionItem} />
+                        </Card>
                     }
                 </div>
                 <div className={styles.rightPanel}>

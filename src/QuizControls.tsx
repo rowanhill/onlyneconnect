@@ -3,7 +3,6 @@ import { CollectionQueryItem } from './hooks/useCollectionResult';
 import { Question } from './models';
 import { QuizControlStart } from './QuizControlStart';
 import { QuizControlReveal } from './QuizControlReveal';
-import styles from './QuizControls.module.css';
 import { GenericErrorBoundary } from './GenericErrorBoundary';
 
 export const QuizControls = ({ currentQuestionItem }: { currentQuestionItem?: CollectionQueryItem<Question>; }) => {
@@ -13,7 +12,7 @@ export const QuizControls = ({ currentQuestionItem }: { currentQuestionItem?: Co
     }
     if (currentQuestionItem) {
         return (
-            <div className={styles.quizControls} data-cy="quiz-controls">
+            <div data-cy="quiz-controls">
                 <GenericErrorBoundary>
                     <QuizControlReveal currentQuestionItem={currentQuestionItem} />
                 </GenericErrorBoundary>
@@ -21,7 +20,7 @@ export const QuizControls = ({ currentQuestionItem }: { currentQuestionItem?: Co
         );
     } else {
         return (
-            <div className={styles.quizControls} data-cy="quiz-controls">
+            <div data-cy="quiz-controls">
                 <GenericErrorBoundary>
                     <QuizControlStart />
                 </GenericErrorBoundary>
