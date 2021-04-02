@@ -65,6 +65,14 @@ export interface MissingVowelsQuestion {
 }
 export type Question = ConnectionQuestion | SequenceQuestion | WallQuestion | MissingVowelsQuestion;
 
+export function getClueIds(question: Question) {
+    if (question.type === 'wall' || question.type === 'missing-vowels') {
+        return [question.clueId];
+    } else {
+        return question.clueIds;
+    }
+}
+
 export interface ConnectionSecrets {
     type: 'connection';
     connection: string;

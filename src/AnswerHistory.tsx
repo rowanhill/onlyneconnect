@@ -2,7 +2,7 @@ import React, { Fragment } from 'react';
 import { PrimaryButton } from './Button';
 import { useAnswersContext, useCluesContext, useQuestionsContext, useQuizContext, useTeamsContext, useWallInProgressContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { Answer, Clue, FourByFourTextClue, Question, SimpleAnswer, WallAnswer, WallInProgress, WallQuestion } from './models';
+import { Answer, Clue, FourByFourTextClue, getClueIds, Question, SimpleAnswer, WallAnswer, WallInProgress, WallQuestion } from './models';
 import { AnswerUpdate, updateAnswers, updateWallAnswer } from './models/answer';
 import styles from './AnswerHistory.module.css';
 import { calculateUpdatedScores } from './answerScoreCalculator';
@@ -66,7 +66,7 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
         }
         const questionAnswers = answersByQuestionId[questionId];
         if (question.type !== 'wall') {
-            const clueIds = question.type === 'missing-vowels' ? [question.clueId] : question.clueIds;
+            const clueIds = getClueIds(question);
             const questionAnswersGroupedByClue = clueIds.map((id) => ({
                 answers: ((questionAnswers && questionAnswers[id]) || []) as CollectionQueryItem<SimpleAnswer>[],
                 clueId: id,

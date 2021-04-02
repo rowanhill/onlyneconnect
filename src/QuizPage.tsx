@@ -27,6 +27,7 @@ import { createWipLookup } from './wallInProgressLookup';
 import { CopyableText } from './CopyableText';
 import { HostVideoPlayer } from './HostVideoPlayer';
 import { TeamProgress } from './TeamProgress';
+import { QuestionTimer } from './QuestionTimer';
 
 interface QuizPageProps {
     quizId: string;
@@ -186,6 +187,9 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                     <CurrentQuestion currentQuestionItem={currentQuestionItem} />
                     {isQuizOwner &&
                         <TeamProgress currentQuestionItem={currentQuestionItem} currentClueItem={currentClueItem} />
+                    }
+                    {isQuizOwner &&
+                        <QuestionTimer currentQuestionItem={currentQuestionItem} currentClueItem={currentClueItem} />
                     }
                     {isQuizOwner &&
                         <QuizControls currentQuestionItem={currentQuestionItem} />
