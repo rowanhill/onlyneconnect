@@ -43,7 +43,7 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
             return;
         }
         if (!answerIsFullyVisible(answer, container)) {
-            answer.scrollIntoView();
+            answer.scrollIntoView({ behavior: 'smooth' });
         }
     });
 
