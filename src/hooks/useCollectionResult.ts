@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useCollection } from 'react-firebase-hooks/firestore';
 import firebase from '../firebase';
 
@@ -16,8 +17,10 @@ export interface CollectionQueryResult<T> {
 
 export function useCollectionResult<T>(query: firebase.firestore.Query|null): CollectionQueryResult<T> {
     const [snapshot, loading, error] = useCollection(query) as [firebase.firestore.QuerySnapshot<T>|null, boolean, Error|undefined];
-    const data = snapshot ?
-        snapshot.docs.map((doc) => ({ id: doc.id, data: doc.data() })) :
-        undefined;
+    const data = useMemo(() => (
+        snapshot ?
+            snapshot.docs.map((doc) => ({ id: doc.id, data: doc.data() })) :
+            undefined
+    ), [snapshot]);
     return { data, loading: loading || query === null, error };
 }

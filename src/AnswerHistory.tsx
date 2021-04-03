@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { PrimaryButton } from './Button';
 import { useAnswersContext, useCluesContext, useQuestionsContext, useQuizContext, useTeamsContext, useWallInProgressContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
@@ -8,6 +8,21 @@ import styles from './AnswerHistory.module.css';
 import { calculateUpdatedScores } from './answerScoreCalculator';
 import { GenericErrorBoundary } from './GenericErrorBoundary';
 
+function answerIsFullyVisible(answer: HTMLElement, container: HTMLElement): boolean {
+    // The container and the answer have the same offsetParent (<body>), so we make the bounds relative
+    // to the container's content (i.e. not just the visible portion)
+    const answerBounds = {
+        top: answer.offsetTop - container.offsetTop, // Answer's top within the container
+        bottom: answer.offsetTop - container.offsetTop + answer.clientHeight, // Answer's bottom = top + height
+    };
+    const visibleBounds = {
+        top: container.scrollTop, // Visible area starts at container's scrollTop
+        bottom: container.scrollTop + container.clientHeight, // Visible area's bottom is top + height
+    };
+
+    return answerBounds.top >= visibleBounds.top && answerBounds.bottom <= visibleBounds.bottom;
+}
+
 export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
     const { quizId, quiz } = useQuizContext();
     const { data: answersData, loading: answersLoading, error: answersError } = useAnswersContext();
@@ -15,12 +30,67 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
     const { data: questionsData, loading: questionsLoading, error: questionsError } = useQuestionsContext();
     const { data: teamsData } = useTeamsContext();
     const { wipByTeamByClue: wallInProgressByTeamIdByClueId } = useWallInProgressContext();
+
+    const historyContainerRef = useRef<HTMLElement|null>(null);
+    const focusAnswerRef = useRef<HTMLElement|null>(null);
+    useLayoutEffect(() => {
+        if (!autoscrollEnabled.current) {
+            return;
+        }
+        const answer = focusAnswerRef.current;
+        const container = historyContainerRef.current;
+        if (!answer || !container) {
+            return;
+        }
+        if (!answerIsFullyVisible(answer, container)) {
+            answer.scrollIntoView();
+        }
+    });
+
+    const autoscrollEnabled = useRef(true);
+    const updateAutoscroll = useCallback(() => {
+        const answer = focusAnswerRef.current;
+        const container = historyContainerRef.current;
+        if (!container) {
+            return;
+        }
+        const newValue = answer !== null && answerIsFullyVisible(answer, container);
+        if (newValue !== autoscrollEnabled.current) {
+            autoscrollEnabled.current = newValue;
+        }
+    }, []);
+    const setHistoryContainerRef = useCallback((element: HTMLElement|null) => {
+        if (historyContainerRef.current) {
+            historyContainerRef.current.removeEventListener('scroll', updateAutoscroll);
+        }
+
+        historyContainerRef.current = element;
+
+        if (historyContainerRef.current) {
+            historyContainerRef.current.addEventListener('scroll', updateAutoscroll, { passive: true });
+        }
+    }, [updateAutoscroll]);
+    useEffect(() => {
+        return () => {
+            if (historyContainerRef.current) {
+                historyContainerRef.current.removeEventListener('scroll', updateAutoscroll);
+            }
+        };
+    }, [updateAutoscroll]);
+
+    const HistoryContainer: React.FunctionComponent<{}> = useCallback((props) => (
+        <div className={styles.answersHistory} ref={setHistoryContainerRef} data-cy="answers-history">
+            {props.children}
+        </div>
+    ), [setHistoryContainerRef]);
+
     if (answersError || cluesError || questionsError) {
-        return <div className={styles.answersHistory}><strong>There was an error loading your answers! Please try again</strong></div>;
+        return <HistoryContainer><strong>There was an error loading your answers! Please try again</strong></HistoryContainer>;
     }
     if (answersLoading || !answersData || cluesLoading || !cluesData || questionsLoading || !questionsData) {
-        return <div className={styles.answersHistory}></div>;
+        return <HistoryContainer></HistoryContainer>;
     }
+
     const cluesById = Object.fromEntries(cluesData.map((clue) => [clue.id, clue]));
     const questionsById = Object.fromEntries(questionsData.map((question) => [question.id, question.data]));
     const teamNamesById = isQuizOwner && teamsData ? Object.fromEntries(teamsData.map((team) => [team.id, team.data.name])) : {};
@@ -34,6 +104,23 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
         acc[answer.data.questionId][answer.data.clueId].push(answer);
         return acc;
     }, {} as { [questionId: string]: { [clueId: string]: CollectionQueryItem<Answer>[] }; });
+
+    let focusAnswerId: string|undefined;
+    if (!isQuizOwner) {
+        focusAnswerId =  answersData[answersData.length - 1]?.id;
+    } else {
+        const orderedAnswers = quiz.questionIds.flatMap((qid) => {
+            const question = questionsById[qid];
+            const questionAnswersByClue = answersByQuestionId[qid];
+            if (!questionAnswersByClue) {
+                return [];
+            } else {
+                return getClueIds(question).flatMap((cid) => questionAnswersByClue[cid] || []);
+            }
+        });
+        const firstUnmarked = orderedAnswers.find((a) => a.data.points === undefined);
+        focusAnswerId = firstUnmarked?.id;
+    }
 
     const updateAnswerScoresAndCorrectFlags = (answerUpdates: AnswerUpdate[]) => {
         updateAnswers(quizId, answerUpdates)
@@ -81,6 +168,8 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
                     cluesById={cluesById}
                     teamNamesById={teamNamesById}
                     updateAnswerScoresAndCorrectFlags={updateAnswerScoresAndCorrectFlags}
+                    focusAnswerId={focusAnswerId}
+                    focusAnswerRef={focusAnswerRef}
                 /> 
             );
         } else {
@@ -98,19 +187,21 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
                     teamNamesById={teamNamesById}
                     questionAnswers={questionAnswersGroupedByClue || []}
                     updateWallAnswerScoreAndCorrectFlag={updateWallAnswerScoreAndCorrectFlag}
+                    focusAnswerId={focusAnswerId}
+                    focusAnswerRef={focusAnswerRef}
                 />
             );
         }
     };
 
     return (
-        <div className={styles.answersHistory} data-cy="answers-history">
+        <HistoryContainer>
             <GenericErrorBoundary>
             {quiz.questionIds.map((questionId, groupIndex) => (
                 <Answers key={questionId} questionId={questionId} groupIndex={groupIndex} />
             ))}
             </GenericErrorBoundary>
-        </div>
+        </HistoryContainer>
     );
 };
 
@@ -134,6 +225,8 @@ interface AnswersForQuestionProps {
     questionAnswersGroupedByClue: { answers: CollectionQueryItem<SimpleAnswer>[]; clueId: string; }[];
     cluesById: { [clueId: string]: CollectionQueryItem<Clue>; };
     teamNamesById: { [teamId: string]: string; }
+    focusAnswerId: string|undefined;
+    focusAnswerRef: React.MutableRefObject<HTMLElement | null>;
     updateAnswerScoresAndCorrectFlags: (updates: AnswerUpdate[]) => void;
 }
 export const AnswersForQuestion = (props: AnswersForQuestionProps) => {
@@ -165,7 +258,7 @@ export const AnswersForQuestion = (props: AnswersForQuestionProps) => {
     };
 
     const answerInfoPropsGroupedByClue = props.questionAnswersGroupedByClue.map((questionAnswers) => {
-        const markableAnswerPropsList = questionAnswers.answers.map((answerItem): MarkableAnswerProps => {
+        const markableAnswerPropsList = questionAnswers.answers.map((answerItem): Omit<MarkableAnswerProps, 'focusAnswerRef'|'focusAnswerId'> => {
             const clue = props.cluesById[answerItem.data.clueId];
             const valid = clue && answerIsValid(answerItem.data, clue.data);
     
@@ -210,6 +303,8 @@ export const AnswersForQuestion = (props: AnswersForQuestionProps) => {
                         <MarkableAnswer
                             key={markableAnswerProps.cySuffix}
                             {...markableAnswerProps}
+                            focusAnswerId={props.focusAnswerId}
+                            focusAnswerRef={props.focusAnswerRef}
                          />
                     ))}
                 </div>
@@ -226,6 +321,8 @@ interface AnswersForWallQuestionProps {
     wallInProgressByTeam: { [teamId: string]: CollectionQueryItem<WallInProgress> };
     questionAnswers: CollectionQueryItem<WallAnswer>[];
     teamNamesById: { [teamId: string]: string; };
+    focusAnswerId: string | undefined;
+    focusAnswerRef: React.MutableRefObject<HTMLElement | null>;
     updateWallAnswerScoreAndCorrectFlag: (
         answerId: string,
         wallInProgressId: string,
@@ -248,6 +345,8 @@ const AnswersForWallQuestion = (props: AnswersForWallQuestionProps) => {
                     teamNamesById={props.teamNamesById}
                     wallInProgressByTeam={props.wallInProgressByTeam}
                     isQuizOwner={props.isQuizOwner}
+                    focusAnswerId={props.focusAnswerId}
+                    focusAnswerRef={props.focusAnswerRef}
                     updateWallAnswerScoreAndCorrectFlag={props.updateWallAnswerScoreAndCorrectFlag}
                 />
             ))}
@@ -261,6 +360,8 @@ interface AnswerForWallQuestionProps {
     teamNamesById: { [teamId: string]: string; };
     wallInProgressByTeam: { [teamId: string]: CollectionQueryItem<WallInProgress> };
     isQuizOwner: boolean;
+    focusAnswerId: string|undefined;
+    focusAnswerRef: React.MutableRefObject<HTMLElement | null>;
     updateWallAnswerScoreAndCorrectFlag: (
         answerId: string,
         wallInProgressId: string,
@@ -290,6 +391,8 @@ const AnswerForWallQuestion = (props: AnswerForWallQuestionProps) => {
                 wallInProgress={wallInProgress}
                 valid={valid}
                 isQuizOwner={props.isQuizOwner}
+                focusAnswerId={props.focusAnswerId}
+                focusAnswerRef={props.focusAnswerRef}
                 markCorrect={markCorrect}
                 markIncorrect={markIncorrect}
             />
@@ -315,12 +418,14 @@ interface MarkableAnswersForWallAnswerGroupProps {
     wallInProgress: CollectionQueryItem<WallInProgress> | undefined;
     valid: boolean;
     isQuizOwner: boolean;
+    focusAnswerId: string|undefined;
+    focusAnswerRef: React.MutableRefObject<HTMLElement | null>;
     markCorrect: (connectionIndex: number) => void;
     markIncorrect: (connectionIndex: number) => void;
 }
 const MarkableAnswersForWallAnswerGroup = (props: MarkableAnswersForWallAnswerGroupProps) => {
     const markableAnswerPropsList = props.answer.data.connections.map((connection, i) => {
-        const infoProps: MarkableAnswerProps = {
+        const infoProps: Omit<MarkableAnswerProps, 'focusAnswerId'|'focusAnswerRef'> = {
             answer: {
                 id: props.answer.id,
                 text: connection.text,
@@ -344,6 +449,8 @@ const MarkableAnswersForWallAnswerGroup = (props: MarkableAnswersForWallAnswerGr
                 <MarkableAnswer
                     key={markableAnswerProps.cySuffix}
                     {...markableAnswerProps}
+                    focusAnswerId={props.focusAnswerId}
+                    focusAnswerRef={props.focusAnswerRef}
                 />
             )}
             Total: {props.answer.data.points || 0}
@@ -364,6 +471,8 @@ interface MarkableAnswerProps {
     buttonsAreVisible: boolean;
     canBeMarkedCorrect: boolean;
     canBeMarkedIncorrect: boolean;
+    focusAnswerId: string|undefined;
+    focusAnswerRef: React.MutableRefObject<HTMLElement | null>;
     markCorrect: () => void;
     markIncorrect: () => void;
 }
@@ -372,6 +481,7 @@ const MarkableAnswer = (props: MarkableAnswerProps) => {
         <div
             className={props.answer.isValid ? styles.answer : styles.invalidAnswer}
             data-cy={`submitted-answer-${props.cySuffix}`}
+            ref={(el) => { if (props.answer.id === props.focusAnswerId) { props.focusAnswerRef.current = el; } }}
         >
             <div className={styles.answerInfo}>
                 {props.isQuizOwner && props.answer.teamName && <>{props.answer.teamName}:<br/></>}
