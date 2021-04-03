@@ -1,27 +1,19 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useCallback } from 'react';
 import { PrimaryButton } from './Button';
 import { useAnswersContext, useCluesContext, useQuestionsContext, useQuizContext, useTeamsContext, useWallInProgressContext } from './contexts/quizPage';
-import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { Answer, Clue, FourByFourTextClue, getClueIds, Question, SimpleAnswer, WallAnswer, WallInProgress, WallQuestion } from './models';
+import { CollectionQueryData, CollectionQueryItem } from './hooks/useCollectionResult';
+import { Answer, Clue, FourByFourTextClue, getClueIds, Question, Quiz, SimpleAnswer, Team, WallAnswer, WallInProgress, WallQuestion } from './models';
 import { AnswerUpdate, updateAnswers, updateWallAnswer } from './models/answer';
 import styles from './AnswerHistory.module.css';
 import { calculateUpdatedScores } from './answerScoreCalculator';
 import { GenericErrorBoundary } from './GenericErrorBoundary';
+import { useAutoscroll } from './hooks/useAutoscroll';
 
-function answerIsFullyVisible(answer: HTMLElement, container: HTMLElement): boolean {
-    // The container and the answer have the same offsetParent (<body>), so we make the bounds relative
-    // to the container's content (i.e. not just the visible portion)
-    const answerBounds = {
-        top: answer.offsetTop - container.offsetTop, // Answer's top within the container
-        bottom: answer.offsetTop - container.offsetTop + answer.clientHeight, // Answer's bottom = top + height
-    };
-    const visibleBounds = {
-        top: container.scrollTop, // Visible area starts at container's scrollTop
-        bottom: container.scrollTop + container.clientHeight, // Visible area's bottom is top + height
-    };
-
-    return answerBounds.top >= visibleBounds.top && answerBounds.bottom <= visibleBounds.bottom;
-}
+const HistoryContainer: React.FunctionComponent<{ setHistoryContainerRef: (element: HTMLElement | null) => void; }> = (props) => (
+    <div className={styles.answersHistory} ref={props.setHistoryContainerRef} data-cy="answers-history">
+        {props.children}
+    </div>
+);
 
 export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
     const { quizId, quiz } = useQuizContext();
@@ -31,69 +23,55 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
     const { data: teamsData } = useTeamsContext();
     const { wipByTeamByClue: wallInProgressByTeamIdByClueId } = useWallInProgressContext();
 
-    const historyContainerRef = useRef<HTMLElement|null>(null);
-    const focusAnswerRef = useRef<HTMLElement|null>(null);
-    useLayoutEffect(() => {
-        if (!autoscrollEnabled.current) {
-            return;
-        }
-        const answer = focusAnswerRef.current;
-        const container = historyContainerRef.current;
-        if (!answer || !container) {
-            return;
-        }
-        if (!answerIsFullyVisible(answer, container)) {
-            answer.scrollIntoView({ behavior: 'smooth' });
-        }
-    });
-
-    const autoscrollEnabled = useRef(true);
-    const updateAutoscroll = useCallback(() => {
-        const answer = focusAnswerRef.current;
-        const container = historyContainerRef.current;
-        if (!container) {
-            return;
-        }
-        const newValue = answer !== null && answerIsFullyVisible(answer, container);
-        if (newValue !== autoscrollEnabled.current) {
-            autoscrollEnabled.current = newValue;
-        }
-    }, []);
-    const setHistoryContainerRef = useCallback((element: HTMLElement|null) => {
-        if (historyContainerRef.current) {
-            historyContainerRef.current.removeEventListener('scroll', updateAutoscroll);
-        }
-
-        historyContainerRef.current = element;
-
-        if (historyContainerRef.current) {
-            historyContainerRef.current.addEventListener('scroll', updateAutoscroll, { passive: true });
-        }
-    }, [updateAutoscroll]);
-    useEffect(() => {
-        return () => {
-            if (historyContainerRef.current) {
-                historyContainerRef.current.removeEventListener('scroll', updateAutoscroll);
-            }
-        };
-    }, [updateAutoscroll]);
-
-    const HistoryContainer: React.FunctionComponent<{}> = useCallback((props) => (
-        <div className={styles.answersHistory} ref={setHistoryContainerRef} data-cy="answers-history">
-            {props.children}
-        </div>
-    ), [setHistoryContainerRef]);
+    const { setContainerRef: setHistoryContainerRef, targetRef: focusAnswerRef } = useAutoscroll();
 
     if (answersError || cluesError || questionsError) {
-        return <HistoryContainer><strong>There was an error loading your answers! Please try again</strong></HistoryContainer>;
+        return <HistoryContainer setHistoryContainerRef={setHistoryContainerRef}><strong>There was an error loading your answers! Please try again</strong></HistoryContainer>;
     }
     if (answersLoading || !answersData || cluesLoading || !cluesData || questionsLoading || !questionsData) {
-        return <HistoryContainer></HistoryContainer>;
+        return <HistoryContainer setHistoryContainerRef={setHistoryContainerRef}></HistoryContainer>;
     }
 
+    return <AnswersHistoryInner
+        isQuizOwner={isQuizOwner}
+        quizId={quizId}
+        quiz={quiz}
+        cluesData={cluesData}
+        questionsData={questionsData}
+        teamsData={teamsData}
+        answersData={answersData}
+        wallInProgressByTeamIdByClueId={wallInProgressByTeamIdByClueId}
+        focusAnswerRef={focusAnswerRef}
+        setHistoryContainerRef={setHistoryContainerRef}
+    />;
+};
+
+interface AnswersHistoryInnerProps {
+    isQuizOwner: boolean;
+    quizId: string;
+    quiz: Quiz;
+    cluesData: CollectionQueryData<Clue>;
+    questionsData: CollectionQueryData<Question>;
+    teamsData: CollectionQueryData<Team> | undefined;
+    answersData: CollectionQueryData<Answer>;
+    wallInProgressByTeamIdByClueId: ReturnType<typeof useWallInProgressContext>['wipByTeamByClue'];
+    focusAnswerRef: React.MutableRefObject<HTMLElement | null>;
+    setHistoryContainerRef: (element: HTMLElement | null) => void;
+}
+const AnswersHistoryInner = ({
+    isQuizOwner,
+    quizId,
+    quiz,
+    cluesData,
+    questionsData,
+    teamsData,
+    answersData,
+    focusAnswerRef,
+    wallInProgressByTeamIdByClueId,
+    setHistoryContainerRef,
+}: AnswersHistoryInnerProps) => {
     const cluesById = Object.fromEntries(cluesData.map((clue) => [clue.id, clue]));
     const questionsById = Object.fromEntries(questionsData.map((question) => [question.id, question.data]));
-    const teamNamesById = isQuizOwner && teamsData ? Object.fromEntries(teamsData.map((team) => [team.id, team.data.name])) : {};
     const answersByQuestionId = answersData.reduce((acc, answer) => {
         if (!acc[answer.data.questionId]) {
             acc[answer.data.questionId] = {};
@@ -122,31 +100,33 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
         focusAnswerId = firstUnmarked?.id;
     }
 
-    const updateAnswerScoresAndCorrectFlags = (answerUpdates: AnswerUpdate[]) => {
-        updateAnswers(quizId, answerUpdates)
-            .catch((error) => {
-                console.error('Error when updating answers', error);
+    const Answers = useCallback(({ questionId, groupIndex }: { questionId: string; groupIndex: number }) => {
+        const teamNamesById = isQuizOwner && teamsData ? Object.fromEntries(teamsData.map((team) => [team.id, team.data.name])) : {};
+
+        const updateAnswerScoresAndCorrectFlags = (answerUpdates: AnswerUpdate[]) => {
+            updateAnswers(quizId, answerUpdates)
+                .catch((error) => {
+                    console.error('Error when updating answers', error);
+                });
+        };
+
+        const updateWallAnswerScoreAndCorrectFlag = (
+            answerId: string,
+            wallInProgressId: string,
+            connectionIndex: number,
+            connectionCorrect: boolean,
+        ) => {
+            updateWallAnswer(
+                quizId,
+                answerId,
+                wallInProgressId,
+                connectionIndex,
+                connectionCorrect
+            ).catch((error) => {
+                console.error('Error when updating wall answer', error);
             });
-    };
+        };
 
-    const updateWallAnswerScoreAndCorrectFlag = (
-        answerId: string,
-        wallInProgressId: string,
-        connectionIndex: number,
-        connectionCorrect: boolean,
-    ) => {
-        updateWallAnswer(
-            quizId,
-            answerId,
-            wallInProgressId,
-            connectionIndex,
-            connectionCorrect
-        ).catch((error) => {
-            console.error('Error when updating wall answer', error);
-        });
-    }
-
-    const Answers = ({ questionId, groupIndex }: { questionId: string; groupIndex: number }) => {
         const question = questionsById[questionId] as Question|undefined;
         if (!question) {
             return null;
@@ -192,10 +172,10 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
                 />
             );
         }
-    };
+    }, [answersByQuestionId, cluesById, focusAnswerId, focusAnswerRef, isQuizOwner, questionsById, quizId, teamsData, wallInProgressByTeamIdByClueId]);
 
     return (
-        <HistoryContainer>
+        <HistoryContainer setHistoryContainerRef={setHistoryContainerRef}>
             <GenericErrorBoundary>
             {quiz.questionIds.map((questionId, groupIndex) => (
                 <Answers key={questionId} questionId={questionId} groupIndex={groupIndex} />
