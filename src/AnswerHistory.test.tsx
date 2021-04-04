@@ -1,66 +1,56 @@
 import { render, screen, within } from '@testing-library/react';
-import firebase from 'firebase/app';
 import 'firebase/firestore';
 import { ComponentProps } from 'react';
-import { AnswersForQuestion } from './AnswerHistory';
-import { Clue, MissingVowelsQuestion, Question, SimpleAnswer } from './models';
+import { QuestionGroup } from './AnswerHistory';
 
-describe('<AnswersForQuestion>', () => {
-    function time(s: number) {
-        return new firebase.firestore.Timestamp(s, 0);
-    }
+describe('<QuestionGroup>', () => {
     function renderWithProps() {
-        render(<AnswersForQuestion {...props} />);
+        render(<QuestionGroup {...props} />);
     }
 
-    let props: ComponentProps<typeof AnswersForQuestion>;
+    let props: ComponentProps<typeof QuestionGroup>;
     beforeEach(() => {
         props = {
             isQuizOwner: false,
             questionNumber: 2,
-            question: { type: 'connection', clueIds: ['c1', 'c2', 'c3', 'c4'] } as Question,
-            cluesById: {
-                'c1': { id: 'c1', data: { revealedAt: time(100), closedAt: time(200) } as Clue },
-                'c2': { id: 'c2', data: { revealedAt: time(300), closedAt: time(400) } as Clue },
-                'c3': { id: 'c3', data: { revealedAt: time(500), closedAt: time(600) } as Clue },
-                'c4': { id: 'c4', data: { revealedAt: time(700),                     } as Clue },
+            model: {
+                id: 'q1',
+                clueGroups: [
+                    {
+                        id: 'c1',
+                        answerGroups: [
+                            {
+                                id: 'a1',
+                                answers: [{ text: 'Answer one' }],
+                                isValid: true,
+                                type: 'simple',
+                            },
+                            {
+                                id: 'a2',
+                                answers: [{ text: 'Answer two' }],
+                                isValid: true,
+                                type: 'simple',
+                            },
+                        ],
+                        numAnswers: 2,
+                    },
+                    {
+                        id: 'c3',
+                        answerGroups: [
+                            {
+                                id: 'a3',
+                                answers: [{ text: 'Answer three' }],
+                                isValid: true,
+                                type: 'simple',
+                            },
+                        ],
+                        numAnswers: 1,
+                    },
+                ],
+                numAnswers: 3
             },
-            questionAnswersGroupedByClue: [
-                {
-                    answers : [
-                        { id: 'a1', data: { submittedAt: time(150), teamId: 't1', clueId: 'c1', text: 'Answer one' } as SimpleAnswer },
-                        { id: 'a2', data: { submittedAt: time(170), teamId: 't2', clueId: 'c1', text: 'Answer two' } as SimpleAnswer },
-                    ],
-                    clueId: 'c1',
-                },
-                {
-                    answers : [],
-                    clueId: 'c2',
-                },
-                {
-                    answers : [],
-                    clueId: 'c3',
-                },
-                {
-                    answers : [
-                        { id: 'a3', data: { submittedAt: time(750), teamId: 't3', clueId: 'c4', text: 'Answer three' } as SimpleAnswer }
-                    ],
-                    clueId: 'c4',
-                },
-            ],
-            teamNamesById: {
-                't1': 'Team One',
-                't2': 'Team Two',
-                't3': 'Team Three',
-                't4': 'Team Four',
-            },
-            updateAnswerScoresAndCorrectFlags: jest.fn(),
+            setFocusAnswerRefIfFocusAnswerId: jest.fn(),
         };
-    });
-
-    it('returns null if there are no answers for the question', () => {
-        const result = AnswersForQuestion({ questionAnswersGroupedByClue: [] } as any);
-        expect(result).toBeNull();
     });
 
     it('displays the question number', () => {
@@ -84,10 +74,8 @@ describe('<AnswersForQuestion>', () => {
     });
 
     it('displays an answer\'s score once it is marked', () => {
-        props.questionAnswersGroupedByClue[0].answers[0].data.correct = true;
-        props.questionAnswersGroupedByClue[0].answers[0].data.points = 5;
-        props.questionAnswersGroupedByClue[0].answers[1].data.correct = false;
-        props.questionAnswersGroupedByClue[0].answers[1].data.points = 0;
+        props.model.clueGroups[0].answerGroups[0].answers[0].points = 5;
+        props.model.clueGroups[0].answerGroups[1].answers[0].points = 0;
 
         renderWithProps();
 
@@ -95,16 +83,8 @@ describe('<AnswersForQuestion>', () => {
         expect(screen.getByText(/Answer two \(0\)/i)).toBeInTheDocument();
     });
 
-    it('displays an answer as invalid if it was submitted before the clue was revealed', () => {
-        props.questionAnswersGroupedByClue[0].answers[0].data.submittedAt = time(90);
-
-        renderWithProps();
-
-        expect(screen.getByText(/Answer one/i).parentElement).toHaveClass('invalidAnswer');
-    });
-
-    it('displays an answer as invalid if it was submitted after the clue was closed', () => {
-        props.questionAnswersGroupedByClue[0].answers[0].data.submittedAt = time(210);
+    it('displays an answer as invalid if it part of an invalid answer group', () => {
+        props.model.clueGroups[0].answerGroups[0].isValid = false;
 
         renderWithProps();
 
@@ -114,6 +94,27 @@ describe('<AnswersForQuestion>', () => {
     describe('for quiz owner', () => {
         beforeEach(() => {
             props.isQuizOwner = true;
+            props.model.clueGroups[0].answerGroups[0].answers[0].marking = {
+                supercededByCorrectAnswer: false,
+                canBeMarkedCorrect: true,
+                canBeMarkedIncorrect: true,
+                markCorrect: jest.fn(),
+                markIncorrect: jest.fn(),
+            };
+            props.model.clueGroups[0].answerGroups[1].answers[0].marking = {
+                supercededByCorrectAnswer: false,
+                canBeMarkedCorrect: true,
+                canBeMarkedIncorrect: true,
+                markCorrect: jest.fn(),
+                markIncorrect: jest.fn(),
+            };
+            props.model.clueGroups[1].answerGroups[0].answers[0].marking = {
+                supercededByCorrectAnswer: false,
+                canBeMarkedCorrect: true,
+                canBeMarkedIncorrect: true,
+                markCorrect: jest.fn(),
+                markIncorrect: jest.fn(),
+            };
         });
 
         const answerRow = (pattern: RegExp) => screen.getByText(pattern).parentElement!;
@@ -125,6 +126,10 @@ describe('<AnswersForQuestion>', () => {
         };
 
         it('displays the name of the team who submitted each answer', () => {
+            props.model.clueGroups[0].answerGroups[0].teamName = 'Team One';
+            props.model.clueGroups[0].answerGroups[1].teamName = 'Team Two';
+            props.model.clueGroups[1].answerGroups[0].teamName = 'Team Three';
+
             renderWithProps();
     
             expect(within(answerRow(/Answer one/)).getByText(/Team One/)).toBeInTheDocument();
@@ -142,8 +147,8 @@ describe('<AnswersForQuestion>', () => {
             expect(incorrectButton).not.toBeDisabled();
         });
 
-        it('disables the mark correct button if already marked correct', () => {
-            props.questionAnswersGroupedByClue[0].answers[0].data.correct = true;
+        it('disables the mark correct button if needed', () => {
+            props.model.clueGroups[0].answerGroups[0].answers[0].marking!.canBeMarkedCorrect = false;
 
             renderWithProps();
 
@@ -152,8 +157,8 @@ describe('<AnswersForQuestion>', () => {
             expect(incorrectButton).not.toBeDisabled();
         });
 
-        it('disables the mark incorrect button if already marked incorrect', () => {
-            props.questionAnswersGroupedByClue[0].answers[0].data.correct = false;
+        it('disables the mark incorrect button if needed', () => {
+            props.model.clueGroups[0].answerGroups[0].answers[0].marking!.canBeMarkedIncorrect = false;
 
             renderWithProps();
 
@@ -163,55 +168,13 @@ describe('<AnswersForQuestion>', () => {
         });
 
         it('hides the mark correct/incorrect buttons if the team has already answered correctly', () => {
-            props.questionAnswersGroupedByClue[0].answers[0].data.correct = true;
-            props.questionAnswersGroupedByClue[3].answers[0].data.teamId = props.questionAnswersGroupedByClue[0].answers[0].data.teamId;
+            props.model.clueGroups[1].answerGroups[0].answers[0].marking!.supercededByCorrectAnswer = true;
 
             renderWithProps();
 
             const [correctButton, incorrectButton] = markingButtons(/Answer three/);
             expect(correctButton).not.toBeInTheDocument();
             expect(incorrectButton).not.toBeInTheDocument();
-        });
-
-        describe('with a missing vowels question', () => {
-            beforeEach(() => {
-                props.question = {
-                    type: 'missing-vowels',
-                    clueId: 'c1'
-                } as MissingVowelsQuestion;
-                props.questionAnswersGroupedByClue[3].answers[0].data.clueId = 'c1';
-                props.questionAnswersGroupedByClue[3].answers[0].data.submittedAt = time(180);
-            });
-
-            it('disables the mark correct button for everything but the first unmarked answer', () => {
-                props.questionAnswersGroupedByClue[0].answers[1].data.correct = true;
-
-                renderWithProps();
-
-                const [c1] = markingButtons(/Answer one/);
-                const [c2] = markingButtons(/Answer two/);
-                const [c3] = markingButtons(/Answer three/);
-                expect(c1).not.toBeDisabled(); // 1 is first unmarked, even though there are subsequent marked qs
-                expect(c2).toBeDisabled(); // 2 is marked
-                expect(c3).toBeDisabled(); // 3 cannot be marked yet, it's not first unmarked
-            });
-
-            it('ignores answers from teams with the correct answer when determining the first unmarked answer', () => {
-                props.questionAnswersGroupedByClue[0].answers[0].data.correct = true;
-                props.questionAnswersGroupedByClue[0].answers[1].data.teamId = props.questionAnswersGroupedByClue[0].answers[0].data.teamId;
-                props.questionAnswersGroupedByClue[0].answers.push({ id: 'a4', data: { clueId: 'c1', submittedAt: time(190), text: 'Answer four', teamId: 't4' } as SimpleAnswer })
-
-                renderWithProps();
-
-                const [c1] = markingButtons(/Answer one/);
-                const [c2] = markingButtons(/Answer two/);
-                const [c3] = markingButtons(/Answer three/);
-                const [c4] = markingButtons(/Answer four/);
-                expect(c1).toBeDisabled(); // 1 is marked correct
-                expect(c2).not.toBeInTheDocument(); // 2 is from same team as 1, so cannot be marked at all
-                expect(c3).not.toBeDisabled(); // 3 is first unmarked, so can be marked
-                expect(c4).toBeDisabled(); // 4 is not first unmarked, so cannot be marked yet
-            });
         });
     });
 });

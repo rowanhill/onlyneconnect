@@ -1,13 +1,13 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { PrimaryButton } from './Button';
 import { useAnswersContext, useCluesContext, useQuestionsContext, useQuizContext, useTeamsContext, useWallInProgressContext } from './contexts/quizPage';
-import { CollectionQueryData, CollectionQueryItem } from './hooks/useCollectionResult';
-import { Answer, Clue, FourByFourTextClue, getClueIds, Question, Quiz, SimpleAnswer, Team, WallAnswer, WallInProgress, WallQuestion } from './models';
+import { CollectionQueryData } from './hooks/useCollectionResult';
+import { Answer, Clue, Question, Quiz, Team } from './models';
 import { AnswerUpdate, updateAnswers, updateWallAnswer } from './models/answer';
 import styles from './AnswerHistory.module.css';
-import { calculateUpdatedScores } from './answerScoreCalculator';
 import { GenericErrorBoundary } from './GenericErrorBoundary';
 import { useAutoscroll } from './hooks/useAutoscroll';
+import { createViewModel, VMAnswer, VMAnswerGroup, VMQuestion, VMSimpleAnswerGroup, VMWallAnswerGroup } from './answerHistoryViewModel';
 
 const HistoryContainer: React.FunctionComponent<{ setHistoryContainerRef: (element: HTMLElement | null) => void; }> = (props) => (
     <div className={styles.answersHistory} ref={props.setHistoryContainerRef} data-cy="answers-history">
@@ -28,7 +28,7 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
     if (answersError || cluesError || questionsError) {
         return <HistoryContainer setHistoryContainerRef={setHistoryContainerRef}><strong>There was an error loading your answers! Please try again</strong></HistoryContainer>;
     }
-    if (answersLoading || !answersData || cluesLoading || !cluesData || questionsLoading || !questionsData) {
+    if (answersLoading || !answersData || cluesLoading || !cluesData || questionsLoading || !questionsData || !teamsData) {
         return <HistoryContainer setHistoryContainerRef={setHistoryContainerRef}></HistoryContainer>;
     }
 
@@ -52,7 +52,7 @@ interface AnswersHistoryInnerProps {
     quiz: Quiz;
     cluesData: CollectionQueryData<Clue>;
     questionsData: CollectionQueryData<Question>;
-    teamsData: CollectionQueryData<Team> | undefined;
+    teamsData: CollectionQueryData<Team>;
     answersData: CollectionQueryData<Answer>;
     wallInProgressByTeamIdByClueId: ReturnType<typeof useWallInProgressContext>['wipByTeamByClue'];
     focusAnswerRef: React.MutableRefObject<HTMLElement | null>;
@@ -70,222 +70,84 @@ const AnswersHistoryInner = ({
     wallInProgressByTeamIdByClueId,
     setHistoryContainerRef,
 }: AnswersHistoryInnerProps) => {
-    const cluesById = Object.fromEntries(cluesData.map((clue) => [clue.id, clue]));
-    const questionsById = Object.fromEntries(questionsData.map((question) => [question.id, question.data]));
-    const answersByQuestionId = answersData.reduce((acc, answer) => {
-        if (!acc[answer.data.questionId]) {
-            acc[answer.data.questionId] = {};
-        }
-        if (!acc[answer.data.questionId][answer.data.clueId]) {
-            acc[answer.data.questionId][answer.data.clueId] = [];
-        }
-        acc[answer.data.questionId][answer.data.clueId].push(answer);
-        return acc;
-    }, {} as { [questionId: string]: { [clueId: string]: CollectionQueryItem<Answer>[] }; });
-
-    let focusAnswerId: string|undefined;
-    if (!isQuizOwner) {
-        focusAnswerId =  answersData[answersData.length - 1]?.id;
-    } else {
-        const orderedAnswers = quiz.questionIds.flatMap((qid) => {
-            const question = questionsById[qid];
-            const questionAnswersByClue = answersByQuestionId[qid];
-            if (!questionAnswersByClue) {
-                return [];
-            } else {
-                return getClueIds(question).flatMap((cid) => questionAnswersByClue[cid] || []);
-            }
-        });
-        const firstUnmarked = orderedAnswers.find((a) => a.data.points === undefined);
-        focusAnswerId = firstUnmarked?.id;
-    }
-
-    const Answers = useCallback(({ questionId, groupIndex }: { questionId: string; groupIndex: number }) => {
-        const teamNamesById = isQuizOwner && teamsData ? Object.fromEntries(teamsData.map((team) => [team.id, team.data.name])) : {};
-
-        const updateAnswerScoresAndCorrectFlags = (answerUpdates: AnswerUpdate[]) => {
-            updateAnswers(quizId, answerUpdates)
-                .catch((error) => {
-                    console.error('Error when updating answers', error);
-                });
-        };
-
-        const updateWallAnswerScoreAndCorrectFlag = (
-            answerId: string,
-            wallInProgressId: string,
-            connectionIndex: number,
-            connectionCorrect: boolean,
-        ) => {
-            updateWallAnswer(
-                quizId,
-                answerId,
-                wallInProgressId,
-                connectionIndex,
-                connectionCorrect
-            ).catch((error) => {
-                console.error('Error when updating wall answer', error);
+    const updateAnswerScoresAndCorrectFlags = (answerUpdates: AnswerUpdate[]) => {
+        updateAnswers(quizId, answerUpdates)
+            .catch((error) => {
+                console.error('Error when updating answers', error);
             });
-        };
+    };
 
-        const question = questionsById[questionId] as Question|undefined;
-        if (!question) {
-            return null;
+    const updateWallAnswerScoreAndCorrectFlag = (
+        answerId: string,
+        wallInProgressId: string,
+        connectionIndex: number,
+        connectionCorrect: boolean,
+    ) => {
+        updateWallAnswer(
+            quizId,
+            answerId,
+            wallInProgressId,
+            connectionIndex,
+            connectionCorrect
+        ).catch((error) => {
+            console.error('Error when updating wall answer', error);
+        });
+    };
+
+    const viewModel = createViewModel(
+        isQuizOwner,
+        cluesData,
+        questionsData,
+        answersData,
+        teamsData,
+        wallInProgressByTeamIdByClueId,
+        quiz,
+        quizId,
+        updateAnswerScoresAndCorrectFlags,
+        updateWallAnswerScoreAndCorrectFlag,
+    );
+
+    const setFocusAnswerRefIfFocusAnswerId = (answerId: string) => (el: HTMLElement | null) => {
+        if (answerId === viewModel.focusAnswerId) {
+            focusAnswerRef.current = el;
         }
-        const questionAnswers = answersByQuestionId[questionId];
-        if (question.type !== 'wall') {
-            const clueIds = getClueIds(question);
-            const questionAnswersGroupedByClue = clueIds.map((id) => ({
-                answers: ((questionAnswers && questionAnswers[id]) || []) as CollectionQueryItem<SimpleAnswer>[],
-                clueId: id,
-            }));
-            return (
-                <AnswersForQuestion
-                    key={questionId}
-                    questionNumber={groupIndex + 1}
-                    isQuizOwner={isQuizOwner}
-                    question={question}
-                    questionAnswersGroupedByClue={questionAnswersGroupedByClue}
-                    cluesById={cluesById}
-                    teamNamesById={teamNamesById}
-                    updateAnswerScoresAndCorrectFlags={updateAnswerScoresAndCorrectFlags}
-                    focusAnswerId={focusAnswerId}
-                    focusAnswerRef={focusAnswerRef}
-                /> 
-            );
-        } else {
-            const clue = cluesById[question.clueId] as CollectionQueryItem<FourByFourTextClue>;
-            const wallInProgressByTeam = wallInProgressByTeamIdByClueId && wallInProgressByTeamIdByClueId[question.clueId];
-            const questionAnswersGroupedByClue = questionAnswers && questionAnswers[question.clueId] as CollectionQueryItem<WallAnswer>[];
-            return (
-                <AnswersForWallQuestion
-                    key={questionId}
-                    questionNumber={groupIndex + 1}
-                    question={question}
-                    clue={clue}
-                    wallInProgressByTeam={wallInProgressByTeam || {}}
-                    isQuizOwner={isQuizOwner}
-                    teamNamesById={teamNamesById}
-                    questionAnswers={questionAnswersGroupedByClue || []}
-                    updateWallAnswerScoreAndCorrectFlag={updateWallAnswerScoreAndCorrectFlag}
-                    focusAnswerId={focusAnswerId}
-                    focusAnswerRef={focusAnswerRef}
-                />
-            );
-        }
-    }, [answersByQuestionId, cluesById, focusAnswerId, focusAnswerRef, isQuizOwner, questionsById, quizId, teamsData, wallInProgressByTeamIdByClueId]);
+    };
 
     return (
         <HistoryContainer setHistoryContainerRef={setHistoryContainerRef}>
             <GenericErrorBoundary>
-            {quiz.questionIds.map((questionId, groupIndex) => (
-                <Answers key={questionId} questionId={questionId} groupIndex={groupIndex} />
-            ))}
+                {viewModel.questions.map((question, questionIndex) => (
+                    question.numAnswers > 0 && <QuestionGroup
+                        key={question.id}
+                        model={question}
+                        questionNumber={questionIndex + 1}
+                        isQuizOwner={isQuizOwner}
+                        setFocusAnswerRefIfFocusAnswerId={setFocusAnswerRefIfFocusAnswerId}
+                    />
+                ))}
             </GenericErrorBoundary>
         </HistoryContainer>
     );
 };
 
-/**
- * Determines whether an answer is 'valid' - i.e. was submitted after the clue was revealed and before the clue was
- * closed
- */
-function answerIsValid(answer: Answer, clue: Clue) {
-    if (!answer.submittedAt || !clue.revealedAt) {
-        return false;
-    }
-    const submittedMillis = answer.submittedAt.toMillis();
-    const revealedAtMillis = clue.revealedAt.toMillis();
-    return submittedMillis >= revealedAtMillis && (!clue.closedAt || submittedMillis <= clue.closedAt.toMillis());
-}
-
-interface AnswersForQuestionProps {
+export const QuestionGroup = ({ model, questionNumber, isQuizOwner, setFocusAnswerRefIfFocusAnswerId }: {
+    model: VMQuestion;
     questionNumber: number;
     isQuizOwner: boolean;
-    question: Question;
-    questionAnswersGroupedByClue: { answers: CollectionQueryItem<SimpleAnswer>[]; clueId: string; }[];
-    cluesById: { [clueId: string]: CollectionQueryItem<Clue>; };
-    teamNamesById: { [teamId: string]: string; }
-    focusAnswerId: string|undefined;
-    focusAnswerRef: React.MutableRefObject<HTMLElement | null>;
-    updateAnswerScoresAndCorrectFlags: (updates: AnswerUpdate[]) => void;
-}
-export const AnswersForQuestion = (props: AnswersForQuestionProps) => {
-    const allQuestionAnswers = props.questionAnswersGroupedByClue.flatMap((answers) => answers.answers);
-    if (allQuestionAnswers.length === 0) {
-        return null;
-    }
-
-    const markCorrect = (answerId: string, clueIndex: number) => {
-        const updates = calculateUpdatedScores(answerId, true, props.question, clueIndex, allQuestionAnswers);
-        props.updateAnswerScoresAndCorrectFlags(updates);
-    };
-    const markIncorrect = (answerId: string, clueIndex: number) => {
-        const updates = calculateUpdatedScores(answerId, false, props.question, clueIndex, allQuestionAnswers);
-        props.updateAnswerScoresAndCorrectFlags(updates);
-    };
-
-    const hasAnsweredCorrectlyByTeam = Object.fromEntries(
-        allQuestionAnswers
-            .filter((answerItem) => answerItem.data.correct === true)
-            .map((answerItem) => [answerItem.data.teamId, true])
-    );
-    const earlierAnswersAreUnmarked = (submittedAtMillis: number) => {
-        return allQuestionAnswers.some((item) => {
-            return item.data.correct === undefined && // Item is umarked...
-                item.data.submittedAt && item.data.submittedAt.toMillis() < submittedAtMillis && // ...and prior to answer...
-                hasAnsweredCorrectlyByTeam[item.data.teamId] !== true; // ...and not by a team with correct answer elsewhere...
-        });
-    };
-
-    const answerInfoPropsGroupedByClue = props.questionAnswersGroupedByClue.map((questionAnswers) => {
-        const markableAnswerPropsList = questionAnswers.answers.map((answerItem): Omit<MarkableAnswerProps, 'focusAnswerRef'|'focusAnswerId'> => {
-            const clue = props.cluesById[answerItem.data.clueId];
-            const valid = clue && answerIsValid(answerItem.data, clue.data);
-    
-            const clueIndex = (props.question.type === 'connection' || props.question.type === 'sequence') ? 
-                props.question.clueIds.indexOf(answerItem.data.clueId) :
-                0;
-    
-            const canBeMarkedCorrect = answerItem.data.correct !== true &&
-                !(props.question.type === 'missing-vowels' && answerItem.data.submittedAt && earlierAnswersAreUnmarked(answerItem.data.submittedAt.toMillis()));
-            const canBeMarkedIncorrect = answerItem.data.correct !== false;
-            const buttonsAreVisible = props.isQuizOwner && valid && !allQuestionAnswers
-                .some((a) => a.data.correct === true && a.data.teamId === answerItem.data.teamId && a.id !== answerItem.id);
-            return {
-                answer: {
-                    id: answerItem.id,
-                    text: answerItem.data.text,
-                    isValid: valid,
-                    points: answerItem.data.points,
-                    teamName: props.teamNamesById[answerItem.data.teamId],
-                },
-                canBeMarkedCorrect,
-                canBeMarkedIncorrect,
-                buttonsAreVisible,
-                cySuffix: answerItem.id,
-                isQuizOwner: props.isQuizOwner,
-                markCorrect: () => markCorrect(answerItem.id, clueIndex),
-                markIncorrect: () => markIncorrect(answerItem.id, clueIndex),
-            };
-        });
-        return { markableAnswerPropsList, clueId: questionAnswers.clueId };
-    });
-
-    const nonEmptyClueGroups = answerInfoPropsGroupedByClue.filter((group) => group.markableAnswerPropsList.length > 0);
-    const clueGroupClassName = props.isQuizOwner ? styles.clueAnswerGroup : undefined;
-
+    setFocusAnswerRefIfFocusAnswerId: (answerId: string) => (el: HTMLElement | null) => void;
+}) => {
     return (
         <div>
-            <h3>Question {props.questionNumber}</h3>
-            {nonEmptyClueGroups.map((clueGroup) => (
-                <div key={clueGroup.clueId} className={clueGroupClassName}>
-                    {clueGroup.markableAnswerPropsList.map((markableAnswerProps) => (
-                        <MarkableAnswer
-                            key={markableAnswerProps.cySuffix}
-                            {...markableAnswerProps}
-                            focusAnswerId={props.focusAnswerId}
-                            focusAnswerRef={props.focusAnswerRef}
-                         />
+            <h3>Question {questionNumber}</h3>
+            {model.clueGroups.map((clueGroup) => (
+                clueGroup.numAnswers > 0 && <div key={clueGroup.id} className={isQuizOwner ? styles.clueAnswerGroup : undefined}>
+                    {clueGroup.answerGroups.map((answer) => (
+                        <AnswerGroup
+                            key={answer.id}
+                            model={answer}
+                            isQuizOwner={isQuizOwner}
+                            setFocusAnswerRefIfFocusAnswerId={setFocusAnswerRefIfFocusAnswerId}
+                        />
                     ))}
                 </div>
             ))}
@@ -293,187 +155,100 @@ export const AnswersForQuestion = (props: AnswersForQuestionProps) => {
     );
 };
 
-interface AnswersForWallQuestionProps {
-    questionNumber: number;
+const AnswerGroup = ({ model, isQuizOwner, setFocusAnswerRefIfFocusAnswerId }: {
+    model: VMAnswerGroup;
     isQuizOwner: boolean;
-    question: WallQuestion;
-    clue: CollectionQueryItem<FourByFourTextClue>;
-    wallInProgressByTeam: { [teamId: string]: CollectionQueryItem<WallInProgress> };
-    questionAnswers: CollectionQueryItem<WallAnswer>[];
-    teamNamesById: { [teamId: string]: string; };
-    focusAnswerId: string | undefined;
-    focusAnswerRef: React.MutableRefObject<HTMLElement | null>;
-    updateWallAnswerScoreAndCorrectFlag: (
-        answerId: string,
-        wallInProgressId: string,
-        connectionIndex: number,
-        connectionCorrect: boolean,
-    ) => void;
-}
-const AnswersForWallQuestion = (props: AnswersForWallQuestionProps) => {
-    if (props.questionAnswers.length === 0) {
-        return null;
+    setFocusAnswerRefIfFocusAnswerId: (answerId: string) => (el: HTMLElement | null) => void;
+}) => {
+    if (model.type === 'simple') {
+        return <SimpleAnswerRow
+            model={model}
+            isQuizOwner={isQuizOwner}
+            setFocusAnswerRefIfFocusAnswerId={setFocusAnswerRefIfFocusAnswerId}
+        />;
+    } else {
+        return <WallAnswerRow
+            model={model}
+            isQuizOwner={isQuizOwner}
+            setFocusAnswerRefIfFocusAnswerId={setFocusAnswerRefIfFocusAnswerId}
+        />;
     }
+};
+
+const SimpleAnswerRow = ({ model, isQuizOwner, setFocusAnswerRefIfFocusAnswerId }: {
+    model: VMSimpleAnswerGroup;
+    isQuizOwner: boolean;
+    setFocusAnswerRefIfFocusAnswerId: (answerId: string) => (el: HTMLElement | null) => void;
+}) => {
     return (
-        <div>
-            <h3>Question {props.questionNumber}</h3>
-            {props.questionAnswers.map((answer) => (
-                <AnswerForWallQuestion
-                    key={answer.id}
-                    answer={answer}
-                    clue={props.clue}
-                    teamNamesById={props.teamNamesById}
-                    wallInProgressByTeam={props.wallInProgressByTeam}
-                    isQuizOwner={props.isQuizOwner}
-                    focusAnswerId={props.focusAnswerId}
-                    focusAnswerRef={props.focusAnswerRef}
-                    updateWallAnswerScoreAndCorrectFlag={props.updateWallAnswerScoreAndCorrectFlag}
-                />
-            ))}
-        </div>
+        <MarkableAnswer
+            answerGroupModel={model}
+            answerModel={model.answers[0]}
+            cySuffix={model.id}
+            isQuizOwner={isQuizOwner}
+            setFocusAnswerRefIfFocusAnswerId={setFocusAnswerRefIfFocusAnswerId}
+        />
     );
 };
 
-interface AnswerForWallQuestionProps {
-    answer: CollectionQueryItem<WallAnswer>;
-    clue: CollectionQueryItem<FourByFourTextClue>;
-    teamNamesById: { [teamId: string]: string; };
-    wallInProgressByTeam: { [teamId: string]: CollectionQueryItem<WallInProgress> };
+const WallAnswerRow = ({ model, isQuizOwner, setFocusAnswerRefIfFocusAnswerId }: {
+    model: VMWallAnswerGroup;
     isQuizOwner: boolean;
-    focusAnswerId: string|undefined;
-    focusAnswerRef: React.MutableRefObject<HTMLElement | null>;
-    updateWallAnswerScoreAndCorrectFlag: (
-        answerId: string,
-        wallInProgressId: string,
-        connectionIndex: number,
-        connectionCorrect: boolean,
-    ) => void;
-}
-const AnswerForWallQuestion = (props: AnswerForWallQuestionProps) => {
-    const teamName = props.teamNamesById[props.answer.data.teamId];
-    const wallInProgress = props.wallInProgressByTeam[props.answer.data.teamId];
-
-    const markCorrect = (connectionIndex: number) => {
-        props.updateWallAnswerScoreAndCorrectFlag(props.answer.id, wallInProgress.id, connectionIndex, true);
-    };
-    const markIncorrect = (connectionIndex: number) => {
-        props.updateWallAnswerScoreAndCorrectFlag(props.answer.id, wallInProgress.id, connectionIndex, false);
-    };
-
-    const valid = answerIsValid(props.answer.data, props.clue.data);
-
+    setFocusAnswerRefIfFocusAnswerId: (answerId: string) => (el: HTMLElement | null) => void;
+}) => {
     return (
-        <div data-cy={`submitted-answer-${props.answer.id}`}>
-            <h4>{teamName}</h4>
-            <ConnectionsFound wallInProgress={wallInProgress} />
-            <MarkableAnswersForWallAnswerGroup
-                answer={props.answer}
-                wallInProgress={wallInProgress}
-                valid={valid}
-                isQuizOwner={props.isQuizOwner}
-                focusAnswerId={props.focusAnswerId}
-                focusAnswerRef={props.focusAnswerRef}
-                markCorrect={markCorrect}
-                markIncorrect={markIncorrect}
-            />
+        <div data-cy={`submitted-answer-${model.id}`}>
+            {model.teamName && <h4>{model.teamName}</h4>}
+            <ConnectionsFound numGroupsFound={model.numGroupsFound} />
+            {model.answers.map((connection, connectionIndex) => (
+                <MarkableAnswer
+                    key={`${model.id}-connection-${connectionIndex}`}
+                    answerGroupModel={model}
+                    answerModel={connection}
+                    cySuffix={`${model.id}-connection-${connectionIndex}`}
+                    isQuizOwner={isQuizOwner}
+                    setFocusAnswerRefIfFocusAnswerId={setFocusAnswerRefIfFocusAnswerId}
+                />
+            ))}
+            Total: {model.totalPoints}
         </div>
     );
 };
 
 interface ConnectionsFoundProps {
-    wallInProgress: CollectionQueryItem<WallInProgress> | undefined;
+    numGroupsFound: number | undefined;
 }
 const ConnectionsFound = (props: ConnectionsFoundProps) => {
-    if (!props.wallInProgress) {
+    if (!props.numGroupsFound) {
         return null;
     }
-    if (!props.wallInProgress.data.correctGroups) {
-        return null;
-    }
-    return <div>Found {props.wallInProgress.data.correctGroups.length} group(s)</div>;
+    return <div>Found {props.numGroupsFound} group(s)</div>;
 };
 
-interface MarkableAnswersForWallAnswerGroupProps {
-    answer: CollectionQueryItem<WallAnswer>;
-    wallInProgress: CollectionQueryItem<WallInProgress> | undefined;
-    valid: boolean;
-    isQuizOwner: boolean;
-    focusAnswerId: string|undefined;
-    focusAnswerRef: React.MutableRefObject<HTMLElement | null>;
-    markCorrect: (connectionIndex: number) => void;
-    markIncorrect: (connectionIndex: number) => void;
-}
-const MarkableAnswersForWallAnswerGroup = (props: MarkableAnswersForWallAnswerGroupProps) => {
-    const markableAnswerPropsList = props.answer.data.connections.map((connection, i) => {
-        const infoProps: Omit<MarkableAnswerProps, 'focusAnswerId'|'focusAnswerRef'> = {
-            answer: {
-                id: props.answer.id,
-                text: connection.text,
-                isValid: props.valid,
-                points: connection.correct === true ? 1 : (connection.correct === false ? 0 : undefined),
-            },
-            cySuffix: `${props.answer.id}-connection-${i}`,
-            canBeMarkedCorrect: connection.correct !== true && props.wallInProgress !== undefined,
-            canBeMarkedIncorrect: connection.correct !== false && props.wallInProgress !== undefined,
-            buttonsAreVisible: props.isQuizOwner && props.valid && props.wallInProgress !== undefined,
-            isQuizOwner: props.isQuizOwner,
-            markCorrect: () => props.markCorrect(i),
-            markIncorrect: () => props.markIncorrect(i),
-        };
-        return infoProps;
-    });
-
-    return (
-        <>
-            {markableAnswerPropsList.map((markableAnswerProps) =>
-                <MarkableAnswer
-                    key={markableAnswerProps.cySuffix}
-                    {...markableAnswerProps}
-                    focusAnswerId={props.focusAnswerId}
-                    focusAnswerRef={props.focusAnswerRef}
-                />
-            )}
-            Total: {props.answer.data.points || 0}
-        </>
-    );
-};
-
-interface MarkableAnswerProps {
-    answer: {
-        id: string;
-        text: string;
-        isValid: boolean;
-        points?: number;
-        teamName?: string;
-    };
+const MarkableAnswer = ({ answerModel, answerGroupModel, cySuffix, isQuizOwner, setFocusAnswerRefIfFocusAnswerId }: {
+    answerModel: VMAnswer;
+    answerGroupModel: VMAnswerGroup;
     cySuffix: string;
     isQuizOwner: boolean;
-    buttonsAreVisible: boolean;
-    canBeMarkedCorrect: boolean;
-    canBeMarkedIncorrect: boolean;
-    focusAnswerId: string|undefined;
-    focusAnswerRef: React.MutableRefObject<HTMLElement | null>;
-    markCorrect: () => void;
-    markIncorrect: () => void;
-}
-const MarkableAnswer = (props: MarkableAnswerProps) => {
+    setFocusAnswerRefIfFocusAnswerId: (answerId: string) => (el: HTMLElement | null) => void;
+}) => {
     return (
         <div
-            className={props.answer.isValid ? styles.answer : styles.invalidAnswer}
-            data-cy={`submitted-answer-${props.cySuffix}`}
-            ref={(el) => { if (props.answer.id === props.focusAnswerId) { props.focusAnswerRef.current = el; } }}
+            className={answerGroupModel.isValid ? styles.answer : styles.invalidAnswer}
+            data-cy={`submitted-answer-${cySuffix}`}
+            ref={setFocusAnswerRefIfFocusAnswerId(answerGroupModel.id)}
         >
             <div className={styles.answerInfo}>
-                {props.isQuizOwner && props.answer.teamName && <>{props.answer.teamName}:<br/></>}
-                {props.answer.text}{' '}
-                {(props.answer.points !== undefined || !props.isQuizOwner) &&
-                    <>({props.answer.points !== undefined ? props.answer.points : 'unscored'})</>
+                {isQuizOwner && answerGroupModel.teamName && <>{answerGroupModel.teamName}:<br/></>}
+                {answerModel.text}{' '}
+                {(answerModel.points !== undefined || !isQuizOwner) &&
+                    <>({answerModel.points !== undefined ? answerModel.points : 'unscored'})</>
                 }
             </div>
-            {props.buttonsAreVisible &&
+            {isQuizOwner && answerModel.marking && !answerModel.marking.supercededByCorrectAnswer && answerGroupModel.isValid &&
                 <div className={styles.markingButtons}>
-                    <PrimaryButton onClick={props.markCorrect} disabled={!props.canBeMarkedCorrect}>✔️</PrimaryButton>
-                    <PrimaryButton onClick={props.markIncorrect} disabled={!props.canBeMarkedIncorrect}>❌</PrimaryButton>
+                    <PrimaryButton onClick={answerModel.marking.markCorrect} disabled={!answerModel.marking.canBeMarkedCorrect}>✔️</PrimaryButton>
+                    <PrimaryButton onClick={answerModel.marking.markIncorrect} disabled={!answerModel.marking.canBeMarkedIncorrect}>❌</PrimaryButton>
                 </div>
             }
         </div>
