@@ -7,6 +7,7 @@ describe('Autoscrolling of answers history', () => {
     let teamId: string;
     let questionId: string;
     let clueIds: string[];
+    let newAnswerIds: string[] = [];
     before(() => {
         cy.task<string>('createQuiz', {
             quizName: 'Test Quiz',
@@ -64,7 +65,16 @@ describe('Autoscrolling of answers history', () => {
     });
 
     beforeEach(() => {
+        newAnswerIds = [];
         cy.login();
+    });
+
+    afterEach(() => {
+        if (newAnswerIds.length > 0) {
+            for (const newAnswerId of newAnswerIds) {
+                cy.callFirestore('delete', `/quizzes/${quizId}/answers/${newAnswerId}`);
+            }
+        }
     });
 
     function submitAnswer(clueId, text) {
@@ -74,6 +84,9 @@ describe('Autoscrolling of answers history', () => {
             clueId,
             teamId,
             text,
+        }).then((id) => {
+            newAnswerIds.push(id as string);
+            return id;
         });
     }
 
@@ -81,7 +94,7 @@ describe('Autoscrolling of answers history', () => {
         cy.contains('Answer 30').scrollIntoView().should('be.visible');
         answersHistory().scrollTo(0, 130);
         cy.contains('Answer 1').should('not.be.visible'); // Check first answer has scrolled off the top
-        cy.contains('Answer 30').should('not.be.visible'); // Check last answer has scrolled off the bottom
+        lastAnswer().should('not.be.visible'); // Check last answer has scrolled off the bottom
     }
 
     function lastAnswer() {
@@ -151,6 +164,9 @@ describe('Autoscrolling of answers history', () => {
 
     describe('as quiz owner', () => {
         beforeEach(() => {
+            // Navigate away, because switching between quiz owner / not quiz owner whilst on the page can, as
+            // various bits of data update at different moments, produce an invalid state, and cause an error.
+            cy.visit('about:blank');
             cy.callFirestore('update', `/quizzes/${quizId}`, { ownerId: Cypress.env('TEST_UID') });
             cy.visit(`/quiz/${quizId}`);
         });
