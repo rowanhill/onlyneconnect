@@ -1,26 +1,27 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { useAuth } from './hooks/useAuth';
+import { UserContext } from './contexts/user';
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import { SignInCard } from './SignInCard';
+import { LoggedInApp } from './LoggedInApp';
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    const { initialising, user } = useAuth();
+
+    return (
+    <UserContext.Provider value={{initialising, user}}>
+    <Router>
+        <Switch>
+            <Route exact path="/sign-in">
+                <SignInCard />
+            </Route>
+            <Route path="/">
+                <LoggedInApp />
+            </Route>
+        </Switch>
+    </Router>
+    </UserContext.Provider>
+    );
 }
 
 export default App;

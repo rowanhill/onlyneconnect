@@ -1,0 +1,97 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // True if the signed in user owns the parent quiz template
+    function templateAuthor(template) {
+      return request.auth != null
+        && get(/databases/$(database)/documents/quizTemplates/$(template)).data.authorId == request.auth.uid;
+    }
+  
+    // True if the signed in user owns the parent quiz
+    function quizOwner(quiz) {
+      return request.auth != null
+        && get(/databases/$(database)/documents/quizzes/$(quiz)).data.ownerId == request.auth.uid;
+    }
+
+    // True if the signed in user is a member of a team on the quiz
+    function quizPlayer(quiz) {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/quizzes/$(quiz)/playerTeams/$(request.auth.uid));
+    }
+
+    function teamMember(quiz, team) {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/quizzes/$(quiz)/playerTeams/$(request.auth.uid)).data.team == team;
+    }
+
+    match /quizTemplates/{template} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if templateAuthor(template);
+
+      match /questions/{question} {
+        allow read, write: if templateAuthor(template);
+
+        match /clues/{clue} {
+          allow read, write: if templateAuthor(template);
+        }
+      }
+    }
+
+    match /quizzes/{quiz} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if quizOwner(quiz);
+
+      match /questions/{question} {
+        // Quiz owner can update in order to set isRevealed to true
+        allow update: if quizOwner(quiz);
+        allow get: if (quizPlayer(quiz) && resource.data.isRevealed == true) || quizOwner(quiz);
+        allow list: if quizOwner(quiz);
+
+        match /clues/{clue} {
+          // Quiz owner can update in order to set isRevealed to true
+          allow update: if quizOwner(quiz);
+          allow get: if (quizPlayer(quiz) && resource.data.isRevealed == true) || quizOwner(quiz);
+          allow list: if quizOwner(quiz);
+        }
+      }
+
+      match /answers/{answer} {
+        // Only team captains can create answers, and only for revealed questions.
+        // New answers may not have points.
+        // New answers must be created with the current (server) timestamp.
+        allow create: if request.auth != null &&
+          request.auth.uid == get(/databases/$(database)/documents/quizzes/$(quiz)/teams/$(request.resource.data.team)).data.captainId &&
+          get(/databases/$(database)/documents/quizzes/$(quiz)/questions/$(request.resource.data.question)).isRevealed == true &&
+          !('points' in request.resource.data) &&
+          request.resource.data.timestamp == request.time;
+        // The quiz owner and anyone on the team can read their answers
+        allow read: if quizOwner(quiz) || teamMember(quiz, resource.data.team);
+        // The quiz owner can update the answer's awarded points
+        allow update: if quizOwner(quiz) && request.resource.data.keys().hasOnly(['points']);
+      }
+
+      match /playerTeams/{player} {
+        // Creating adds you to a team. You need the TEAM passcode to do this.
+        allow create: if request.auth != null &&
+          request.auth.uid == player &&
+          request.resource.data.teamPasscode == get(/databases/$(database)/documents/quizzes/$(quiz)/teams/$(request.resource.data.team)).data.passcode;
+
+        // You can remove your own player
+        allow delete: if request.auth != null && request.auth.uid == player;
+
+        // Nobody can read player team assignments, they're just for access control
+      }
+
+      match /teams/{team} {
+        // You need the QUIZ passcode to create a team for this quiz
+        allow create: if request.auth != null && request.resource.data.quizPasscode == get(/databases/$(database)/documents/quizzes/$(quiz)).data.passcode;
+
+        // You need to be the captain to update or delete a team
+        allow update, delete: if request.auth != null && request.auth.id == resource.data.captainId;
+
+        // Anyone can read team info
+        allow read: if request.auth != null;
+      }
+    }
+  }
+}
