@@ -4,10 +4,23 @@ import { CollectionQueryData, CollectionQueryItem } from './hooks/useCollectionR
 import { Clue, Question, Answer, Team, Quiz, getClueIds, SimpleAnswer, WallAnswer, WallInProgress } from './models';
 import { AnswerUpdate } from './models/answer';
 
+/**
+ * Model of a single text submission (to be marked by the owner)
+ */
 export interface VMAnswer {
     text: string;
-    points?: number;
+    /**
+     * The points awarded to this answer. If undefined, it has not been marked.
+     */
+    points: number | undefined;
+    /**
+     * Information and actions necessary for the quiz owner to mark the answer.
+     */
     marking?: {
+        /**
+         * Whether the submitting team has another answer to this question already marked correct
+         * (in which case this question needn't be marked)
+         */
         supercededByCorrectAnswer: boolean;
         canBeMarkedCorrect: boolean;
         canBeMarkedIncorrect: boolean;
@@ -16,31 +29,71 @@ export interface VMAnswer {
     }
 }
 
-export interface VMSimpleAnswerGroup {
-    type: 'simple';
-    id: string;
-    isValid: boolean;
-    answer: VMAnswer;
-    teamName?: string;
+interface VMCommonAnswerGroup {
+    /**
+     * The id of the answer in firestore
+     */
+     id: string;
+     /**
+      * Whether the answer was submitted whilst the question / clue was open
+      */
+     isValid: boolean;
+     /**
+      * Undefined if the current user is not the quiz owner, otherwise the name of the
+      * team that submitted the answer
+      */
+     teamName: string | undefined;
 }
 
-export interface VMWallAnswerGroup  {
+/**
+ * Model of a team's answer to a non-wall question - i.e. a single text submission to be marked.
+ */
+export interface VMSimpleAnswerGroup extends VMCommonAnswerGroup {
+    type: 'simple';
+    answer: VMAnswer;
+}
+
+/**
+ * Model of a team's answer to a wall question - the connections submitted for marking,
+ * and a summary of the (automatically marked) groups found.
+ */
+export interface VMWallAnswerGroup extends VMCommonAnswerGroup  {
     type: 'wall';
-    id: string;
-    isValid: boolean;
+    /**
+     * The connections submitted by the team, one connection per group.
+     */
     connections: VMAnswer[];
-    teamName?: string;
+    /**
+     * The number of groups found by the team in the group-finding phase of the question.
+     */
     numGroupsFound?: number;
+    /**
+     * The total number of points awarded to this team for this question, based on the
+     * number of groups found and correct connections submitted.
+     */
     totalPoints: number;
 }
+
+/**
+ * An answer 'group' supplied by a team. The structure depends on the question type.
+ */
 export type VMAnswerGroup = VMSimpleAnswerGroup | VMWallAnswerGroup;
 
+/**
+ * Model containing the answers for a single clue of a single question.
+ */
 interface VMClueGroup {
     id: string;
     answerGroups: VMAnswerGroup[];
     numAnswers: number;
 }
 
+/**
+ * Model containing the answers for a single question, grouped by clue.
+ * 
+ * For the quiz owner, this will include answers from all teams, for players
+ * it will only include their own team's answers.
+ */
 export interface VMQuestion {
     id: string;
     clueGroups: VMClueGroup[];

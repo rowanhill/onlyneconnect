@@ -16,20 +16,23 @@ describe('<QuestionGroup>', () => {
     beforeEach(() => {
         answerGroup1 = {
             id: 'a1',
-            answer: { text: 'Answer one' },
+            answer: { text: 'Answer one', points: undefined },
             isValid: true,
+            teamName: undefined,
             type: 'simple',
         };
         answerGroup2 = {
             id: 'a2',
-            answer: { text: 'Answer two' },
+            answer: { text: 'Answer two', points: undefined },
             isValid: true,
+            teamName: undefined,
             type: 'simple',
         };
         answerGroup3 = {
             id: 'a3',
-            answer: { text: 'Answer three' },
+            answer: { text: 'Answer three', points: undefined },
             isValid: true,
+            teamName: undefined,
             type: 'simple',
         };
         props = {
