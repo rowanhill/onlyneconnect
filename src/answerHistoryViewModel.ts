@@ -83,6 +83,9 @@ export type VMAnswerGroup = VMSimpleAnswerGroup | VMWallAnswerGroup;
  * Model containing the answers for a single clue of a single question.
  */
 interface VMClueGroup {
+    /**
+     * Id of the clue in firestore
+     */
     id: string;
     answerGroups: VMAnswerGroup[];
     numAnswers: number;
@@ -95,12 +98,20 @@ interface VMClueGroup {
  * it will only include their own team's answers.
  */
 export interface VMQuestion {
+    /**
+     * Id of the question in firestore
+     */
     id: string;
     clueGroups: VMClueGroup[];
     numAnswers: number;
 }
 
 interface AnswersHistoryViewModel {
+    /**
+     * Id of the answer that should be visible if autoscrolling is enabled. This may be
+     * null if there is no such answer (e.g. no answers submitted, or, for the quiz owner,
+     * all answers have been marked)
+     */
     focusAnswerId: string|undefined;
     quizId: string;
     questions: VMQuestion[];
