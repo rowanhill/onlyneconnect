@@ -198,12 +198,12 @@ const WallAnswerRow = ({ model, isQuizOwner, setFocusAnswerRefIfFocusAnswerId }:
 }) => {
     return (
         <div data-cy={`submitted-answer-${model.id}`}>
-            {model.teamName && <h4>{model.teamName}</h4>}
+            {isQuizOwner && model.teamName && <h4>{model.teamName}</h4>}
             <ConnectionsFound numGroupsFound={model.numGroupsFound} />
             {model.connections.map((connection, connectionIndex) => (
                 <MarkableAnswer
                     key={`${model.id}-connection-${connectionIndex}`}
-                    answerGroupModel={model}
+                    answerGroupModel={{ ...model, teamName: undefined }}
                     answerModel={connection}
                     cySuffix={`${model.id}-connection-${connectionIndex}`}
                     isQuizOwner={isQuizOwner}

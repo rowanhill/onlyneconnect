@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import 'firebase/firestore';
 import { ComponentProps } from 'react';
 import { QuestionGroup } from './AnswerHistory';
-import { VMSimpleAnswerGroup } from './answerHistoryViewModel';
+import { VMSimpleAnswerGroup, VMWallAnswerGroup } from './answerHistoryViewModel';
 
 describe('<QuestionGroup>', () => {
     function renderWithProps() {
@@ -96,6 +96,22 @@ describe('<QuestionGroup>', () => {
         expect(screen.getByText(/Answer one/i).parentElement).toHaveClass('invalidAnswer');
     });
 
+    describe('for team member', () => {
+        it('does not visually represent clue groups - answers appear as one block, regardless of clue', () => {
+            renderWithProps();
+
+            expect(screen.getByText(/Answer one/i).parentElement?.parentElement?.className).toBe('');
+        });
+
+        it('does not display the team name even if it provided', () => {
+            answerGroup1.teamName = 'Team 1';
+
+            renderWithProps();
+
+            expect(screen.queryByText(/Team 1/i)).not.toBeInTheDocument();
+        });
+    });
+
     describe('for quiz owner', () => {
         beforeEach(() => {
             props.isQuizOwner = true;
@@ -129,6 +145,16 @@ describe('<QuestionGroup>', () => {
             const row = answerRow(pattern);
             return [markCorrect(row), markIncorrect(row)];
         };
+
+        it('groups anwers by clue', () => {
+            renderWithProps();
+
+            expect(screen.getByText(/Answer one/i).parentElement?.parentElement).toHaveClass('clueAnswerGroup');
+            expect(screen.getByText(/Answer one/i).parentElement?.parentElement)
+                .toEqual(screen.getByText(/Answer two/i).parentElement?.parentElement);
+            expect(screen.getByText(/Answer one/i).parentElement?.parentElement)
+                .not.toEqual(screen.getByText(/Answer three/i).parentElement?.parentElement);
+        });
 
         it('displays the name of the team who submitted each answer', () => {
             props.model.clueGroups[0].answerGroups[0].teamName = 'Team One';
@@ -180,6 +206,109 @@ describe('<QuestionGroup>', () => {
             const [correctButton, incorrectButton] = markingButtons(/Answer three/);
             expect(correctButton).not.toBeInTheDocument();
             expect(incorrectButton).not.toBeInTheDocument();
+        });
+    });
+
+    describe('answers for wall questions', () => {
+        let wallAnswer1: VMWallAnswerGroup;
+        let wallAnswer2: VMWallAnswerGroup;
+        beforeEach(() => {
+            wallAnswer1 = {
+                type: 'wall',
+                id: 'a1',
+                isValid: true,
+                teamName: undefined,
+                connections: [
+                    { text: 'Answer 1A', points: undefined, marking: undefined },
+                    { text: 'Answer 1B', points: undefined, marking: undefined },
+                    { text: 'Answer 1C', points: undefined, marking: undefined },
+                    { text: 'Answer 1D', points: undefined, marking: undefined },
+                ],
+                numGroupsFound: 1,
+                totalPoints: 2,
+            };
+            wallAnswer2 = {
+                type: 'wall',
+                id: 'a2',
+                isValid: true,
+                teamName: undefined,
+                connections: [
+                    { text: 'Answer 2A', points: undefined, marking: undefined },
+                    { text: 'Answer 2B', points: undefined, marking: undefined },
+                    { text: 'Answer 2C', points: undefined, marking: undefined },
+                    { text: 'Answer 2D', points: undefined, marking: undefined },
+                ],
+                numGroupsFound: 1,
+                totalPoints: 1,
+            };
+            props.model.clueGroups = [
+                {
+                    id: 'c1',
+                    answerGroups: [ wallAnswer1 ],
+                    numAnswers: 1,
+                },
+            ];
+        });
+
+        it('displays each connection answer', () => {
+            renderWithProps();
+
+            expect(screen.getByText(/Answer 1A/i)).toBeInTheDocument();
+            expect(screen.getByText(/Answer 1B/i)).toBeInTheDocument();
+            expect(screen.getByText(/Answer 1C/i)).toBeInTheDocument();
+            expect(screen.getByText(/Answer 1D/i)).toBeInTheDocument();
+        });
+
+        it('displays the number of groups found', () => {
+            renderWithProps();
+
+            expect(screen.getByText(/Found 1 group\(s\)/i)).toBeInTheDocument();
+        });
+
+        it('displays the total number of points', () => {
+            renderWithProps();
+
+            expect(screen.getByText(/Total: 2/i)).toBeInTheDocument();
+        });
+
+        describe('as team member', () => {
+            it('does not display the team name even if it provided', () => {
+                wallAnswer1.teamName = 'Team 1';
+
+                renderWithProps();
+
+                expect(screen.queryByText(/Team 1/i)).not.toBeInTheDocument();
+            });
+        });
+
+        describe('as quiz owner', () => {
+            beforeEach(() => {
+                props.isQuizOwner = true;
+                props.model.clueGroups[0].answerGroups = [ wallAnswer1, wallAnswer2 ];
+                props.model.clueGroups[0].numAnswers = 2;
+                wallAnswer1.teamName = 'Team 1';
+                wallAnswer2.teamName = 'Team 2';
+            });
+
+            it('displays each connection from each answer', () => {
+                renderWithProps();
+    
+                expect(screen.getByText(/Answer 1A/i)).toBeInTheDocument();
+                expect(screen.getByText(/Answer 1B/i)).toBeInTheDocument();
+                expect(screen.getByText(/Answer 1C/i)).toBeInTheDocument();
+                expect(screen.getByText(/Answer 1D/i)).toBeInTheDocument();
+                expect(screen.getByText(/Answer 2A/i)).toBeInTheDocument();
+                expect(screen.getByText(/Answer 2B/i)).toBeInTheDocument();
+                expect(screen.getByText(/Answer 2C/i)).toBeInTheDocument();
+                expect(screen.getByText(/Answer 2D/i)).toBeInTheDocument();
+            });
+
+            it('displays the team name for each answer', () => {
+                renderWithProps();
+
+                expect(screen.getByText(/Team 1/i)).toBeInTheDocument();
+                expect(screen.getByText(/Team 2/i)).toBeInTheDocument();
+            });
         });
     });
 });
