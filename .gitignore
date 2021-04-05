@@ -30,3 +30,6 @@ yarn-error.log*
 #firebase emulator exported data
 saved-data
 
+serviceAccount.json
+
+cypress.env.json

@@ -14,7 +14,13 @@ firebase.initializeApp(config);
 
 const auth = firebase.auth();
 const db = firebase.firestore();
-if (window.location.hostname === "localhost") {
+
+if ((window as any).Cypress) {
+    db.settings({
+        experimentalForceLongPolling: true,
+    });
+}
+if ((window as any).Cypress || window.location.hostname === "localhost") {
     db.useEmulator("localhost", 8080);
     auth.useEmulator('http://localhost:9099/');
 }
