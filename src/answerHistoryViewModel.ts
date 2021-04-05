@@ -194,7 +194,12 @@ function createOwnerViewModel(
 ): AnswersHistoryViewModel {
     const teamNamesById = Object.fromEntries(teamsData.map((team) => [team.id, team.data.name]));
 
-    const firstUnmarked = orderedAnswers.find((a) => a.data.points === undefined);
+    const firstUnmarked = orderedAnswers.find((a) => {
+        const isUnmarked = a.data.type !== 'wall' ?
+            a.data.correct === undefined :
+            a.data.connections.some((c) => c.correct === null);
+        return isUnmarked && cluesById[a.data.clueId] && answerIsValid(a.data, cluesById[a.data.clueId].data);
+    });
     const focusAnswerId = firstUnmarked?.id;
 
     const questions = createViewModelQuestions(
