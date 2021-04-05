@@ -66,7 +66,7 @@ export interface VMWallAnswerGroup extends VMCommonAnswerGroup  {
     /**
      * The number of groups found by the team in the group-finding phase of the question.
      */
-    numGroupsFound?: number;
+    numGroupsFound: number;
     /**
      * The total number of points awarded to this team for this question, based on the
      * number of groups found and correct connections submitted.
@@ -415,7 +415,7 @@ function createViewModelWallAnswerGroups(
             id: answer.id,
             isValid: answerIsValid(answer.data, clue),
             connections: createViewModelWallAnswers(answer, markCorrect, markIncorrect),
-            numGroupsFound: wip.data.correctGroups?.length,
+            numGroupsFound: wip.data.correctGroups?.length || 0,
             totalPoints: answer.data.points || 0,
             teamName: teamNamesById[answer.data.teamId],
         };

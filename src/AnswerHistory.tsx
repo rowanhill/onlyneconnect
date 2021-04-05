@@ -216,12 +216,9 @@ const WallAnswerRow = ({ model, isQuizOwner, setFocusAnswerRefIfFocusAnswerId }:
 };
 
 interface ConnectionsFoundProps {
-    numGroupsFound: number | undefined;
+    numGroupsFound: number;
 }
 const ConnectionsFound = (props: ConnectionsFoundProps) => {
-    if (!props.numGroupsFound) {
-        return null;
-    }
     return <div>Found {props.numGroupsFound} group(s)</div>;
 };
 
