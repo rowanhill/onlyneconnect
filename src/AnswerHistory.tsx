@@ -183,7 +183,7 @@ const SimpleAnswerRow = ({ model, isQuizOwner, setFocusAnswerRefIfFocusAnswerId 
     return (
         <MarkableAnswer
             answerGroupModel={model}
-            answerModel={model.answers[0]}
+            answerModel={model.answer}
             cySuffix={model.id}
             isQuizOwner={isQuizOwner}
             setFocusAnswerRefIfFocusAnswerId={setFocusAnswerRefIfFocusAnswerId}

@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import 'firebase/firestore';
 import { ComponentProps } from 'react';
 import { QuestionGroup } from './AnswerHistory';
+import { VMSimpleAnswerGroup } from './answerHistoryViewModel';
 
 describe('<QuestionGroup>', () => {
     function renderWithProps() {
@@ -9,7 +10,28 @@ describe('<QuestionGroup>', () => {
     }
 
     let props: ComponentProps<typeof QuestionGroup>;
+    let answerGroup1: VMSimpleAnswerGroup;
+    let answerGroup2: VMSimpleAnswerGroup;
+    let answerGroup3: VMSimpleAnswerGroup;
     beforeEach(() => {
+        answerGroup1 = {
+            id: 'a1',
+            answer: { text: 'Answer one' },
+            isValid: true,
+            type: 'simple',
+        };
+        answerGroup2 = {
+            id: 'a2',
+            answer: { text: 'Answer two' },
+            isValid: true,
+            type: 'simple',
+        };
+        answerGroup3 = {
+            id: 'a3',
+            answer: { text: 'Answer three' },
+            isValid: true,
+            type: 'simple',
+        };
         props = {
             isQuizOwner: false,
             questionNumber: 2,
@@ -18,32 +40,12 @@ describe('<QuestionGroup>', () => {
                 clueGroups: [
                     {
                         id: 'c1',
-                        answerGroups: [
-                            {
-                                id: 'a1',
-                                answers: [{ text: 'Answer one' }],
-                                isValid: true,
-                                type: 'simple',
-                            },
-                            {
-                                id: 'a2',
-                                answers: [{ text: 'Answer two' }],
-                                isValid: true,
-                                type: 'simple',
-                            },
-                        ],
+                        answerGroups: [ answerGroup1, answerGroup2 ],
                         numAnswers: 2,
                     },
                     {
                         id: 'c3',
-                        answerGroups: [
-                            {
-                                id: 'a3',
-                                answers: [{ text: 'Answer three' }],
-                                isValid: true,
-                                type: 'simple',
-                            },
-                        ],
+                        answerGroups: [ answerGroup3 ],
                         numAnswers: 1,
                     },
                 ],
@@ -74,8 +76,8 @@ describe('<QuestionGroup>', () => {
     });
 
     it('displays an answer\'s score once it is marked', () => {
-        props.model.clueGroups[0].answerGroups[0].answers[0].points = 5;
-        props.model.clueGroups[0].answerGroups[1].answers[0].points = 0;
+        answerGroup1.answer.points = 5;
+        answerGroup2.answer.points = 0;
 
         renderWithProps();
 
@@ -84,7 +86,7 @@ describe('<QuestionGroup>', () => {
     });
 
     it('displays an answer as invalid if it part of an invalid answer group', () => {
-        props.model.clueGroups[0].answerGroups[0].isValid = false;
+        answerGroup1.isValid = false;
 
         renderWithProps();
 
@@ -94,21 +96,21 @@ describe('<QuestionGroup>', () => {
     describe('for quiz owner', () => {
         beforeEach(() => {
             props.isQuizOwner = true;
-            props.model.clueGroups[0].answerGroups[0].answers[0].marking = {
+            answerGroup1.answer.marking = {
                 supercededByCorrectAnswer: false,
                 canBeMarkedCorrect: true,
                 canBeMarkedIncorrect: true,
                 markCorrect: jest.fn(),
                 markIncorrect: jest.fn(),
             };
-            props.model.clueGroups[0].answerGroups[1].answers[0].marking = {
+            answerGroup2.answer.marking = {
                 supercededByCorrectAnswer: false,
                 canBeMarkedCorrect: true,
                 canBeMarkedIncorrect: true,
                 markCorrect: jest.fn(),
                 markIncorrect: jest.fn(),
             };
-            props.model.clueGroups[1].answerGroups[0].answers[0].marking = {
+            answerGroup3.answer.marking = {
                 supercededByCorrectAnswer: false,
                 canBeMarkedCorrect: true,
                 canBeMarkedIncorrect: true,
@@ -148,7 +150,7 @@ describe('<QuestionGroup>', () => {
         });
 
         it('disables the mark correct button if needed', () => {
-            props.model.clueGroups[0].answerGroups[0].answers[0].marking!.canBeMarkedCorrect = false;
+            answerGroup1.answer.marking!.canBeMarkedCorrect = false;
 
             renderWithProps();
 
@@ -158,7 +160,7 @@ describe('<QuestionGroup>', () => {
         });
 
         it('disables the mark incorrect button if needed', () => {
-            props.model.clueGroups[0].answerGroups[0].answers[0].marking!.canBeMarkedIncorrect = false;
+            answerGroup1.answer.marking!.canBeMarkedIncorrect = false;
 
             renderWithProps();
 
@@ -168,7 +170,7 @@ describe('<QuestionGroup>', () => {
         });
 
         it('hides the mark correct/incorrect buttons if the team has already answered correctly', () => {
-            props.model.clueGroups[1].answerGroups[0].answers[0].marking!.supercededByCorrectAnswer = true;
+            answerGroup3.answer.marking!.supercededByCorrectAnswer = true;
 
             renderWithProps();
 

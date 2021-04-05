@@ -20,7 +20,7 @@ export interface VMSimpleAnswerGroup {
     type: 'simple';
     id: string;
     isValid: boolean;
-    answers: [VMAnswer];
+    answer: VMAnswer;
     teamName?: string;
 }
 
@@ -275,7 +275,7 @@ function createViewModelClueGroups(
                 markCorrect,
                 markIncorrect,
             );
-            const numAnswers = answerGroups.map((ag) => ag.answers.length).reduce((a, b) => a + b, 0);
+            const numAnswers = answerGroups.length; // Every simple answer group has exactly one answer
             return { id: cid, answerGroups, numAnswers };
         });
     } else {
@@ -316,19 +316,17 @@ function createViewModelSimpleAnswerGroups(
             type: 'simple',
             id: answer.id,
             isValid: answerIsValid(answer.data, clue),
-            answers: [
-                {
-                    text: answer.data.text,
-                    points: answer.data.points,
-                    marking: {
-                        supercededByCorrectAnswer,
-                        canBeMarkedCorrect,
-                        canBeMarkedIncorrect,
-                        markCorrect: () => markCorrect(answer.id),
-                        markIncorrect: () => markIncorrect(answer.id),
-                    }
+            answer: {
+                text: answer.data.text,
+                points: answer.data.points,
+                marking: {
+                    supercededByCorrectAnswer,
+                    canBeMarkedCorrect,
+                    canBeMarkedIncorrect,
+                    markCorrect: () => markCorrect(answer.id),
+                    markIncorrect: () => markIncorrect(answer.id),
                 }
-            ],
+            },
             teamName: teamNamesById[answer.data.teamId],
         };
     });
