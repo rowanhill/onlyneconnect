@@ -28,7 +28,7 @@ export interface VMWallAnswerGroup  {
     type: 'wall';
     id: string;
     isValid: boolean;
-    answers: VMAnswer[];
+    connections: VMAnswer[];
     teamName?: string;
     numGroupsFound?: number;
     totalPoints: number;
@@ -291,7 +291,7 @@ function createViewModelClueGroups(
                 clue.data,
                 updateWallAnswerScoreAndCorrectFlag,
             );
-            const numAnswers = answerGroups.map((ag) => ag.answers.length).reduce((a, b) => a + b, 0);
+            const numAnswers = answerGroups.map((ag) => ag.connections.length).reduce((a, b) => a + b, 0);
             return { id: cid, answerGroups, numAnswers };
         });
     }
@@ -361,7 +361,7 @@ function createViewModelWallAnswerGroups(
             type: 'wall',
             id: answer.id,
             isValid: answerIsValid(answer.data, clue),
-            answers: createViewModelWallAnswers(answer, markCorrect, markIncorrect),
+            connections: createViewModelWallAnswers(answer, markCorrect, markIncorrect),
             numGroupsFound: wip.data.correctGroups?.length,
             totalPoints: answer.data.points || 0,
             teamName: teamNamesById[answer.data.teamId],
