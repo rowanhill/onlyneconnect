@@ -1,5 +1,4 @@
 import { calculateUpdatedScores } from './answerScoreCalculator';
-import { useWallInProgressContext } from './contexts/quizPage';
 import { CollectionQueryData, CollectionQueryItem } from './hooks/useCollectionResult';
 import { Clue, Question, Answer, Team, Quiz, getClueIds, SimpleAnswer, WallAnswer, WallInProgress } from './models';
 import { AnswerUpdate } from './models/answer';
@@ -124,7 +123,7 @@ export function createViewModel(
     questionsData: CollectionQueryData<Question>,
     answersData: CollectionQueryData<Answer>,
     teamsData: CollectionQueryData<Team>,
-    wallInProgressByTeamIdByClueId: ReturnType<typeof useWallInProgressContext>['wipByTeamByClue'],
+    wallInProgressByTeamIdByClueId: { [clueId: string]: { [teamId: string]: CollectionQueryItem<WallInProgress>; }; } | undefined,
     quiz: Quiz,
     quizId: string,
     updateAnswerScoresAndCorrectFlags: (answerUpdates: AnswerUpdate[]) => void,
