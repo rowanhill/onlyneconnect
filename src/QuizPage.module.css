@@ -24,6 +24,7 @@
     flex-direction: column;
     min-width: 18em;
     max-height: calc(100vh - 2 * var(--medium)); /* medium padding used by page */
+    max-width: calc((100vh - 2 * var(--medium)) * 0.35); /* 35% of space left after page padding */
 }
 
 .answersCard {
