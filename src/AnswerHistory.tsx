@@ -229,18 +229,30 @@ const MarkableAnswer = ({ answerModel, answerGroupModel, cySuffix, isQuizOwner, 
     isQuizOwner: boolean;
     setFocusAnswerRefIfFocusAnswerId: (answerId: string) => (el: HTMLElement | null) => void;
 }) => {
+    const classNames = [];
+    if (isQuizOwner) {
+        classNames.push(styles.bandedAnswer);
+    }
+    if (answerGroupModel.isValid) {
+        classNames.push(styles.answer);
+    } else {
+        classNames.push(styles.invalidAnswer);
+    }
+    const cn = classNames.join(' ');
     return (
         <div
-            className={answerGroupModel.isValid ? styles.answer : styles.invalidAnswer}
+            className={cn}
             data-cy={`submitted-answer-${cySuffix}`}
             ref={setFocusAnswerRefIfFocusAnswerId(answerGroupModel.id)}
         >
             <div className={styles.answerInfo}>
-                {isQuizOwner && answerGroupModel.teamName && <>{answerGroupModel.teamName}:<br/></>}
-                {answerModel.text}{' '}
-                {(answerModel.points !== undefined || !isQuizOwner) &&
-                    <>({answerModel.points !== undefined ? answerModel.points : 'unscored'})</>
-                }
+                {isQuizOwner && answerGroupModel.teamName && <div className={styles.teamName}>{answerGroupModel.teamName}:</div>}
+                <div className={isQuizOwner ? styles.answerTextIndented : undefined}>
+                    {answerModel.text}{' '}
+                    {(answerModel.points !== undefined || !isQuizOwner) &&
+                        <>({answerModel.points !== undefined ? answerModel.points : 'unscored'})</>
+                    }
+                </div>
             </div>
             {isQuizOwner && answerModel.marking && !answerModel.marking.supercededByCorrectAnswer && answerGroupModel.isValid &&
                 <div className={styles.markingButtons}>

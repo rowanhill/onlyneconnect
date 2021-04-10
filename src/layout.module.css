@@ -49,6 +49,9 @@
 .verySmallBottomPadding {
     padding-bottom: var(--very-small);
 }
+.verySmallLeftPadding {
+    padding-left: var(--very-small);
+}
 .verySmallPadding {
     padding: var(--very-small);
 }

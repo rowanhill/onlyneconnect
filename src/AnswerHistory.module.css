@@ -11,7 +11,12 @@
     border-bottom: none;
 }
 
+.bandedAnswer:nth-child(odd) {
+    background-color: var(--white-very-slightly-washed-out);
+}
+
 .answer {
+    composes: verySmallPadding from './layout.module.css';
     display: flex;
     flex-direction: row;
 }
@@ -25,6 +30,17 @@
     flex-grow: 1;
 }
 
+.teamName {
+    font-style: italic;
+}
+
+.answerTextIndented {
+    composes: verySmallLeftPadding from './layout.module.css';
+}
+
 .markingButtons {
+    composes: verySmallLeftPadding from './layout.module.css';
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
 }

@@ -58,6 +58,9 @@ describe('<QuestionGroup>', () => {
         };
     });
 
+    const answerRow = (pattern: RegExp) => screen.getByText(pattern).parentElement!.parentElement!;
+    const clueGroup = (pattern: RegExp) => answerRow(pattern).parentElement!;
+
     it('displays the question number', () => {
         renderWithProps();
 
@@ -67,15 +70,18 @@ describe('<QuestionGroup>', () => {
     it('displays all the submitted answers as unscored', () => {
         renderWithProps();
 
-        const el1 = screen.getByText(/Answer one \(unscored\)/i);
+        const el1 = answerRow(/Answer one \(unscored\)/i);
         expect(el1).toBeInTheDocument();
-        expect(el1.parentElement).not.toHaveClass('invalidAnswer');
-        const el2 = screen.getByText(/Answer two \(unscored\)/i);
+        expect(el1).toHaveClass('answer');
+        expect(el1).not.toHaveClass('invalidAnswer');
+        const el2 = answerRow(/Answer two \(unscored\)/i);
         expect(el2).toBeInTheDocument();
-        expect(el2.parentElement).not.toHaveClass('invalidAnswer');
-        const el3 = screen.getByText(/Answer three \(unscored\)/i);
+        expect(el2).toHaveClass('answer');
+        expect(el2).not.toHaveClass('invalidAnswer');
+        const el3 = answerRow(/Answer three \(unscored\)/i);
         expect(el3).toBeInTheDocument();
-        expect(el3.parentElement).not.toHaveClass('invalidAnswer');
+        expect(el3).toHaveClass('answer');
+        expect(el3).not.toHaveClass('invalidAnswer');
     });
 
     it('displays an answer\'s score once it is marked', () => {
@@ -93,14 +99,14 @@ describe('<QuestionGroup>', () => {
 
         renderWithProps();
 
-        expect(screen.getByText(/Answer one/i).parentElement).toHaveClass('invalidAnswer');
+        expect(answerRow(/Answer one/i)).toHaveClass('invalidAnswer');
     });
 
     describe('for team member', () => {
         it('does not visually represent clue groups - answers appear as one block, regardless of clue', () => {
             renderWithProps();
 
-            expect(screen.getByText(/Answer one/i).parentElement?.parentElement?.className).toBe('');
+            expect(clueGroup(/Answer one/i).className).toBe('');
         });
 
         it('does not display the team name even if it provided', () => {
@@ -138,7 +144,6 @@ describe('<QuestionGroup>', () => {
             };
         });
 
-        const answerRow = (pattern: RegExp) => screen.getByText(pattern).parentElement!;
         const markCorrect = (row: HTMLElement) => within(row).queryByText(/✔️/);
         const markIncorrect = (row: HTMLElement) => within(row).queryByText(/❌/);
         const markingButtons = (pattern: RegExp) => {
@@ -149,11 +154,9 @@ describe('<QuestionGroup>', () => {
         it('groups anwers by clue', () => {
             renderWithProps();
 
-            expect(screen.getByText(/Answer one/i).parentElement?.parentElement).toHaveClass('clueAnswerGroup');
-            expect(screen.getByText(/Answer one/i).parentElement?.parentElement)
-                .toEqual(screen.getByText(/Answer two/i).parentElement?.parentElement);
-            expect(screen.getByText(/Answer one/i).parentElement?.parentElement)
-                .not.toEqual(screen.getByText(/Answer three/i).parentElement?.parentElement);
+            expect(clueGroup(/Answer one/i)).toHaveClass('clueAnswerGroup');
+            expect(clueGroup(/Answer one/i)).toEqual(clueGroup(/Answer two/i));
+            expect(clueGroup(/Answer one/i)).not.toEqual(clueGroup(/Answer three/i));
         });
 
         it('displays the name of the team who submitted each answer', () => {
