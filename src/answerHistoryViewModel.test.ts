@@ -220,12 +220,14 @@ describe('createViewModel', () => {
                 expect(model.focusAnswerId).toBeUndefined();
             });
 
-            it('is undefined if there are no unmarked answers', () => {
+            it('is the last answer in display order if there are no unmarked answers', () => {
                 builder.addSimpleAnswer({ clueId: 'clue-id-1', teamId: 'team-id-1', text: 'New answer', points: 1, correct: true });
+                builder.addSimpleAnswer({ clueId: 'clue-id-1', teamId: 'team-id-1', text: 'New answer 2', points: 1, correct: true });
+                const answer = builder.addSimpleAnswer({ clueId: 'clue-id-1', teamId: 'team-id-1', text: 'New answer 3', points: 1, correct: true });
 
                 const model = builder.build();
 
-                expect(model.focusAnswerId).toBeUndefined();
+                expect(model.focusAnswerId).toBe(answer.id);
             });
 
             it('is the earliest unmarked answer in display order', () => {

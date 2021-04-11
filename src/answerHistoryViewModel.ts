@@ -200,7 +200,7 @@ function createOwnerViewModel(
             a.data.connections.some((c) => c.correct === null);
         return isUnmarked && cluesById[a.data.clueId] && answerIsValid(a.data, cluesById[a.data.clueId].data);
     });
-    const focusAnswerId = firstUnmarked?.id;
+    const focusAnswerId = firstUnmarked?.id || orderedAnswers[orderedAnswers.length - 1]?.id;;
 
     const questions = createViewModelQuestions(
         quiz,

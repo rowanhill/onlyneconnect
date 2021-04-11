@@ -185,7 +185,11 @@ describe('Autoscrolling of answers history', () => {
         });
 
         describe('when autoscrolling is disabled (by scrolling away)', () => {
-            beforeEach(scrollAnswersUp);
+            beforeEach(() => {
+                cy.window().its('__ONLYNE_CONNECT__IS_SCROLLING').should('be.true'); // Observe initial scroll to bottom happening
+                cy.window().its('__ONLYNE_CONNECT__IS_SCROLLING').should('be.false'); // Wait for scroll debounce to clear
+                scrollAnswersUp(); // Scrolling up will disable autoscrolling because with no unmarked answers the most recent answer is the target
+            });
 
             it('does not scroll when a new answer is submitted', () => {
                 submitAnswer(clueIds[0], 'Owner auto off');
