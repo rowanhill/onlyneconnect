@@ -45,6 +45,9 @@
 .verySmallBottomMargin {
     margin-bottom: var(--very-small);
 }
+.verySmallLeftMargin {
+    margin-left: var(--very-small);
+}
 
 .verySmallBottomPadding {
     padding-bottom: var(--very-small);

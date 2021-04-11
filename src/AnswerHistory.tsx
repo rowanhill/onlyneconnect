@@ -23,7 +23,7 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
     const { data: teamsData } = useTeamsContext();
     const { wipByTeamByClue: wallInProgressByTeamIdByClueId } = useWallInProgressContext();
 
-    const { setContainerRef: setHistoryContainerRef, targetRef: focusAnswerRef } = useAutoscroll();
+    const { setContainerRef: setHistoryContainerRef, targetRef: focusAnswerRef, isAutoscrollEnabled, toggleAutoscroll } = useAutoscroll();
 
     if (answersError || cluesError || questionsError) {
         return <HistoryContainer setHistoryContainerRef={setHistoryContainerRef}><strong>There was an error loading your answers! Please try again</strong></HistoryContainer>;
@@ -43,6 +43,8 @@ export const AnswersHistory = ({ isQuizOwner }: { isQuizOwner: boolean; }) => {
         wallInProgressByTeamIdByClueId={wallInProgressByTeamIdByClueId}
         focusAnswerRef={focusAnswerRef}
         setHistoryContainerRef={setHistoryContainerRef}
+        isAutoscrollEnabled={isAutoscrollEnabled}
+        toggleAutoscroll={toggleAutoscroll}
     />;
 };
 
@@ -57,6 +59,8 @@ interface AnswersHistoryInnerProps {
     wallInProgressByTeamIdByClueId: ReturnType<typeof useWallInProgressContext>['wipByTeamByClue'];
     focusAnswerRef: React.MutableRefObject<HTMLElement | null>;
     setHistoryContainerRef: (element: HTMLElement | null) => void;
+    isAutoscrollEnabled: boolean;
+    toggleAutoscroll: () => void;
 }
 const AnswersHistoryInner = ({
     isQuizOwner,
@@ -66,9 +70,11 @@ const AnswersHistoryInner = ({
     questionsData,
     teamsData,
     answersData,
-    focusAnswerRef,
     wallInProgressByTeamIdByClueId,
+    focusAnswerRef,
     setHistoryContainerRef,
+    isAutoscrollEnabled,
+    toggleAutoscroll,
 }: AnswersHistoryInnerProps) => {
     const updateAnswerScoresAndCorrectFlags = (answerUpdates: AnswerUpdate[]) => {
         updateAnswers(quizId, answerUpdates)
@@ -114,6 +120,11 @@ const AnswersHistoryInner = ({
     };
 
     return (
+        <>
+        <label className={styles.autoscroll}>
+            Autoscroll
+            <input className={styles.autoscrollCheckbox} type="checkbox" checked={isAutoscrollEnabled} onChange={toggleAutoscroll} />
+        </label>
         <HistoryContainer setHistoryContainerRef={setHistoryContainerRef}>
             <GenericErrorBoundary>
                 {viewModel.questions.map((question, questionIndex) => (
@@ -127,6 +138,7 @@ const AnswersHistoryInner = ({
                 ))}
             </GenericErrorBoundary>
         </HistoryContainer>
+        </>
     );
 };
 

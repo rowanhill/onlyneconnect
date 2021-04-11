@@ -1,3 +1,11 @@
+.autoscroll {
+    composes: verySmallBottomMargin from './layout.module.css';
+    text-align: right;
+}
+.autoscrollCheckbox {
+    composes: verySmallLeftMargin from './layout.module.css';
+}
+
 .answersHistory {
     flex-grow: 1;
     overflow-y: auto;

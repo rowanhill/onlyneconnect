@@ -95,7 +95,7 @@ describe('Autoscrolling of answers history', () => {
         answersHistory().scrollTo(0, 130);
         cy.contains('Answer 1').should('not.be.visible'); // Check first answer has scrolled off the top
         lastAnswer().should('not.be.visible'); // Check last answer has scrolled off the bottom
-        cy.window().its('__ONLYNE_CONNECT__IS_SCROLLING').should('be.false'); // Wait for scroll debounce to clear
+        cy.get('input[type="checkbox"]').should('not.be.checked');
     }
 
     function lastAnswer() {
