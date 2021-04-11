@@ -1,5 +1,5 @@
 import { ConnectionQuestionSpec } from '../../src/models/questionSpec';
-import { answersHistory } from '../pages/quizPage';
+import { answersHistory, markAnswerIncorrectButton } from '../pages/quizPage';
 import { CreateConnectionOrSequenceQuestionResult } from '../plugins';
 
 describe('Autoscrolling of answers history', () => {
@@ -61,20 +61,22 @@ describe('Autoscrolling of answers history', () => {
             for (let i = 0; i < 30; i++) {
                 submitAnswer(clueIds[0], `Answer ${i + 1}`).then(markAnswerIncorrect);
             }
+        }).then(() => {
+            // Clear the new answer IDs so the beforeEach doesn't delete them
+            newAnswerIds = [];
         });
     });
 
     beforeEach(() => {
-        newAnswerIds = [];
-        cy.login();
-    });
-
-    afterEach(() => {
+        // Clear up any previous tests' added answers. We do this in a beforeEach rather than afterEach to leave
+        // hanging state for debugging.
         if (newAnswerIds.length > 0) {
             for (const newAnswerId of newAnswerIds) {
                 cy.callFirestore('delete', `/quizzes/${quizId}/answers/${newAnswerId}`);
             }
         }
+        newAnswerIds = [];
+        cy.login();
     });
 
     function submitAnswer(clueId, text) {
@@ -200,6 +202,22 @@ describe('Autoscrolling of answers history', () => {
                 // visibility without a wait.
                 cy.wait(500);
                 cy.contains('Owner auto off').should('not.be.visible');
+            });
+
+            describe('when reenabling autoscrolling after some answers are added', () => {
+                beforeEach(() => {
+                    submitAnswer(clueIds[0], 'New answer 1').as('newAnswer1');
+                    submitAnswer(clueIds[0], 'New answer 2');
+                    cy.get('@newAnswer1').then((id) => markAnswerIncorrectButton(id)).scrollIntoView();
+                    cy.get('input[type="checkbox"]').should('be.checked');
+                });
+
+                it('scrolls to the next answer when marking the current earliest unmarked answer', () => {
+                    answersHistory().invoke('scrollTop').then((originalScrollTop) => {
+                        cy.get('@newAnswer1').then((id) => markAnswerIncorrectButton(id)).click();
+                        answersHistory().invoke('scrollTop').should('be.greaterThan', originalScrollTop);
+                    });
+                });
             });
         });
     });

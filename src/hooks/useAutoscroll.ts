@@ -32,7 +32,7 @@ function scrollIntoViewIfNeeded(target: HTMLElement | null, container: HTMLEleme
     }
     if (!targetIsFullyVisible(target, container)) {
         setScrollForCypress(true);
-        target.scrollIntoView({ behavior: 'smooth' });
+        target.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
 }
 
