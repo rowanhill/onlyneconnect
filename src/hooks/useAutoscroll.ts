@@ -1,4 +1,4 @@
-import { useRef, useLayoutEffect, useCallback, useEffect, useState } from 'react';
+import { useRef, useLayoutEffect, useCallback, useState } from 'react';
 
 function targetIsFullyVisible(target: HTMLElement, container: HTMLElement): boolean {
     // The container and the target (are assumed to) have the same offsetParent (<body>), so we make the bounds relative
@@ -36,10 +36,24 @@ function scrollIntoViewIfNeeded(target: HTMLElement | null, container: HTMLEleme
     }
 }
 
+/**
+ * Create a paired ref and state value. The ref and the setter will not change even if the value
+ * changes.
+ */
+const useStateRef = <T>(initialValue: T): [T, (newVal: T) => void, React.MutableRefObject<T>] => {
+    const [val, setValState] = useState(initialValue);
+    const ref = useRef(initialValue);
+    const setVal = useCallback((newVal: T) => {
+        setValState(newVal);
+        ref.current = newVal;
+    }, []);
+    return [val, setVal, ref];
+};
+
 export function useAutoscroll() {
-    const containerRef = useRef<HTMLElement|null>(null);
+    const containerRef = useRef<HTMLElement | null>(null);
     const targetRef = useRef<HTMLElement|null>(null);
-    const [isAutoscrollEnabled, setAutoscrollEnabled] = useState(true);
+    const [isAutoscrollEnabled, setAutoscrollEnabled, isAutoscrollEnabledRef] = useStateRef(true);
     const timeoutRef = useRef<number|undefined>();
     const lastLayoutTargetRef = useRef<HTMLElement|null>(null);
 
@@ -74,7 +88,10 @@ export function useAutoscroll() {
             // scrolling as stopped. If there's not a target, we leave autoscroll as is.
             if (target) {
                 const scrolledToTarget = targetIsFullyVisible(target, container);
-                if (isAutoscrollEnabled !== scrolledToTarget) {
+                // We use a ref to whether autoscroll is enabled rather than the state var so that
+                // updateAutoscrollDebounced doesn't depend on the state and get recreated each time the
+                // state changes.
+                if (isAutoscrollEnabledRef.current !== scrolledToTarget) {
                     setAutoscrollEnabled(scrolledToTarget);
                 }
             }
@@ -83,9 +100,10 @@ export function useAutoscroll() {
         setScrollForCypress(true);
         clearTimeout(timeoutRef.current);
         timeoutRef.current = setTimeout(updateAutoscroll, 200) as unknown as number;
-    }, [isAutoscrollEnabled]);
+    }, [isAutoscrollEnabledRef, setAutoscrollEnabled]); // isAutoscrollEnabledRef and setAutoscrollEnabled never change
 
-    // When the container ref changes, attatch a scroll listener (and detatch any old ones)
+    // When the container ref changes, attatch a scroll listener (and detatch any old ones). Note that when the component
+    // unmounts, the container ref will be set to null.
     const setContainerRef = useCallback((element: HTMLElement|null) => {
         if (containerRef.current) {
             containerRef.current.removeEventListener('scroll', updateAutoscrollDebounced);
@@ -98,23 +116,13 @@ export function useAutoscroll() {
         }
     }, [updateAutoscrollDebounced]);
 
-    // When the component unmounts, detatch any scroll listener
-    useEffect(() => {
-        // No "on mount" effect, only a clean-up (i.e. "on unmount") action
-        return () => {
-            if (containerRef.current) {
-                containerRef.current.removeEventListener('scroll', updateAutoscrollDebounced);
-            }
-        };
-    }, [updateAutoscrollDebounced]);
-
     const toggleAutoscroll = useCallback(() => {
-        const newVal = !isAutoscrollEnabled;
+        const newVal = !isAutoscrollEnabledRef.current;
         if (newVal) {
             scrollIntoViewIfNeeded(targetRef.current, containerRef.current);
         }
         setAutoscrollEnabled(newVal);
-    }, [isAutoscrollEnabled]);
+    }, [isAutoscrollEnabledRef, setAutoscrollEnabled]); // isAutoscrollEnabledRef and setAutoscrollEnabled never change
 
     return { setContainerRef, targetRef, toggleAutoscroll, isAutoscrollEnabled };
 }
