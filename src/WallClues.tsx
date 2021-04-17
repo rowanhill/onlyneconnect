@@ -50,8 +50,11 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
         }
     };
 
-    const getUngroupedClassNames = (text: string, gridIndex: number) => {
+    const getUngroupedClassNames = (text: string, gridIndex: number, isRevealed: boolean) => {
         const names = [];
+        if (isRevealed) {
+            names.push(styles.ungrouped);
+        }
         if (isCaptain && progressData && (progressData.remainingLives === undefined || progressData.remainingLives > 0)) {
             names.push(styles.clickable);
         }
@@ -113,7 +116,7 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
                 clueMeta.foundGroupIndex === null ?
                     <VisibleClue
                         key={clueMeta.text}
-                        className={getUngroupedClassNames(clueMeta.text, gridIndex)}
+                        className={getUngroupedClassNames(clueMeta.text, gridIndex, clue.data.isRevealed)}
                         onClick={() => toggleClue(clueMeta.text)}
                         isRevealed={clue.data.isRevealed}
                         text={clueMeta.text}

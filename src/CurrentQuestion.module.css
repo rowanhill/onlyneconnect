@@ -9,6 +9,21 @@
     max-width: 43em;
 }
 
+.animated {
+    animation: swingAnimation 0.2s;
+}
+@keyframes swingAnimation {
+    0% {
+        transform: perspective(1000px) translateY(-50%) rotateX(-75deg) translateY(50%);
+    }
+    85% {
+        transform: perspective(1000px) translateY(-50%) rotateX(5deg) translateY(50%);
+    }
+    100% {
+        transform: perspective(1000px) rotateY(0deg);
+    }
+}
+
 .connection {
     composes: smallTopMargin from './layout.module.css';
     width: 100%;
@@ -16,6 +31,7 @@
 .revealedConnection {
     composes: connection;
     composes: glassItem veryDarkBlueGlassColours from './glass.module.css';
+    composes: animated;
 }
 .unrevealedConnection {
     composes: connection;
@@ -46,6 +62,7 @@
 
 .groupConnection {
     composes: verySmallTopMargin from './layout.module.css';
+    composes: animated;
 }
 .groupConnection:first-of-type {
     margin-top: 0;

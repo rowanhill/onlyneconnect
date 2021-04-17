@@ -5,18 +5,39 @@
     grid-gap: 5px;
 }
 
-.row1 { grid-row: 1; }
-.row2 { grid-row: 2; }
-.row3 { grid-row: 3; }
-.row4 { grid-row: 4; }
+.row1 { grid-row: 1; --row-delay: 0; }
+.row2 { grid-row: 2; --row-delay: 1; }
+.row3 { grid-row: 3; --row-delay: 2; }
+.row4 { grid-row: 4; --row-delay: 3; }
 
-.col1 { grid-column: 1; }
-.col2 { grid-column: 2; }
-.col3 { grid-column: 3; }
-.col4 { grid-column: 4; }
+.col1 { grid-column: 1; --col-delay: 0; }
+.col2 { grid-column: 2; --col-delay: 1; }
+.col3 { grid-column: 3; --col-delay: 2; }
+.col4 { grid-column: 4; --col-delay: 3; }
 
 .wallClue {
     width: 100%;
+    animation: none; /* Override animation set by Clues.module.css */
+}
+
+.ungrouped {
+    animation: rotateAndZoomAnimation 0.2s backwards;
+    animation-delay: calc(((var(--row-delay) + var(--col-delay)) / 6) * 0.5s);
+}
+@keyframes rotateAndZoomAnimation {
+    0% {
+        transform: perspective(1000px) rotateY(85deg) rotateZ(-35deg) scale3d(0.2, 0.2, 1);
+        opacity: 0;
+    }
+    30% {
+        opacity: 1;
+    }
+    85% {
+        transform: perspective(1000px) rotateY(-5deg) rotateZ(0deg) scale3d(1.01, 1.01, 1);
+    }
+    100% {
+        transform: perspective(1000px) rotateY(0deg) rotateZ(0deg) scale3d(1, 1, 1);
+    }
 }
 
 .clickable {
