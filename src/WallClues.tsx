@@ -50,7 +50,7 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
         }
     };
 
-    const getUngroupedClassNames = (text: string, gridIndex: number, isRevealed: boolean) => {
+    const getUngroupedClassNames = (text: string, row: number, col: number, isRevealed: boolean) => {
         const names = [];
         if (isRevealed) {
             names.push(styles.ungrouped);
@@ -63,71 +63,88 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
         } else {
             names.push(styles.unselected);
         }
-        names.push(styles[`col${(gridIndex % 4) + 1}`]);
-        names.push(styles[`row${Math.floor((gridIndex / 4) + 1)}`]);
+        names.push(styles[`col${col + 1}`]);
+        names.push(styles[`row${row + 1}`]);
         return names.join(' ');
     };
-    const getGroupedClassNames = (groupIndex: number, gridIndex: number) => {
-        const names = [];
+    const getGroupedClassNames = (groupIndex: number, row: number, col: number) => {
+        const names = [styles.wallClue];
         names.push(styles[`group${groupIndex + 1}`]);
-        names.push(styles[`col${(gridIndex % 4) + 1}`]);
-        names.push(styles[`row${Math.floor((gridIndex / 4) + 1)}`]);
+        names.push(styles[`col${col + 1}`]);
+        names.push(styles[`row${row + 1}`]);
         return names.join(' ');
     };
 
-    const correctGroups = progressData?.correctGroups || [];
-    const textsInFoundGroups = correctGroups.flatMap((group) => group.texts);
-
-    const clueMetas: Array<{ foundGroupIndex: number|null; text: string; }> = [];
-    correctGroups.forEach(({ texts }, groupIndex) => {
-        for (const text of texts) {
-            clueMetas.push({ foundGroupIndex: groupIndex, text });
-        }
+    // Get the groups found by the team
+    const foundGroups = progressData?.correctGroups || [];
+    // Get the groups not found by the team but solved by the quiz owner (if any)
+    const unfoundSolvedGroups = (clue.data.solution || []).filter((_, solutionGroupIndex) => {
+        const groupAlreadyFound = foundGroups.some((foundGroup) => foundGroup.solutionGroupIndex === solutionGroupIndex);
+        return !groupAlreadyFound;
     });
-    // If the grouping solution is still hidden - i.e. it's still the grouping phase of the question - then
-    // show the ungrouped clues. Otherwise, solve the remainder of the wall
-    if (clue.data.solution === undefined) {
-        clue.data.texts.forEach((text) => {
-            if (textsInFoundGroups.indexOf(text) === -1) {
-                clueMetas.push({ foundGroupIndex: null, text });
-            }
+    // Get the ungrouped texts neither found by the team nor revealed by the quiz owner (if any)
+    const solvedTexts = foundGroups.flatMap((g) => g.texts).concat(unfoundSolvedGroups.flatMap((g) => g.texts));
+    const unsolvedTexts = clue.data.solution ?
+        [] :
+        clue.data.texts.filter((t) => solvedTexts.indexOf(t) === -1);
+
+    const clueMetaByText: { [text: string]: { foundGroupIndex: number | null; row: number; col: number; text: string; } } = {};
+
+    // Create clue metas for clues found by team
+    foundGroups.forEach((group, groupIndex) => {
+        group.texts.forEach((text, textIndex) => {
+            clueMetaByText[text] = {
+                foundGroupIndex: groupIndex,
+                row: groupIndex,
+                col: textIndex,
+                text,
+            };
         });
-    } else {
-        // Find the groups from the solution that haven't already been found by the team
-        const unfoundGroups = clue.data.solution.filter((_, solutionGroupIndex) => {
-            const groupAlreadyFound = correctGroups.some((foundGroup) => foundGroup.solutionGroupIndex === solutionGroupIndex);
-            return !groupAlreadyFound;
+    });
+    // Create clue metas for clues solved by the quiz owner (if any)
+    unfoundSolvedGroups.forEach((group, groupIndex) => {
+        group.texts.forEach((text, textIndex) => {
+            clueMetaByText[text] = {
+                foundGroupIndex: groupIndex + foundGroups.length,
+                row: groupIndex + foundGroups.length,
+                col: textIndex,
+                text,
+            };
         });
-        // Display those groups as now solved
-        let groupIndex = correctGroups.length;
-        for (const unfoundGroup of unfoundGroups) {
-            for (const unfoundValue of unfoundGroup.texts) {
-                // Add to this group
-                clueMetas.push({ foundGroupIndex: groupIndex, text: unfoundValue });
-            }
-            groupIndex++;
-        }
-    }
+    });
+    // Create clue metas for clues neither found by the team nor solved by the quiz owner (if any)
+    const numSolvedClues = (foundGroups.length + unfoundSolvedGroups.length) * 4;
+    unsolvedTexts.forEach((text, textIndex) => {
+        const clueIndex = numSolvedClues + textIndex;
+        clueMetaByText[text] = {
+            foundGroupIndex: null,
+            row: Math.floor(clueIndex / 4),
+            col: clueIndex % 4,
+            text,
+        };
+    });
+    
+    const clueMetas = clue.data.texts.map((t) => clueMetaByText[t]);
 
     return (
         <>
-        <div className={styles.wallGrid}>
-            {clueMetas.map((clueMeta, gridIndex) =>
+        <div data-cy={'wall-grid'} className={styles.wallGrid}>
+            {clueMetas.map((clueMeta) =>
                 clueMeta.foundGroupIndex === null ?
                     <VisibleClue
                         key={clueMeta.text}
-                        className={getUngroupedClassNames(clueMeta.text, gridIndex, clue.data.isRevealed)}
+                        className={getUngroupedClassNames(clueMeta.text, clueMeta.row, clueMeta.col, clue.data.isRevealed)}
                         onClick={() => toggleClue(clueMeta.text)}
                         isRevealed={clue.data.isRevealed}
                         text={clueMeta.text}
-                        index={gridIndex}
+                        index={clueMeta.row * 4 + clueMeta.col}
                     /> :
                     <VisibleClue
                         key={clueMeta.text}
-                        className={getGroupedClassNames(clueMeta.foundGroupIndex, gridIndex)}
+                        className={getGroupedClassNames(clueMeta.foundGroupIndex, clueMeta.row, clueMeta.col)}
                         isRevealed={clue.data.isRevealed}
                         text={clueMeta.text}
-                        index={gridIndex}
+                        index={clueMeta.row * 4 + clueMeta.col}
                     />
             )}
         </div>

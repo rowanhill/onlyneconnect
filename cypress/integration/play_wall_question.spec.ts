@@ -98,42 +98,53 @@ describe('Playing a wall question', () => {
             });
 
             // Correct clues should appear as in group 1, on the first row
-            cy.contains('G2 A').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
-            cy.contains('G2 B').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
-            cy.contains('G2 C').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
-            cy.contains('G2 D').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
+            cy.contains('G2 A').should('have.css', 'background-color', group1Colour).and('have.css', 'top', '0px');
+            cy.contains('G2 B').should('have.css', 'background-color', group1Colour).and('have.css', 'top', '0px');
+            cy.contains('G2 C').should('have.css', 'background-color', group1Colour).and('have.css', 'top', '0px');
+            cy.contains('G2 D').should('have.css', 'background-color', group1Colour).and('have.css', 'top', '0px');
         });
 
         it('colours all correctly identified groups differently', () => {
+            const correctGroups = [
+                { texts: ['G2 B', 'G2 D', 'G2 C', 'G2 A'], solutionGroupIndex: 1 },
+                { texts: ['G3 B', 'G3 D', 'G3 C', 'G3 A'], solutionGroupIndex: 2 },
+                { texts: ['G1 B', 'G1 D', 'G1 C', 'G1 A'], solutionGroupIndex: 0 },
+                { texts: ['G4 B', 'G4 D', 'G4 C', 'G4 A'], solutionGroupIndex: 4 },
+            ];
             cy.callFirestore('update', `quizzes/${quizId}/wallInProgress/${wipId}`, {
-                correctGroups: [
-                    { texts: ['G2 B', 'G2 D', 'G2 C', 'G2 A'], solutionGroupIndex: 1 },
-                    { texts: ['G3 B', 'G3 D', 'G3 C', 'G3 A'], solutionGroupIndex: 2 },
-                    { texts: ['G1 B', 'G1 D', 'G1 C', 'G1 A'], solutionGroupIndex: 0 },
-                    { texts: ['G4 B', 'G4 D', 'G4 C', 'G4 A'], solutionGroupIndex: 4 },
-                ],
+                correctGroups,
                 selectedTexts: [],
             });
 
-            cy.contains('G2 A').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
-            cy.contains('G2 B').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
-            cy.contains('G2 C').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
-            cy.contains('G2 D').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
-            
-            cy.contains('G3 A').should('have.css', 'background-color', group2Colour).and('have.css', 'grid-row', '2 / auto');
-            cy.contains('G3 B').should('have.css', 'background-color', group2Colour).and('have.css', 'grid-row', '2 / auto');
-            cy.contains('G3 C').should('have.css', 'background-color', group2Colour).and('have.css', 'grid-row', '2 / auto');
-            cy.contains('G3 D').should('have.css', 'background-color', group2Colour).and('have.css', 'grid-row', '2 / auto');
-            
-            cy.contains('G1 A').should('have.css', 'background-color', group3Colour).and('have.css', 'grid-row', '3 / auto');
-            cy.contains('G1 B').should('have.css', 'background-color', group3Colour).and('have.css', 'grid-row', '3 / auto');
-            cy.contains('G1 C').should('have.css', 'background-color', group3Colour).and('have.css', 'grid-row', '3 / auto');
-            cy.contains('G1 D').should('have.css', 'background-color', group3Colour).and('have.css', 'grid-row', '3 / auto');
-            
-            cy.contains('G4 A').should('have.css', 'background-color', group4Colour).and('have.css', 'grid-row', '4 / auto');
-            cy.contains('G4 B').should('have.css', 'background-color', group4Colour).and('have.css', 'grid-row', '4 / auto');
-            cy.contains('G4 C').should('have.css', 'background-color', group4Colour).and('have.css', 'grid-row', '4 / auto');
-            cy.contains('G4 D').should('have.css', 'background-color', group4Colour).and('have.css', 'grid-row', '4 / auto');
+            cy.get('[data-cy="wall-grid"]').invoke('width').then((width) => {
+                return cy.get('[data-cy="wall-grid"]').invoke('height').then((height) => ({ width, height}));
+            }).then(({ width, height }) => {
+                const rowHeight = (height - 15) / 4;
+                const colWidth = (width - 15) / 4;
+
+                const row1Top = '0px';
+                const row2Top = `${rowHeight + 5}px`;
+                const row3Top = `${(rowHeight + 5) * 2}px`;
+                const row4Top = `${(rowHeight + 5) * 3}px`;
+                const tops = [row1Top, row2Top, row3Top, row4Top];
+
+                const col1Left = '0px';
+                const col2Left = `${colWidth + 5}px`;
+                const col3Left = `${(colWidth + 5) * 2}px`;
+                const col4Left = `${(colWidth + 5) * 3}px`;
+                const lefts = [col1Left, col2Left, col3Left, col4Left];
+
+                const colours = [group1Colour, group2Colour, group3Colour, group4Colour];
+
+                correctGroups.forEach((group, groupIndex) => {
+                    group.texts.forEach((text, textIndex) => {
+                        cy.contains(text)
+                            .should('have.css', 'background-color', colours[groupIndex])
+                            .and('have.css', 'top', tops[groupIndex])
+                            .and('have.css', 'left', lefts[textIndex]);
+                    });
+                });
+            });
         });
 
         it('shows all groups when they are revealed, with user-found groups first', () => {
@@ -144,25 +155,42 @@ describe('Playing a wall question', () => {
             });
             cy.task('revealWallSolution', { quizId, questionId, clueId });
 
-            cy.contains('G2 A').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
-            cy.contains('G2 B').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
-            cy.contains('G2 C').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
-            cy.contains('G2 D').should('have.css', 'background-color', group1Colour).and('have.css', 'grid-row', '1 / auto');
-            
-            cy.contains('G1 A').should('have.css', 'background-color', group2Colour).and('have.css', 'grid-row', '2 / auto');
-            cy.contains('G1 B').should('have.css', 'background-color', group2Colour).and('have.css', 'grid-row', '2 / auto');
-            cy.contains('G1 C').should('have.css', 'background-color', group2Colour).and('have.css', 'grid-row', '2 / auto');
-            cy.contains('G1 D').should('have.css', 'background-color', group2Colour).and('have.css', 'grid-row', '2 / auto');
-            
-            cy.contains('G3 A').should('have.css', 'background-color', group3Colour).and('have.css', 'grid-row', '3 / auto');
-            cy.contains('G3 B').should('have.css', 'background-color', group3Colour).and('have.css', 'grid-row', '3 / auto');
-            cy.contains('G3 C').should('have.css', 'background-color', group3Colour).and('have.css', 'grid-row', '3 / auto');
-            cy.contains('G3 D').should('have.css', 'background-color', group3Colour).and('have.css', 'grid-row', '3 / auto');
-            
-            cy.contains('G4 A').should('have.css', 'background-color', group4Colour).and('have.css', 'grid-row', '4 / auto');
-            cy.contains('G4 B').should('have.css', 'background-color', group4Colour).and('have.css', 'grid-row', '4 / auto');
-            cy.contains('G4 C').should('have.css', 'background-color', group4Colour).and('have.css', 'grid-row', '4 / auto');
-            cy.contains('G4 D').should('have.css', 'background-color', group4Colour).and('have.css', 'grid-row', '4 / auto');
+            const resolvedGroups = [
+                ['G2 B', 'G2 D', 'G2 C', 'G2 A'],
+                ['G1 A', 'G1 B', 'G1 C', 'G1 D'],
+                ['G3 A', 'G3 B', 'G3 C', 'G3 D'],
+                ['G4 A', 'G4 B', 'G4 C', 'G4 D'],
+            ]
+
+            cy.get('[data-cy="wall-grid"]').invoke('width').then((width) => {
+                return cy.get('[data-cy="wall-grid"]').invoke('height').then((height) => ({ width, height}));
+            }).then(({ width, height }) => {
+                const rowHeight = (height - 15) / 4;
+                const colWidth = (width - 15) / 4;
+
+                const row1Top = '0px';
+                const row2Top = `${rowHeight + 5}px`;
+                const row3Top = `${(rowHeight + 5) * 2}px`;
+                const row4Top = `${(rowHeight + 5) * 3}px`;
+                const tops = [row1Top, row2Top, row3Top, row4Top];
+
+                const col1Left = '0px';
+                const col2Left = `${colWidth + 5}px`;
+                const col3Left = `${(colWidth + 5) * 2}px`;
+                const col4Left = `${(colWidth + 5) * 3}px`;
+                const lefts = [col1Left, col2Left, col3Left, col4Left];
+
+                const colours = [group1Colour, group2Colour, group3Colour, group4Colour];
+
+                resolvedGroups.forEach((group, groupIndex) => {
+                    group.forEach((text, textIndex) => {
+                        cy.contains(text)
+                            .should('have.css', 'background-color', colours[groupIndex])
+                            .and('have.css', 'top', tops[groupIndex])
+                            .and('have.css', 'left', lefts[textIndex]);
+                    });
+                });
+            });
         });
 
         it('displays the number of lives remaining when applicable', () => {
