@@ -19,7 +19,6 @@ export interface Quiz {
     questionIds: string[];
     currentQuestionId: string | null;
     isComplete: boolean;
-    youTubeVideoId: string | null;
 }
 
 export interface QuizSecrets {

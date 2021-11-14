@@ -13,7 +13,13 @@ export const createQuiz = (
     const secretsDoc = db.collection('quizSecrets').doc();
     batch.set(secretsDoc, { passcode });
     const quizDoc = db.doc(`quizzes/${secretsDoc.id}`);
-    batch.set<Quiz>(quizDoc as any, { name: quizName, ownerId, questionIds: [], currentQuestionId: null, isComplete: false, youTubeVideoId: null });
+    batch.set<Quiz>(quizDoc as any, {
+        name: quizName,
+        ownerId,
+        questionIds: [],
+        currentQuestionId: null,
+        isComplete: false,
+    });
     return batch.commit().then(() => secretsDoc.id);
 };
 

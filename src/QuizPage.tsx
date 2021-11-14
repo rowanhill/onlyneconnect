@@ -25,7 +25,6 @@ import { AnswersHistory } from './AnswerHistory';
 import { AnswerSubmitBox } from './AnswerSubmitBox';
 import { createWipLookup } from './wallInProgressLookup';
 import { CopyableText } from './CopyableText';
-import { HostVideoPlayer } from './HostVideoPlayer';
 import { TeamProgress } from './TeamProgress';
 import { QuestionTimer } from './QuestionTimer';
 
@@ -194,7 +193,6 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                     }
                 </div>
                 <div className={styles.rightPanel}>
-                    <HostVideoPlayer isQuizOwner={isQuizOwner} />
                     <Scoreboard />
                     <Card className={styles.answersCard}>
                         <AnswersHistory isQuizOwner={isQuizOwner} />
