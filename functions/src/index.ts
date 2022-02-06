@@ -3,3 +3,4 @@ admin.initializeApp();
 
 export { checkIfWallGroupIsInSolution } from './checkWallGroup';
 export { resetQuiz } from './resetQuiz';
+export { generateZoomToken } from './generateZoomToken';

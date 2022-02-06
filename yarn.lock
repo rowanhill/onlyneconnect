@@ -2648,6 +2648,11 @@
   resolved "https://registry.yarnpkg.com/@xtuc/long/-/long-4.2.2.tgz#d291c6a4e97989b5c61d9acf396ae4fe133a718d"
   integrity sha512-NuHqBY1PB/D8xU6s/thBgOAiAP7HOYDQ32+BFZILJ8ivkUkAHQnWfn6WhL79Owj1qmUnoN/YPhktdIoucipkAQ==
 
+"@zoom/videosdk@^1.1.7":
+  version "1.1.7"
+  resolved "https://registry.yarnpkg.com/@zoom/videosdk/-/videosdk-1.1.7.tgz#89e1911ee8b483749d5b49bfb0ea62baff6bfca7"
+  integrity sha512-16Bj7QZMCjsOy4QJ+76jUZI0Nx3OO+8Qt8tIZxxZho1Nmt5p0XQMvxlurvcKSjY6FSPTRU8j5zZtkH8K4OrYcQ==
+
 abab@^2.0.3:
   version "2.0.5"
   resolved "https://registry.yarnpkg.com/abab/-/abab-2.0.5.tgz#c0b678fb32d60fc1219c784d6a826fe385aeb79a"
