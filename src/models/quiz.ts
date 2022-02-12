@@ -19,6 +19,7 @@ export const createQuiz = (
         questionIds: [],
         currentQuestionId: null,
         isComplete: false,
+        isZoomSessionLive: false,
     });
     return batch.commit().then(() => secretsDoc.id);
 };
@@ -105,6 +106,15 @@ export const createMissingVowelsQuestion = (
     });
     
     return batch.commit().then(() => ({ questionId: questionDoc.id, clueId: clueDoc.id }));
+};
+
+export const updateZoomSessionStatus = (
+    quizId: string,
+    isZoomSessionLive: boolean,
+    db: firebase.firestore.Firestore = firebase.app().firestore(),
+) => {
+    const data: Partial<Quiz> = { isZoomSessionLive };
+    return db.doc(`quizzes/${quizId}`).update(data);
 };
 
 export const revealNextClue = (

@@ -19,6 +19,7 @@ export interface Quiz {
     questionIds: string[];
     currentQuestionId: string | null;
     isComplete: boolean;
+    isZoomSessionLive: boolean;
 }
 
 export interface QuizSecrets {

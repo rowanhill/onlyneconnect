@@ -27,7 +27,7 @@ import { createWipLookup } from './wallInProgressLookup';
 import { CopyableText } from './CopyableText';
 import { TeamProgress } from './TeamProgress';
 import { QuestionTimer } from './QuestionTimer';
-import { ZoomVideoCall } from './ZoomVideoCall';
+import { ZoomCard } from './components/zoom/ZoomCard';
 
 interface QuizPageProps {
     quizId: string;
@@ -194,7 +194,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                     }
                 </div>
                 <div className={styles.rightPanel}>
-                    <ZoomVideoCall isQuizOwner={isQuizOwner} />
+                    <ZoomCard isQuizOwner={isQuizOwner} />
                     <Scoreboard />
                     <Card className={styles.answersCard}>
                         <AnswersHistory isQuizOwner={isQuizOwner} />

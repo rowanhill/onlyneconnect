@@ -21,15 +21,15 @@ export const generateZoomToken = functions.https.onCall(async (data, context) =>
         throw new functions.https.HttpsError('internal', 'Zoom SDK credentials are not configured. Configure them using `firebase functions:config:set zoom.videoSdkKey="THE API KEY" zoom.videoSdkSecret="THE API SECRET"` then redeploy.')
     }
 
-    // Check the calling user owns the quiz
+    // Check the calling user owns the quiz OR that the quiz owner already started the session
     const quizDoc = admin.firestore().doc(`quizzes/${quizId}`);
     const quizSnapshot = await quizDoc.get();
     if (!quizSnapshot.exists) {
         throw new functions.https.HttpsError('not-found', `Could not find quiz  at ${quizDoc.path}`);
     }
     const quizData = quizSnapshot.data()! as Quiz;
-    if (context.auth?.uid !== quizData.ownerId) {
-        throw new functions.https.HttpsError('permission-denied', `Expected auth uid to be to quiz owner (${quizData.ownerId}) but was ${context.auth?.uid}`);
+    if (quizData.isZoomSessionLive === true || context.auth?.uid !== quizData.ownerId) {
+        throw new functions.https.HttpsError('permission-denied', `Expected zoom session to be live (${quizData.isZoomSessionLive}) or auth uid to be to quiz owner (${quizData.ownerId}) but was ${context.auth?.uid}`);
     }
 
     // Header

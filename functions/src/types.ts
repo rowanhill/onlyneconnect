@@ -5,6 +5,7 @@ export interface Quiz {
     questionIds: string[];
     currentQuestionId: string | null;
     isComplete: boolean;
+    isZoomSessionLive: boolean;
 }
 export type Four<T> = [T, T, T, T];
 export interface WallSecrets {
