@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
 import { useQuizContext } from '../../contexts/quizPage';
+import { useDisconnectAfterTimeout } from './hooks/useDisconnectAfterTimeout';
 import { useInitialisedZoomClient } from './hooks/useInitialisedZoomClient';
 import { useRenderVideoOfHost } from './hooks/useRenderVideoOfHost';
 import { videoDimensions } from './videoConfig';
+import { ZoomCallTimeoutModal } from './ZoomCallTimeoutModal';
 import { ZoomClient } from './zoomTypes';
 
 export const ZoomCallRemote = () => {
@@ -39,6 +41,17 @@ const ZoomCallRemoteInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =
     const [shouldBeInCall, setShouldBeInCall] = useState(false);
     const videoCanvasRef = useRef<HTMLCanvasElement|null>(null);
     const videoHasStarted = useRenderVideoOfHost(shouldBeInCall && quiz.isZoomSessionLive, zoomClient, videoCanvasRef);
+    const { showTimeoutModal, postponeTimeoutThirtyMinutes } = useDisconnectAfterTimeout(
+        shouldBeInCall && quiz.isZoomSessionLive,
+        zoomClient,
+        () => setShouldBeInCall(false),
+    );
+
+    const disconnect = () => {
+        zoomClient.leave();
+        setShouldBeInCall(false);
+    };
+
     const status = shouldBeInCall ?
         (quiz.isZoomSessionLive ?
             (videoHasStarted ?
@@ -64,6 +77,7 @@ const ZoomCallRemoteInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =
             {shouldBeInCall && <button onClick={() => setShouldBeInCall(false)}>Leave call</button>}
             {!shouldBeInCall && <button onClick={() => setShouldBeInCall(true)}>Join call</button>}
         </div>
+        {showTimeoutModal && <ZoomCallTimeoutModal onStayConnected={postponeTimeoutThirtyMinutes} onDisconnect={disconnect} />}
         </>
     );
 };

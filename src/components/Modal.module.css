@@ -1,0 +1,37 @@
+.modalBackground {
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    padding-top: 100px;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal {
+    position: relative;
+    width: 80%;
+    margin: auto;
+    animation-duration: 0.4s;
+    animation-name: animatetop;
+}
+
+.close {
+    float: right;
+    margin-top: -0.25em;
+    font-size: 2em;
+    font-weight: bold;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.close:hover, .close:focus {
+    color: var(--dark-grey);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+@keyframes animatetop {
+    from { top: -300px; opacity: 0; }
+    to { top: 0; opacity: 1; }
+  }

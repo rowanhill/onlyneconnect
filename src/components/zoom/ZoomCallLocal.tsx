@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
+import { useDisconnectAfterTimeout } from './hooks/useDisconnectAfterTimeout';
 import { useHostBroadcast } from './hooks/useHostBroadcast';
 import { useInitialisedZoomClient } from './hooks/useInitialisedZoomClient';
 import { useLocalAudioVideo } from './hooks/useLocalAudioVideo';
 import { videoDimensions } from './videoConfig';
+import { ZoomCallTimeoutModal } from './ZoomCallTimeoutModal';
 import { ZoomClient } from './zoomTypes';
 
 export const ZoomCallLocal = () => {
@@ -56,6 +58,12 @@ const ZoomCallLocalInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =>
             .then(() => setBroadcastState('off'));
     };
 
+    const { showTimeoutModal, postponeTimeoutThirtyMinutes } = useDisconnectAfterTimeout(
+        broadcastState === 'on',
+        zoomClient,
+        stopBroadcast,
+    );
+
     return (
         <>
         <video
@@ -75,6 +83,7 @@ const ZoomCallLocalInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =>
             {broadcastState === 'connecting' && <button disabled={true}>Connecting...</button>}
             {broadcastState === 'on' && <button onClick={stopBroadcast}>Stop broadcast</button>}
         </div>
+        {showTimeoutModal && <ZoomCallTimeoutModal onStayConnected={postponeTimeoutThirtyMinutes} onDisconnect={stopBroadcast} />}
         </>
     );
 };
