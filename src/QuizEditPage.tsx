@@ -476,9 +476,9 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
                     />
                 :
                     <>
-                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewConnectionQuestion}>Add connection question</PrimaryButton>{' '}
-                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewSequenceQuestion}>Add sequence question</PrimaryButton>{' '}
-                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewWallQuestion}>Add wall question</PrimaryButton>{' '}
+                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewConnectionQuestion}>Add connection question</PrimaryButton>
+                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewSequenceQuestion}>Add sequence question</PrimaryButton>
+                    <PrimaryButton className={styles.addQuestionButton} onClick={addNewWallQuestion}>Add wall question</PrimaryButton>
                     <PrimaryButton className={styles.addQuestionButton} onClick={addNewMissingVowelsQuestion}>Add missing vowels question</PrimaryButton>
                     </>
                 }
@@ -499,7 +499,7 @@ const CollapsedQuestion = ({ question, questionNumber, moveUp, moveDown, expand 
         <Card>
             <h3>
                 Question {questionNumber}{' '}
-                {moveUp && <PrimaryButton onClick={moveUp}>⬆️</PrimaryButton>}{' '}
+                {moveUp && <PrimaryButton onClick={moveUp}>⬆️</PrimaryButton>}
                 {moveDown && <PrimaryButton onClick={moveDown}>⬇️</PrimaryButton>}
             </h3>
             <p className={styles.questionType}><QuestionTypeName question={question} /></p>
@@ -608,7 +608,7 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
         <Card>
             <h3>
                 Question {questionNumber}{' '}
-                {moveUp && <PrimaryButton onClick={moveUp}>⬆️</PrimaryButton>}{' '}
+                {moveUp && <PrimaryButton onClick={moveUp}>⬆️</PrimaryButton>}
                 {moveDown && <PrimaryButton onClick={moveDown}>⬇️</PrimaryButton>}
             </h3>
             <p className={styles.questionType}><QuestionTypeName question={question} /></p>
@@ -637,8 +637,8 @@ const QuestionForm = ({ initialQuestion, questionNumber, save, remove, moveUp, m
                 </p>
                 </>
             }
-            <SaveButton save={save} question={question} isValid={isValid} />{' '}
-            {collapse && <PrimaryButton onClick={collapse}>Cancel</PrimaryButton>}{' '}
+            <SaveButton save={save} question={question} isValid={isValid} />
+            {collapse && <PrimaryButton onClick={collapse}>Cancel</PrimaryButton>}
             <DangerButton onClick={removeIfConfirmed}>{question.id ? 'Delete' : 'Discard'}</DangerButton>
         </Card>
     );

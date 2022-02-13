@@ -86,7 +86,8 @@ input {
 
 input + input,
 input + button,
-button + input {
+button + input,
+button + button {
   margin-left: 0.5em;
 }
 

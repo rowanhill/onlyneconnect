@@ -2,7 +2,7 @@
     composes: roundedSmall from './effects.module.css';
     padding: 5px 8px;
     border: none;
-  }
+}
 
 .primary {
     composes: base;
