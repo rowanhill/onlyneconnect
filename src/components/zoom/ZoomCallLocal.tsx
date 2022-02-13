@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { DangerButton, PrimaryButton } from '../../Button';
 import { useDisconnectAfterTimeout } from './hooks/useDisconnectAfterTimeout';
 import { useHostBroadcast } from './hooks/useHostBroadcast';
 import { useInitialisedZoomClient } from './hooks/useInitialisedZoomClient';
@@ -29,7 +30,7 @@ const ZoomCallLocalUninitialised = () => {
             }}
         ></video>
         <div>
-            <button disabled={true}>Loading...</button>
+            <PrimaryButton disabled={true}>Loading...</PrimaryButton>
         </div>
         </>
     );
@@ -77,11 +78,11 @@ const ZoomCallLocalInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =>
             }}
         />
         <div>
-            {broadcastState === 'off' && <button onClick={startPreview}>Preview video</button>}
-            {broadcastState === 'previewing' && <button onClick={stopPreview}>Stop preview</button>}
-            {broadcastState === 'previewing' && <button onClick={startBroadcast}>Start broadcast</button>}
-            {broadcastState === 'connecting' && <button disabled={true}>Connecting...</button>}
-            {broadcastState === 'on' && <button onClick={stopBroadcast}>Stop broadcast</button>}
+            {broadcastState === 'off' && <PrimaryButton onClick={startPreview}>Preview video</PrimaryButton>}
+            {broadcastState === 'previewing' && <DangerButton onClick={stopPreview}>Stop preview</DangerButton>}
+            {broadcastState === 'previewing' && <PrimaryButton onClick={startBroadcast}>Start broadcast</PrimaryButton>}
+            {broadcastState === 'connecting' && <PrimaryButton disabled={true}>Connecting...</PrimaryButton>}
+            {broadcastState === 'on' && <DangerButton onClick={stopBroadcast}>Stop broadcast</DangerButton>}
         </div>
         {showTimeoutModal && <ZoomCallTimeoutModal onStayConnected={postponeTimeoutThirtyMinutes} onDisconnect={stopBroadcast} />}
         </>

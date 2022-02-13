@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { DangerButton, PrimaryButton } from '../../Button';
 import { useQuizContext } from '../../contexts/quizPage';
 import { useDisconnectAfterTimeout } from './hooks/useDisconnectAfterTimeout';
 import { useInitialisedZoomClient } from './hooks/useInitialisedZoomClient';
@@ -74,8 +75,8 @@ const ZoomCallRemoteInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =
         />
         <div>{status}</div>
         <div>
-            {shouldBeInCall && <button onClick={() => setShouldBeInCall(false)}>Leave call</button>}
-            {!shouldBeInCall && <button onClick={() => setShouldBeInCall(true)}>Join call</button>}
+            {shouldBeInCall && <DangerButton onClick={() => setShouldBeInCall(false)}>Leave call</DangerButton>}
+            {!shouldBeInCall && <PrimaryButton onClick={() => setShouldBeInCall(true)}>Join call</PrimaryButton>}
         </div>
         {showTimeoutModal && <ZoomCallTimeoutModal onStayConnected={postponeTimeoutThirtyMinutes} onDisconnect={disconnect} />}
         </>
