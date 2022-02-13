@@ -1,9 +1,14 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export const useAsyncProcessState = () => {
     const [inProgress, setInProgress] = useState(false);
     const [messageState, setMessageState] = useState('none' as 'none'|'success'|'error');
     const timeoutRef = useRef<number>();
+
+    // Clear the timeout on unmount, to avoid trying to set state on an unmounted component
+    useEffect(() => {
+        return () => clearTimeout(timeoutRef.current);
+    }, []);
 
     const start = () => {
         setInProgress(true);
