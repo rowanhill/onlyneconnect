@@ -26,7 +26,7 @@ export const useHostBroadcast = (zoomClient: ZoomClient, videoRef: RefObject<HTM
         // become host.
         await updateZoomSessionStatus(quizId, false);
 
-        // Leave the call (and end it for all other participans)
+        // Leave the call (and end it for all other participants)
         zoomClient.leave(true);
     }
 
