@@ -151,5 +151,11 @@ service cloud.firestore {
       // You can read your own playerTeams entry, to work out what team you're on
       allow get: if request.auth != null && request.auth.uid == player;
     }
+
+    match /userPermissions/{user} {
+      // Read-only access to your own permissions only
+      allow list, write: if false;
+      allow get: if request.auth != null && request.auth.uid == user;
+    }
   }
 }

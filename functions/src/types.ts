@@ -5,6 +5,7 @@ export interface Quiz {
     questionIds: string[];
     currentQuestionId: string | null;
     isComplete: boolean;
+    isZoomEnabled: boolean;
     isZoomSessionLive: boolean;
 }
 export type Four<T> = [T, T, T, T];
@@ -30,4 +31,8 @@ export interface Team {
     quizId: string;
     points: number;
     captainId: string;
+}
+
+export interface UserPermissions {
+    canCreateZoomSessions: boolean;
 }

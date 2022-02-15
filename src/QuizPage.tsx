@@ -194,7 +194,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                     }
                 </div>
                 <div className={styles.rightPanel}>
-                    <ZoomCard isQuizOwner={isQuizOwner} />
+                    {(quizData.isZoomEnabled || quizData.isZoomSessionLive) && <ZoomCard isQuizOwner={isQuizOwner} />}
                     <Scoreboard />
                     <Card className={styles.answersCard}>
                         <AnswersHistory isQuizOwner={isQuizOwner} />

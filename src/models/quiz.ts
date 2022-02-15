@@ -19,6 +19,7 @@ export const createQuiz = (
         questionIds: [],
         currentQuestionId: null,
         isComplete: false,
+        isZoomEnabled: false,
         isZoomSessionLive: false,
     });
     return batch.commit().then(() => secretsDoc.id);

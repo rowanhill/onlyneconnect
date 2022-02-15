@@ -3,7 +3,7 @@ import React from 'react';
 export const createChangeHandler = (setValue: (value: string) => void) => {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
         setValue(e.target.value);
-    }
+    };
 };
 
 export const createNullingChangeHandler = (setValue: (value: string | null) => void) => {
@@ -13,5 +13,11 @@ export const createNullingChangeHandler = (setValue: (value: string | null) => v
         } else {
             setValue(e.target.value);
         }
-    }
+    };
 };
+
+export const createCheckboxHandler = (setValue: (value: boolean) => void) => {
+    return (e: React.ChangeEvent<HTMLInputElement>) => {
+        setValue(e.target.checked);
+    };
+}

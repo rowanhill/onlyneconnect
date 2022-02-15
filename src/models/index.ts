@@ -19,6 +19,7 @@ export interface Quiz {
     questionIds: string[];
     currentQuestionId: string | null;
     isComplete: boolean;
+    isZoomEnabled: boolean;
     isZoomSessionLive: boolean;
 }
 
@@ -172,4 +173,8 @@ export interface WallInProgress {
     // Sensitive properties, written to by cloud functions
     correctGroups?: { texts: Four<string>; solutionGroupIndex: number; }[];
     remainingLives?: number;
+}
+
+export interface UserPermissions {
+    canCreateZoomSessions: boolean;
 }

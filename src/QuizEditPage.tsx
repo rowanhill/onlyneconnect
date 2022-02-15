@@ -2,10 +2,10 @@ import React, { ChangeEvent, Fragment, useState } from 'react';
 import { useDocumentData } from 'react-firebase-hooks/firestore';
 import { Link } from 'react-router-dom';
 import firebase from './firebase';
-import { createChangeHandler } from './forms/changeHandler';
+import { createChangeHandler, createCheckboxHandler } from './forms/changeHandler';
 import { useAuth } from './hooks/useAuth';
 import { CollectionQueryData, CollectionQueryItem, useCollectionResult } from './hooks/useCollectionResult';
-import { Clue, ConnectionSecrets, Four, MissingVowelsSecrets, Question, QuestionSecrets, Quiz, QuizSecrets, SequenceSecrets, Three, throwBadClueType, throwBadQuestionType, WallSecrets } from './models';
+import { Clue, ConnectionSecrets, Four, MissingVowelsSecrets, Question, QuestionSecrets, Quiz, QuizSecrets, SequenceSecrets, Three, throwBadClueType, throwBadQuestionType, UserPermissions, WallSecrets } from './models';
 import { Page } from './Page';
 import { Card } from './Card';
 import { DangerButton, FlashMessageButton, PrimaryButton } from './Button';
@@ -23,6 +23,7 @@ const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
     const { user } = useAuth();
 
     // Fetch data
+    const [userPermsData, userPermsLoading, userPermsError] = useDocumentData<UserPermissions>(user ? db.doc(`/userPermissions/${user.uid}`) : null);
     const [quizData, quizLoading, quizError] = useDocumentData<Quiz>(user ? db.collection('quizzes').doc(quizId) : null);
     const [secretsData, secretsLoading, secretsError] = useDocumentData<QuizSecrets>(user ? db.collection('quizSecrets').doc(quizId) : null);
     const questionsResult = useCollectionResult<Question>(user ? db.collection(`quizzes/${quizId}/questions`) : null);
@@ -31,14 +32,14 @@ const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
 
     function inner() {
         // Bail out if there are any problems or display a loading notice if we're not loaded yet
-        if (quizError || secretsError || questionsResult.error || cluesResult.error || questionSecretsResult.error) {
-            console.warn('Could not load quiz', quizError, secretsError, questionsResult.error, cluesResult.error, questionSecretsResult.error);
+        if (userPermsError || quizError || secretsError || questionsResult.error || cluesResult.error || questionSecretsResult.error) {
+            console.warn('Could not load quiz', userPermsError, quizError, secretsError, questionsResult.error, cluesResult.error, questionSecretsResult.error);
             return <div>Could not load quiz. Try again later.</div>;
         }
         if (user && quizData && user.uid !== quizData.ownerId) {
             return <div>No quiz owned by you with id ${quizId} was found</div>;
         }
-        if (quizLoading || !user || secretsLoading || questionsResult.loading || cluesResult.loading || questionSecretsResult.loading) {
+        if (userPermsLoading || quizLoading || !user || secretsLoading || questionsResult.loading || cluesResult.loading || questionSecretsResult.loading) {
             return <div>Loading...</div>;
         }
         if (!quizData || !secretsData || !questionsResult.data || !cluesResult.data || !questionSecretsResult.data) {
@@ -53,6 +54,7 @@ const QuizEditPage = ({ quizId }: QuizEditPageProps) => {
                 questions={questionsResult.data}
                 clues={cluesResult.data}
                 questionSecrets={questionSecretsResult.data}
+                userPermissions={userPermsData}
             />
         );
     }
@@ -74,17 +76,19 @@ function getClues(questionSpec: QuestionSpec): ClueSpec[] {
     }
 } 
 
-const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionSecrets }: {
+const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionSecrets, userPermissions }: {
         quizId: string;
         quiz: Quiz;
         secrets: QuizSecrets;
         questions: CollectionQueryData<Question>;
         clues: CollectionQueryData<Clue>;
         questionSecrets: CollectionQueryData<QuestionSecrets>;
+        userPermissions: UserPermissions|undefined;
 }) => {
     const db = firebase.firestore();
     const [name, setName] = useState(quiz.name);
     const [passcode, setPasscode] = useState(secrets.passcode);
+    const [useZoom, setUseZoom] = useState(quiz.isZoomEnabled);
     const [newQuestion, setNewQuestion] = useState<QuestionSpec|null>(null);
     const [expandedQuestions, setExpandedQuestions] = useState<{ [questionId: string]: true }>({});
 
@@ -96,9 +100,16 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
                 .catch((error) => console.error('Error updating quiz secrets:', error));
             promises.push(promise);
         }
-        if (name !== quiz.name) {
+        if (name !== quiz.name || useZoom !== quiz.isZoomEnabled) {
+            const updateData: Partial<Quiz> = {};
+            if (name !== quiz.name) {
+                updateData.name = name;
+            }
+            if (useZoom !== quiz.isZoomEnabled) {
+                updateData.isZoomEnabled = useZoom;
+            }
             const promise = firebase.firestore().doc(`quizzes/${quizId}`)
-                .update({ name })
+                .update(updateData)
                 .catch((error) => console.error('Error updating quiz:', error));
             promises.push(promise);
         }
@@ -440,6 +451,11 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
                     <input type="text" value={passcode} onChange={createChangeHandler(setPasscode)} />
                     <p className={formStyles.fieldDescription}>The passcode is a secret phrase people must enter to create a team.</p>
                 </div>
+                {userPermissions?.canCreateZoomSessions && <div>
+                    <h4 className={formStyles.fieldTitle}><label>Use Zoom</label></h4>
+                    <input type="checkbox" checked={useZoom} onChange={createCheckboxHandler(setUseZoom)} />
+                    <p className={formStyles.fieldDescription}>If ticked, an embedded Zoom session will be created when playing the quiz.</p>
+                </div>}
                 <p>
                     <FlashMessageButton performAction={submit} labelTexts={{ normal: 'Save', success: 'Saved!', error: 'Error!' }} />
                 </p>
