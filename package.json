@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^1.1.7",
+    "@peculiar/webcrypto": "^1.2.3",
     "@types/react-router-dom": "^5.1.6",
     "cypress": "7.1.0",
     "cypress-firebase": "^1.6.0",
