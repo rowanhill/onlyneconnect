@@ -94,7 +94,7 @@ describe('Autoscrolling of answers history', () => {
 
     function scrollAnswersUp() {
         cy.contains('Answer 30').scrollIntoView().should('be.visible');
-        answersHistory().scrollTo(0, 130);
+        answersHistory().scrollTo(0, 150);
         cy.contains('Answer 1').should('not.be.visible'); // Check first answer has scrolled off the top
         lastAnswer().should('not.be.visible'); // Check last answer has scrolled off the bottom
         cy.get('input[type="checkbox"]').should('not.be.checked');
