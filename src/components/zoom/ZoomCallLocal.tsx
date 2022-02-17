@@ -37,7 +37,8 @@ const ZoomCallLocalUninitialised = () => {
 const ZoomCallLocalInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) => {
     const [broadcastState, setBroadcastState] = useState<'off'|'previewing'|'connecting'|'on'>('off');
     const videoRef = useRef<HTMLVideoElement|null>(null);
-    useLocalAudioVideo(broadcastState === 'previewing', videoRef);
+    const localAv = useLocalAudioVideo(broadcastState === 'previewing', videoRef);
+    const localAvLive = !!localAv.localAudioTrack && !!localAv.localVideoTrack
     const hostBroadcast = useHostBroadcast(zoomClient, videoRef);
 
     const startPreview = () => {
@@ -73,8 +74,8 @@ const ZoomCallLocalInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =>
         />
         <div>
             {broadcastState === 'off' && <PrimaryButton onClick={startPreview}>Preview video</PrimaryButton>}
-            {broadcastState === 'previewing' && <DangerButton onClick={stopPreview}>Stop preview</DangerButton>}
-            {broadcastState === 'previewing' && <PrimaryButton onClick={startBroadcast}>Start broadcast</PrimaryButton>}
+            {broadcastState === 'previewing' && <DangerButton onClick={stopPreview} disabled={!localAvLive}>Stop preview</DangerButton>}
+            {broadcastState === 'previewing' && <PrimaryButton onClick={startBroadcast} disabled={!localAvLive}>Start broadcast</PrimaryButton>}
             {broadcastState === 'connecting' && <PrimaryButton disabled={true}>Connecting...</PrimaryButton>}
             {broadcastState === 'on' && <DangerButton onClick={stopBroadcast}>Stop broadcast</DangerButton>}
         </div>
