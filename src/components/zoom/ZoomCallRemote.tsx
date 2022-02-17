@@ -7,6 +7,7 @@ import { useRenderVideoOfHost } from './hooks/useRenderVideoOfHost';
 import { videoDimensions } from './videoConfig';
 import { ZoomCallTimeoutModal } from './ZoomCallTimeoutModal';
 import { ZoomClient } from './zoomTypes';
+import styles from './ZoomCallRemote.module.css';
 
 export const ZoomCallRemote = () => {
     const zoomClient = useInitialisedZoomClient();
@@ -23,11 +24,8 @@ const ZoomCallRemoteUninitialised = () => {
         <>
         <canvas
             {...videoDimensions}
-            style={{
-                visibility: 'hidden',
-                width: '100%',
-                height: 'auto',
-            }}
+            className={styles.hostVideoCanvas}
+            style={{ visibility: 'hidden' }}
         />
         <div>Disconnected</div>
         <div>
@@ -67,11 +65,8 @@ const ZoomCallRemoteInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =
         <canvas
             ref={videoCanvasRef}
             {...videoDimensions}
-            style={{
-                visibility: videoHasStarted ? 'initial' : 'hidden',
-                width: '100%',
-                height: 'auto',
-            }}
+            className={styles.hostVideoCanvas}
+            style={{ visibility: videoHasStarted ? 'initial' : 'hidden' }}
         />
         <div>{status}</div>
         <div>

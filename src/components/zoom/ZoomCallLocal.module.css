@@ -1,0 +1,5 @@
+.selfVideo {
+    transform: scale(-1, 1);
+    width: 100%;
+    height: auto;
+}

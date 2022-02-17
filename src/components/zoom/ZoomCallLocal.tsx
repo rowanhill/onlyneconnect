@@ -7,6 +7,7 @@ import { useLocalAudioVideo } from './hooks/useLocalAudioVideo';
 import { videoDimensions } from './videoConfig';
 import { ZoomCallTimeoutModal } from './ZoomCallTimeoutModal';
 import { ZoomClient } from './zoomTypes';
+import styles from './ZoomCallLocal.module.css';
 
 export const ZoomCallLocal = () => {
     const zoomClient = useInitialisedZoomClient();
@@ -21,14 +22,11 @@ export const ZoomCallLocal = () => {
 const ZoomCallLocalUninitialised = () => {
     return (
         <>
-        <video {...videoDimensions}
-            style={{
-                visibility: 'hidden',
-                transform: 'scale(-1, 1)',
-                width: '100%',
-                height: 'auto',
-            }}
-        ></video>
+        <video
+            {...videoDimensions}
+            className={styles.selfVideo}
+            style={{ visibility: 'hidden' }}
+        />
         <div>
             <PrimaryButton disabled={true}>Loading...</PrimaryButton>
         </div>
@@ -70,12 +68,8 @@ const ZoomCallLocalInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =>
         <video
             ref={videoRef}
             {...videoDimensions}
-            style={{
-                visibility: broadcastState === 'off' ? 'hidden' : 'initial',
-                transform: 'scale(-1, 1)',
-                width: '100%',
-                height: 'auto',
-            }}
+            className={styles.selfVideo}
+            style={{ visibility: broadcastState === 'off' ? 'hidden' : 'initial' }}
         />
         <div>
             {broadcastState === 'off' && <PrimaryButton onClick={startPreview}>Preview video</PrimaryButton>}
