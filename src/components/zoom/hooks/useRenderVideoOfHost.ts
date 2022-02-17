@@ -38,6 +38,9 @@ export const useRenderVideoOfHost = (
             // videoIsRendering === true should imply the other variables are not falsy, but we check them to make typescript happy
             if (videoIsRendering === true && mediaStream && capturedCanvasRef && participant) {
                 mediaStream.stopRenderVideo(capturedCanvasRef, participant.userId)
+                    .catch((err) => {
+                        console.error('Could not stop rendering video', err);
+                    });
             }
         };
     }, [mediaStream, videoCanvasRef, isVideoDecodeAvailable, participant, joinCall]);
