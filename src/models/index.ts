@@ -20,7 +20,7 @@ export interface Quiz {
     currentQuestionId: string | null;
     isComplete: boolean;
     isZoomEnabled: boolean;
-    isZoomSessionLive: boolean;
+    ownerZoomId: number|null;
 }
 
 export interface QuizSecrets {

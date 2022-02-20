@@ -20,7 +20,7 @@ export const createQuiz = (
         currentQuestionId: null,
         isComplete: false,
         isZoomEnabled: false,
-        isZoomSessionLive: false,
+        ownerZoomId: null,
     });
     return batch.commit().then(() => secretsDoc.id);
 };
@@ -111,10 +111,10 @@ export const createMissingVowelsQuestion = (
 
 export const updateZoomSessionStatus = (
     quizId: string,
-    isZoomSessionLive: boolean,
+    ownerZoomId: number|null,
     db: firebase.firestore.Firestore = firebase.app().firestore(),
 ) => {
-    const data: Partial<Quiz> = { isZoomSessionLive };
+    const data: Partial<Quiz> = { ownerZoomId };
     return db.doc(`quizzes/${quizId}`).update(data);
 };
 

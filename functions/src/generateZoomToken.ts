@@ -35,8 +35,11 @@ export const generateZoomToken = functions.https.onCall(async (data, context) =>
     }
 
     // Check the quiz owner already started the session OR the calling user owns the quiz and has permission to create sessions
-    if (!quizData.isZoomSessionLive) {
+    if (quizData.ownerZoomId !== null) {
         const userCanCreateZoomSession = async () => {
+            if (quizData.ownerZoomId !== null) {
+                return true;
+            }
             if (!context.auth?.uid) {
                 return false;
             }
@@ -53,7 +56,7 @@ export const generateZoomToken = functions.https.onCall(async (data, context) =>
         };
         const canCreate = await userCanCreateZoomSession();
         if (!canCreate) {
-            throw new functions.https.HttpsError('permission-denied', `Expected zoom session to be live (${quizData.isZoomSessionLive}) or auth uid to be to quiz owner (${quizData.ownerId}) but was ${context.auth?.uid}`);
+            throw new functions.https.HttpsError('permission-denied', `Expected zoom session to be live (owner zoom ID is ${quizData.ownerZoomId}) or auth uid to be to quiz owner (${quizData.ownerId}) but was ${context.auth?.uid}`);
         }
     }
 

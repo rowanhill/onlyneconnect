@@ -9,6 +9,7 @@ import { ZoomCallTimeoutModal } from './ZoomCallTimeoutModal';
 import { ZoomClient } from './zoomTypes';
 import styles from './ZoomCallRemote.module.css';
 import { ReactComponent as PlayIcon } from './play.svg';
+import { useRelinquishHostToOwner } from './hooks/useRelinquishHostToOwner';
 
 export const ZoomCallRemote = () => {
     const zoomClient = useInitialisedZoomClient();
@@ -24,12 +25,13 @@ const ZoomCallRemoteInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =
     const { quiz } = useQuizContext();
     const [shouldBeInCall, setShouldBeInCall] = useState(false);
     const videoCanvasRef = useRef<HTMLCanvasElement|null>(null);
-    const videoHasStarted = useRenderVideoOfHost(shouldBeInCall && quiz.isZoomSessionLive, zoomClient, videoCanvasRef);
+    const videoHasStarted = useRenderVideoOfHost(shouldBeInCall && quiz.ownerZoomId !== null, zoomClient, videoCanvasRef);
     const { showTimeoutModal, postponeTimeoutThirtyMinutes } = useDisconnectAfterTimeout(
-        shouldBeInCall && quiz.isZoomSessionLive,
+        shouldBeInCall && quiz.ownerZoomId !== null,
         zoomClient,
         () => setShouldBeInCall(false),
     );
+    useRelinquishHostToOwner(zoomClient, quiz);
 
     const joinCall = () => {
         setShouldBeInCall(true);
@@ -47,7 +49,7 @@ const ZoomCallRemoteInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =
         if (videoHasStarted) {
             state = 'joined';
         } else {
-            if (quiz.isZoomSessionLive) {
+            if (quiz.ownerZoomId !== null) {
                 state = 'connecting';
             } else {
                 state = 'lobby';
