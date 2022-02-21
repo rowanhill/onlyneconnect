@@ -5,6 +5,8 @@ import { Page } from './Page';
 import { PrimaryButton } from './Button';
 import { Card } from './Card';
 import { GameExplanation } from './GameExplanation';
+import { Logo } from './components/logo/Logo';
+import styles from './SignInPage.module.css';
 
 export const SignInPage = () => {
     const [email, setEmail] = useState('');
@@ -75,7 +77,10 @@ export const SignInPage = () => {
     };
 
     return (
-        <Page title="Onlyne Connect">
+        <Page>
+            <div className={styles.heroLogo}>
+                <Logo />
+            </div>
             <Card title="Sign in with email">
                 <form onSubmit={submit}>
                     <fieldset disabled={disabled}>

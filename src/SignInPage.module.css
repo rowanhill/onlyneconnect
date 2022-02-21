@@ -1,0 +1,5 @@
+.heroLogo {
+    display: flex;
+    justify-content: center;
+    font-size: 2.5em;
+}
