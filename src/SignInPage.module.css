@@ -4,3 +4,10 @@
     font-size: 2.5em;
     margin-top: 1em;
 }
+
+.signInCard {
+    margin-left: auto;
+    margin-right: auto;
+    width: 42em;
+    text-align: center;
+}

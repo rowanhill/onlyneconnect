@@ -81,16 +81,16 @@ export const SignInPage = () => {
             <div className={styles.heroLogo}>
                 <Logo />
             </div>
-            <Card title="Sign in with email">
+            <Card title="Sign in with email" className={styles.signInCard}>
                 <form onSubmit={submit}>
                     <fieldset disabled={disabled}>
-                        <p>You need sign in to play Onlyne Connect. Enter your email, and we'll send you a login link.</p>
+                        <p>You need sign in to play Onlyne Connect. Enter your email, and we'll send you a login link - no passwords required.</p>
+                        <p>Don't worry, we promise we won't send you any other emails!</p>
                         <input type="text" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
                         <PrimaryButton>Send email</PrimaryButton>
                     </fieldset>
                 </form>
-                {emailSent && <p>Thanks! An email has been sent to {email}. Check your inbox to log in.</p>}
-                <p>Don't worry, we promise we won't send you any other emails!</p>
+                {emailSent && <p>An email has been sent to {email}. Check your inbox to sign in.</p>}
             </Card>
             <GameExplanation />
         </Page>
