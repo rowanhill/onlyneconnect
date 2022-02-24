@@ -12,3 +12,8 @@
     width: 42em;
     text-align: center;
 }
+
+.readTheRulesPara {
+    composes: mediumTopMargin from './layout.module.css';
+    text-align: center;
+}

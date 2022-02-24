@@ -1,10 +1,9 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { Redirect } from 'react-router-dom';
+import { Link, Redirect } from 'react-router-dom';
 import firebase from './firebase';
 import { Page } from './Page';
 import { PrimaryButton } from './Button';
 import { Card } from './Card';
-import { GameExplanation } from './GameExplanation';
 import { Logo } from './components/logo/Logo';
 import styles from './SignInPage.module.css';
 
@@ -92,7 +91,9 @@ export const SignInPage = () => {
                 </form>
                 {emailSent && <p>An email has been sent to {email}. Check your inbox to sign in.</p>}
             </Card>
-            <GameExplanation />
+            <p className={styles.readTheRulesPara}>
+                New to Onlyne Connect? Learn more about <Link to="/game-rules">how to play</Link>.
+            </p>
         </Page>
     );
 };

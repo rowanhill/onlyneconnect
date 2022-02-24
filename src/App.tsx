@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import { SignInPage } from './SignInPage';
 import { LoggedInApp } from './LoggedInApp';
 import { GenericErrorBoundary } from './GenericErrorBoundary';
+import { GameRulesPage } from './GameRulesPage';
 
 function App() {
     const { initialising, user } = useAuth();
@@ -16,6 +17,9 @@ function App() {
         <Switch>
             <Route exact path="/sign-in">
                 <SignInPage />
+            </Route>
+            <Route exact path="/game-rules">
+                <GameRulesPage />
             </Route>
             <Route path="/">
                 <LoggedInApp />
