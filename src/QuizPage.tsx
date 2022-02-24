@@ -171,19 +171,8 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
             <TeamsContext.Provider value={teamsResult}>
             <AnswersContext.Provider value={answersResult}>
             <WallInProgressContext.Provider value={{ queryResult: wipResult, wipByTeamByClue: createWipLookup(wipResult) }}>
+                <div className={styles.quizPageContent}>
                 <div className={styles.leftPanel}>
-                    <div>
-                        <h1 className={styles.pageTitle}>
-                            {quizData.name}
-                            {isQuizOwner && <>{' '}<Link className={styles.editLink} to={`/quiz/${quizId}/edit`}>[Edit]</Link></>}
-                        </h1>
-                        {joinTeamUrl && <p>
-                            Invite others to your team with this link: <CopyableText value={joinTeamUrl.href} />
-                        </p>}
-                        {joinQuizUrl && <p>
-                            Invite team captains to your quiz with this link: <CopyableText value={joinQuizUrl.href} />
-                        </p>}
-                    </div>
                     <CurrentQuestion currentQuestionItem={currentQuestionItem} />
                     {isQuizOwner &&
                         <Card>
@@ -192,6 +181,14 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                             <QuizControls currentQuestionItem={currentQuestionItem} />
                         </Card>
                     }
+                    <div>
+                        {joinTeamUrl && <p>
+                            Invite others to your team with this link: <CopyableText value={joinTeamUrl.href} />
+                        </p>}
+                        {joinQuizUrl && <p>
+                            Invite team captains to your quiz with this link: <CopyableText value={joinQuizUrl.href} />
+                        </p>}
+                    </div>
                 </div>
                 <div className={styles.rightPanel}>
                     {(quizData.isZoomEnabled || quizData.ownerZoomId !== null) && <ZoomCard isQuizOwner={isQuizOwner} />}
@@ -206,6 +203,7 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
                             />}
                     </Card>
                 </div>
+                </div>
             </WallInProgressContext.Provider>
             </AnswersContext.Provider>
             </TeamsContext.Provider>
@@ -217,5 +215,12 @@ export const QuizPage = ({ quizId }: QuizPageProps) => {
             </>
         );
     }
-    return <Page className={styles.quizPage}>{inner()}</Page>;
+
+    const title = quizData ? (
+        <h1 className={styles.pageTitle}>
+            {quizData.name}
+            {isQuizOwner && <>{' '}<Link className={styles.editLink} to={`/quiz/${quizId}/edit`}>[Edit]</Link></>}
+        </h1>
+        ) : undefined;
+    return <Page title={title} className={styles.quizPage}>{inner()}</Page>;
 };

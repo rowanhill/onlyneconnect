@@ -2,6 +2,6 @@
     composes: wideHorizontalPadding mediumVerticalPadding from './layout.module.css'
 }
 
-.page > h1 {
+.title {
     margin-top: 0;
 }

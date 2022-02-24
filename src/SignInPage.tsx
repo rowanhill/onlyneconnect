@@ -77,7 +77,7 @@ export const SignInPage = () => {
     };
 
     return (
-        <Page>
+        <Page showLogo={false}>
             <div className={styles.heroLogo}>
                 <Logo />
             </div>

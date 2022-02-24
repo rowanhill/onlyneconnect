@@ -1,7 +1,13 @@
 .quizPage {
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
+}
+
+.quizPageContent {
+    display: flex;
     flex-direction: row;
+    flex-grow: 1;
 }
 
 .pageTitle {
@@ -25,6 +31,10 @@
     min-width: 18em;
     max-height: calc(100vh - 2 * var(--medium)); /* medium padding used by page */
     max-width: calc((100vh - 2 * var(--medium)) * 0.35); /* 35% of space left after page padding */
+}
+
+.logo {
+    composes: mediumBottonMargin from './layout.module.css';
 }
 
 .answersCard {

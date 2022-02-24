@@ -12,6 +12,9 @@
 .mediumTopMargin {
     margin-top: var(--medium);
 }
+.mediumBottonMargin {
+    margin-bottom: var(--medium);
+}
 
 .wideHorizontalPadding {
     padding-left: var(--large);
