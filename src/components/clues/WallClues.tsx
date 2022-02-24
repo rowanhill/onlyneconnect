@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { VisibleClue } from './Clues';
-import { CollectionQueryItem } from './hooks/useCollectionResult';
-import firebase from './firebase';
-import './firebase-functions';
-import { FourByFourTextClue, WallInProgress } from './models';
+import { CollectionQueryItem } from '../../hooks/useCollectionResult';
+import firebase from '../../firebase';
+import '../../firebase-functions';
+import { FourByFourTextClue, WallInProgress } from '../../models';
 import styles from './WallClues.module.css';
-import { useQuizContext, usePlayerTeamContext, useWallInProgressContext } from './contexts/quizPage';
-import { createWallInProgress, updateWallInProgressSelections } from './models/wallInProgress';
+import { useQuizContext, usePlayerTeamContext, useWallInProgressContext } from '../../contexts/quizPage';
+import { createWallInProgress, updateWallInProgressSelections } from '../../models/wallInProgress';
 
 export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextClue>; }) => {
     const { quizId } = useQuizContext();

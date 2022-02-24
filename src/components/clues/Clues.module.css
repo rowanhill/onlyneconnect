@@ -12,7 +12,7 @@
 
 .revealedClue {
     composes: clue;
-    composes: glassItem paleBlueGlassColours from './glass.module.css';
+    composes: glassItem paleBlueGlassColours from '../../glass.module.css';
     animation: rotateAnimation 0.3s;
 }
 @keyframes rotateAnimation {
@@ -42,5 +42,5 @@
 
 .unrevealedClue {
     composes: clue;
-    composes: placeholderItem from './placeholder.module.css';
+    composes: placeholderItem from '../../placeholder.module.css';
 }

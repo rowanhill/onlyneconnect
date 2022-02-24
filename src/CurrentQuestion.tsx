@@ -3,8 +3,8 @@ import { Card } from './Card';
 import { useCluesContext, usePlayerTeamContext, useQuestionsContext, useQuestionSecretsContext, useQuizContext, useWallInProgressContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
 import { CompoundTextClue, ConnectionQuestion, ConnectionSecrets, FourByFourTextClue, MissingVowelsQuestion, MissingVowelsSecrets, Question, QuestionSecrets, SequenceQuestion, SequenceSecrets, TextClue, throwBadQuestionType, WallQuestion, WallSecrets } from './models';
-import { VisibleClue, HiddenClue, LastInSequenceClue } from './Clues';
-import { WallClues } from './WallClues';
+import { VisibleClue, HiddenClue, LastInSequenceClue } from './components/clues/Clues';
+import { WallClues } from './components/clues/WallClues';
 import styles from './CurrentQuestion.module.css';
 import { GenericErrorBoundary } from './GenericErrorBoundary';
 

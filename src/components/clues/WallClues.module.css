@@ -60,7 +60,7 @@
 
 .selected {
     composes: wallClue;
-    composes: midBlueGlassColours from './glass.module.css';
+    composes: midBlueGlassColours from '../../glass.module.css';
 }
 .selected.clickable:hover {
     --lowlight: var(--mid-blue-darkened-lowlight);
@@ -71,20 +71,20 @@
 
 .group1 {
     composes: wallClue;
-    composes: veryDarkBlueGlassColours from './glass.module.css';
+    composes: veryDarkBlueGlassColours from '../../glass.module.css';
 }
 
 .group2 {
     composes: wallClue;
-    composes: midGreenGlassColours from './glass.module.css';
+    composes: midGreenGlassColours from '../../glass.module.css';
 }
 
 .group3 {
     composes: wallClue;
-    composes: darkRedGlassColours from './glass.module.css';
+    composes: darkRedGlassColours from '../../glass.module.css';
 }
 
 .group4 {
     composes: wallClue;
-    composes: midTurquoiseGlassColours from './glass.module.css';
+    composes: midTurquoiseGlassColours from '../../glass.module.css';
 }
