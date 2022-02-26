@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { PlayerTeamContext, QuizContext, WallInProgressContext } from './contexts/quizPage';
-import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { FourByFourTextClue, WallInProgress } from './models';
-import * as wallInProgress from './models/wallInProgress';
+import { PlayerTeamContext, QuizContext, WallInProgressContext } from '../../contexts/quizPage';
+import { CollectionQueryItem } from '../../hooks/useCollectionResult';
+import { FourByFourTextClue, WallInProgress } from '../../models';
+import * as wallInProgress from '../../models/wallInProgress';
 import { WallClues } from './WallClues';
 
 describe('<WallClues>', () => {
