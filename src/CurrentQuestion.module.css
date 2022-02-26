@@ -2,13 +2,6 @@
     flex-grow: 1;
 }
 
-.cluesHolder {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    max-width: 43em;
-}
-
 .animated {
     animation: swingAnimation 0.2s;
 }
@@ -22,20 +15,6 @@
     100% {
         transform: perspective(1000px) rotateY(0deg);
     }
-}
-
-.connection {
-    composes: smallTopMargin from './layout.module.css';
-    width: 100%;
-}
-.revealedConnection {
-    composes: connection;
-    composes: glassItem veryDarkBlueGlassColours from './glass.module.css';
-    composes: animated;
-}
-.unrevealedConnection {
-    composes: connection;
-    composes: placeholderItem from './placeholder.module.css';
 }
 
 .connections {

@@ -2,11 +2,12 @@ import React from 'react';
 import { Card } from './Card';
 import { useCluesContext, usePlayerTeamContext, useQuestionsContext, useQuestionSecretsContext, useQuizContext, useWallInProgressContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { CompoundTextClue, ConnectionQuestion, ConnectionSecrets, FourByFourTextClue, MissingVowelsQuestion, MissingVowelsSecrets, Question, QuestionSecrets, SequenceQuestion, SequenceSecrets, TextClue, throwBadQuestionType, WallQuestion, WallSecrets } from './models';
-import { VisibleClue, HiddenClue, LastInSequenceClue } from './components/clues/Clues';
+import { CompoundTextClue, ConnectionSecrets, FourByFourTextClue, MissingVowelsSecrets, Question, QuestionSecrets, SequenceSecrets, TextClue, throwBadQuestionType, WallQuestion, WallSecrets } from './models';
 import { WallClues } from './components/clues/WallClues';
 import styles from './CurrentQuestion.module.css';
 import { GenericErrorBoundary } from './GenericErrorBoundary';
+import { ConnectionClues, MissingVowelsClues, SequenceClues } from './components/clues/ClueHolders';
+import { SingleQuestionConnection } from './components/questionConnections/SingleQuestionConnection';
 
 export const CurrentQuestion = ({ currentQuestionItem }: { currentQuestionItem?: CollectionQueryItem<Question>; }) => {
     const { error: questionsError } = useQuestionsContext();
@@ -70,15 +71,15 @@ const QuestionClues = ({ currentQuestionItem, currentSecret }: { currentQuestion
         case 'connection':
         case 'sequence':
             const orderedClues = currentQuestionItem.data.clueIds
-                .map((id) => questionCluesById[id])
+                .map((id) => questionCluesById[id] as CollectionQueryItem<TextClue>)
                 .filter((clue) => !!clue);
             if (currentQuestionItem.data.type === 'connection') {
-                return (<ConnectionClues clues={orderedClues as Array<CollectionQueryItem<TextClue>>} />);
+                return (<ConnectionClues clues={orderedClues} />);
             } else {
                 return (<SequenceClues
-                    clues={orderedClues as Array<CollectionQueryItem<TextClue>>}
-                    question={currentQuestionItem as CollectionQueryItem<SequenceQuestion>}
-                    secret={currentSecret as CollectionQueryItem<SequenceSecrets> | undefined}
+                    clues={orderedClues}
+                    questionExample={currentQuestionItem.data.exampleLastInSequence}
+                    secretExample={(currentSecret as CollectionQueryItem<SequenceSecrets>)?.data.exampleLastInSequence}
                 />);
             }
         case 'wall':
@@ -86,57 +87,10 @@ const QuestionClues = ({ currentQuestionItem, currentSecret }: { currentQuestion
                     clue={questionCluesById[currentQuestionItem.data.clueId] as CollectionQueryItem<FourByFourTextClue>}
                 />);
         case 'missing-vowels':
-            return (<MissingVowelsClues clue={questionCluesById[currentQuestionItem.data.clueId] as CollectionQueryItem<CompoundTextClue>} />);
+            return (<MissingVowelsClues clue={questionCluesById[currentQuestionItem.data.clueId].data as CompoundTextClue} />);
         default:
             throwBadQuestionType(currentQuestionItem.data);
     }
-};
-
-const ConnectionClues = ({ clues }: { clues: Array<CollectionQueryItem<TextClue>> }) => {
-    return (
-        <div className={styles.cluesHolder}>
-            {clues.map((clue, i) => (
-                <VisibleClue key={clue.id} isRevealed={clue.data.isRevealed} text={clue.data.text} index={i} />
-            ))}
-            {arrayUpTo(4 - clues.length).map((n) => (
-                <HiddenClue key={n} />
-            ))}
-        </div>
-    );
-};
-
-const SequenceClues = ({ question, clues, secret }: {
-    question: CollectionQueryItem<SequenceQuestion>;
-    clues: Array<CollectionQueryItem<TextClue>>;
-    secret: CollectionQueryItem<SequenceSecrets> | undefined;
-}) => {
-    return (
-        <div className={styles.cluesHolder}>
-            {clues.map((clue, i) => (
-                <VisibleClue key={clue.id} isRevealed={clue.data.isRevealed} text={clue.data.text} index={i} />
-            ))}
-            {clues.length === 3 &&
-                <LastInSequenceClue
-                    allOtherCluesRevealed={!clues.some((c) => !c.data.isRevealed)}
-                    example={question.data.exampleLastInSequence}
-                    exampleFromSecret={secret?.data.exampleLastInSequence}
-                />
-            }
-            {clues.length < 3 && arrayUpTo(4 - clues.length).map((n) => (
-                <HiddenClue key={n} />
-            ))}
-        </div>
-    );
-};
-
-const MissingVowelsClues = ({ clue }: { clue: CollectionQueryItem<CompoundTextClue>; }) => {
-    return (
-        <div className={styles.cluesHolder}>
-            {clue.data.texts.map((text, i) => 
-                <VisibleClue key={i} isRevealed={clue.data.isRevealed} text={text} index={i} />
-            )}
-        </div>
-    );
 };
 
 const QuestionConnection = ({ currentQuestionItem, currentSecret }: { currentQuestionItem: CollectionQueryItem<Question>; currentSecret: CollectionQueryItem<QuestionSecrets>|undefined; }) => {
@@ -144,9 +98,10 @@ const QuestionConnection = ({ currentQuestionItem, currentSecret }: { currentQue
         case 'connection':
         case 'sequence':
         case 'missing-vowels':
-            return (<SingleConnection
-                currentQuestionItem={currentQuestionItem as CollectionQueryItem<ConnectionQuestion|SequenceQuestion|MissingVowelsQuestion>}
-                secretsItem={currentSecret as CollectionQueryItem<ConnectionSecrets|SequenceSecrets|MissingVowelsSecrets> | undefined}
+            const singleSecret = currentSecret as CollectionQueryItem<ConnectionSecrets|SequenceSecrets|MissingVowelsSecrets> | undefined;
+            return (<SingleQuestionConnection
+                questionConnection={currentQuestionItem.data.connection}
+                secretsConnection={singleSecret?.data.connection}
             />);
         case 'wall':
             return (<WallConnections
@@ -155,23 +110,6 @@ const QuestionConnection = ({ currentQuestionItem, currentSecret }: { currentQue
             />);
         default:
             throwBadQuestionType(currentQuestionItem.data);
-    }
-};
-
-const SingleConnection = ({ currentQuestionItem, secretsItem }: {
-    currentQuestionItem: CollectionQueryItem<ConnectionQuestion|SequenceQuestion|MissingVowelsQuestion>;
-    secretsItem: CollectionQueryItem<ConnectionSecrets|SequenceSecrets|MissingVowelsSecrets> | undefined;
-}) => {
-    if (currentQuestionItem.data.connection) {
-        return (
-            <div className={styles.revealedConnection}>{currentQuestionItem.data.connection}</div>
-        );
-    } else if (secretsItem) {
-        return (
-            <div className={styles.unrevealedConnection}>({secretsItem.data.connection})</div>
-        );
-    } else {
-        return null;
     }
 };
 
@@ -233,7 +171,3 @@ const WallConnections = ({ currentQuestionItem, secretsItem }: {
         </div>
     );
 };
-
-function arrayUpTo(n: number) {
-    return Array.from(Array(n).keys());
-}

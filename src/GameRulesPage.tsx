@@ -1,4 +1,7 @@
 import { Card } from './Card';
+import { ConnectionDemo } from './components/demos/ConnectionDemo';
+import { MissingVowelsDemo } from './components/demos/MissingVowelsDemo';
+import { SequenceDemo } from './components/demos/SequenceDemo';
 import { Page } from './Page';
 
 export const GameRulesPage = () => {
@@ -18,12 +21,14 @@ export const GameRulesPage = () => {
                     guess what connects them. The fewer clues revealed when a team makes their guess, the more points they get if
                     it's right: 5, 3, 2, or 1 point for correct guesses on the 1st, 2nd, 3rd, and 4th clues respectively.
                 </p>
+                <ConnectionDemo />
             </Card>
             <Card title="Sequence">
                 <p>
                     <strong>Sequence</strong> questions are similar, except the clues are in a sequence and teams must guess what
                     comes fourth. Only three clues are shown, so only 5, 3, or 2 points are available.
                 </p>
+                <SequenceDemo />
             </Card>
             <Card title="Wall">
                 <p>
@@ -41,6 +46,7 @@ export const GameRulesPage = () => {
                     randomly inserted. Teams must guess the connection between all the clues. The 1st correct answer gets 4 points,
                     the 2nd and 3rd get 3 points, the 4th, 5th, and 6th get 2 points, and all remaining correct answers get 1 point.
                 </p>
+                <MissingVowelsDemo />
             </Card>
         </Page>
     );

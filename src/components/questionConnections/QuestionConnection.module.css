@@ -1,0 +1,13 @@
+.connection {
+    composes: smallTopMargin from '../../layout.module.css';
+    width: 100%;
+}
+.revealedConnection {
+    composes: connection;
+    composes: glassItem veryDarkBlueGlassColours from '../../glass.module.css';
+    composes: animated from '../../CurrentQuestion.module.css';
+}
+.unrevealedConnection {
+    composes: connection;
+    composes: placeholderItem from '../../placeholder.module.css';
+}
