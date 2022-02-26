@@ -51,7 +51,7 @@ const demoSteps = [
         ],
         remainingLives: 3,
         solutionIsRevealed: true,
-        connectionsAreRevelead: true,
+        connectionsAreRevealed: true,
     },
 ];
 const demoClue: ComponentProps<typeof WallCluesPresentation>['clue'] = {
@@ -108,7 +108,7 @@ export const WallDemo = () => {
                         remainingLives: step.remainingLives,
                     }}
                 />
-                {step.connectionsAreRevelead && <WallQuestionConnections connections={connections} isRevealed={true} />}
+                {step.connectionsAreRevealed && <WallQuestionConnections connections={connections} isRevealed={true} />}
             </DemoQuestionWrapper>
         }
         <p>{step.description}</p>
