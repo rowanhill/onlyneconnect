@@ -25,7 +25,7 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
             createWallInProgress(quizId, clue.data.questionId, clue.id, teamId);
             setHasCreated(true);
         }
-    }, [isCaptain, progressItem, hasCreated, teamId, quizId, clue, setHasCreated]);
+    }, [isCaptain, progressItem, hasCreated, teamId, quizId, clue]);
 
     const progressData = progressItem?.data;
 
@@ -50,12 +50,26 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
         }
     };
 
+    return <WallCluesPresentation
+        clue={clue.data}
+        isEditable={!!isCaptain}
+        progressData={progressData}
+        toggleClue={toggleClue}
+    />;
+};
+
+export const WallCluesPresentation = ({ clue, isEditable, progressData, toggleClue }: {
+    clue: Pick<FourByFourTextClue, 'texts'|'solution'|'isRevealed'>;
+    isEditable: boolean;
+    progressData: Pick<WallInProgress, 'remainingLives'|'selectedTexts'|'correctGroups'>|undefined;
+    toggleClue: (text: string) => void;
+}) => {
     const getUngroupedClassNames = (text: string, row: number, col: number, isRevealed: boolean) => {
         const names = [];
         if (isRevealed) {
             names.push(styles.ungrouped);
         }
-        if (isCaptain && progressData && (progressData.remainingLives === undefined || progressData.remainingLives > 0)) {
+        if (isEditable && progressData && (progressData.remainingLives === undefined || progressData.remainingLives > 0)) {
             names.push(styles.clickable);
         }
         if (progressData && progressData.selectedTexts.includes(text)) {
@@ -78,15 +92,15 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
     // Get the groups found by the team
     const foundGroups = progressData?.correctGroups || [];
     // Get the groups not found by the team but solved by the quiz owner (if any)
-    const unfoundSolvedGroups = (clue.data.solution || []).filter((_, solutionGroupIndex) => {
+    const unfoundSolvedGroups = (clue.solution || []).filter((_, solutionGroupIndex) => {
         const groupAlreadyFound = foundGroups.some((foundGroup) => foundGroup.solutionGroupIndex === solutionGroupIndex);
         return !groupAlreadyFound;
     });
     // Get the ungrouped texts neither found by the team nor revealed by the quiz owner (if any)
     const solvedTexts = foundGroups.flatMap((g) => g.texts).concat(unfoundSolvedGroups.flatMap((g) => g.texts));
-    const unsolvedTexts = clue.data.solution ?
+    const unsolvedTexts = clue.solution ?
         [] :
-        clue.data.texts.filter((t) => solvedTexts.indexOf(t) === -1);
+        clue.texts.filter((t) => solvedTexts.indexOf(t) === -1);
 
     const clueMetaByText: { [text: string]: { foundGroupIndex: number | null; row: number; col: number; text: string; } } = {};
 
@@ -124,7 +138,7 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
         };
     });
     
-    const clueMetas = clue.data.texts.map((t) => clueMetaByText[t]);
+    const clueMetas = clue.texts.map((t) => clueMetaByText[t]);
 
     return (
         <>
@@ -133,28 +147,28 @@ export const WallClues = ({ clue }: { clue: CollectionQueryItem<FourByFourTextCl
                 clueMeta.foundGroupIndex === null ?
                     <VisibleClue
                         key={clueMeta.text}
-                        className={getUngroupedClassNames(clueMeta.text, clueMeta.row, clueMeta.col, clue.data.isRevealed)}
+                        className={getUngroupedClassNames(clueMeta.text, clueMeta.row, clueMeta.col, clue.isRevealed)}
                         onClick={() => toggleClue(clueMeta.text)}
-                        isRevealed={clue.data.isRevealed}
+                        isRevealed={clue.isRevealed}
                         text={clueMeta.text}
                         index={clueMeta.row * 4 + clueMeta.col}
                     /> :
                     <VisibleClue
                         key={clueMeta.text}
                         className={getGroupedClassNames(clueMeta.foundGroupIndex, clueMeta.row, clueMeta.col)}
-                        isRevealed={clue.data.isRevealed}
+                        isRevealed={clue.isRevealed}
                         text={clueMeta.text}
                         index={clueMeta.row * 4 + clueMeta.col}
                     />
             )}
         </div>
-        {clue.data.solution === undefined && progressData &&
+        {clue.solution === undefined && progressData &&
             <h4>Find groups of four by clicking on clues to select them.</h4>
         }
-        {clue.data.solution === undefined && progressData && progressData.remainingLives === undefined &&
+        {clue.solution === undefined && progressData && progressData.remainingLives === undefined &&
             <p>You have as many attempts as you like until you find two groups.</p>
         }
-        {clue.data.solution === undefined && progressData?.remainingLives !== undefined && 
+        {clue.solution === undefined && progressData?.remainingLives !== undefined && 
             <p>
                 {progressData.remainingLives} attempt(s) remaining.{' '}
                 {progressData.remainingLives === 0 && 'The wall is frozen! Wait for groups to be revealed.'}

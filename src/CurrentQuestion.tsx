@@ -2,12 +2,13 @@ import React from 'react';
 import { Card } from './Card';
 import { useCluesContext, usePlayerTeamContext, useQuestionsContext, useQuestionSecretsContext, useQuizContext, useWallInProgressContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
-import { CompoundTextClue, ConnectionSecrets, FourByFourTextClue, MissingVowelsSecrets, Question, QuestionSecrets, SequenceSecrets, TextClue, throwBadQuestionType, WallQuestion, WallSecrets } from './models';
+import { CompoundTextClue, ConnectionSecrets, Four, FourByFourTextClue, MissingVowelsSecrets, Question, QuestionSecrets, SequenceSecrets, TextClue, throwBadQuestionType, WallQuestion, WallSecrets } from './models';
 import { WallClues } from './components/clues/WallClues';
 import styles from './CurrentQuestion.module.css';
 import { GenericErrorBoundary } from './GenericErrorBoundary';
 import { ConnectionClues, MissingVowelsClues, SequenceClues } from './components/clues/ClueHolders';
 import { SingleQuestionConnection } from './components/questionConnections/SingleQuestionConnection';
+import { WallQuestionConnections } from './components/questionConnections/WallQuestionConnections';
 
 export const CurrentQuestion = ({ currentQuestionItem }: { currentQuestionItem?: CollectionQueryItem<Question>; }) => {
     const { error: questionsError } = useQuestionsContext();
@@ -149,25 +150,5 @@ const WallConnections = ({ currentQuestionItem, secretsItem }: {
         }
     }
 
-    const groupClassName = (i: number) => {
-        if (currentQuestionItem.data.connections) {
-            return `group${i + 1}`;
-        } else {
-            return 'unrevealedGroup';
-        }
-    };
-    const text = (connection: string) => {
-        if (currentQuestionItem.data.connections) {
-            return connection;
-        } else {
-            return `(${connection})`;
-        }
-    }
-    return (
-        <div className={styles.connections}>
-            {connections.map((con, i) =>
-                <div className={styles.groupConnection + ' ' + styles[groupClassName(i)]} key={con}>{text(con)}</div>
-            )}
-        </div>
-    );
+    return <WallQuestionConnections connections={connections as Four<string>} isRevealed={!!currentQuestionItem.data.connections} />;
 };

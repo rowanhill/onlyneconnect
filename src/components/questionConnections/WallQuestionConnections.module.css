@@ -1,0 +1,29 @@
+.connections {
+    composes: smallTopMargin from '../../layout.module.css';
+    width: 100%;
+}
+
+.group1 {
+    composes: glassItem veryDarkBlueGlassColours from '../../glass.module.css';
+}
+.group2 {
+    composes: glassItem midGreenGlassColours from '../../glass.module.css';
+}
+.group3 {
+    composes: glassItem darkRedGlassColours from '../../glass.module.css';
+}
+.group4 {
+    composes: glassItem midTurquoiseGlassColours from '../../glass.module.css';
+}
+
+.unrevealedGroup {
+    composes: placeholderItem from '../../placeholder.module.css';
+}
+
+.groupConnection {
+    composes: verySmallTopMargin from '../../layout.module.css';
+    composes: animated from './QuestionConnection.module.css';
+}
+.groupConnection:first-of-type {
+    margin-top: 0;
+}

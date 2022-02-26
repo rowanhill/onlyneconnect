@@ -2,6 +2,7 @@ import { Card } from './Card';
 import { ConnectionDemo } from './components/demos/ConnectionDemo';
 import { MissingVowelsDemo } from './components/demos/MissingVowelsDemo';
 import { SequenceDemo } from './components/demos/SequenceDemo';
+import { WallDemo } from './components/demos/WallDemo';
 import { Page } from './Page';
 
 export const GameRulesPage = () => {
@@ -38,6 +39,7 @@ export const GameRulesPage = () => {
                     all the connections. It's one point for each group found, and one point for each correct connection - plus two
                     bonus points if you find all the groups and connections (for a maximum of 10 points).
                 </p>
+                <WallDemo />
             </Card>
             <Card title="Missing Vowels">
                 <p>
