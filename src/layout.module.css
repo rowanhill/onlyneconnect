@@ -9,6 +9,11 @@
     margin-top: 0;
 }
 
+.largeHorizontalMargin {
+    margin-left: var(--large);
+    margin-right: var(--large);
+}
+
 .mediumTopMargin {
     margin-top: var(--medium);
 }

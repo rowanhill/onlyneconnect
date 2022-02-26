@@ -1,0 +1,4 @@
+.demoQuestion {
+    overflow: hidden;
+    composes: largeHorizontalMargin from '../../layout.module.css';
+}

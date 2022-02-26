@@ -2,7 +2,7 @@ import { ComponentProps, useState } from 'react';
 import { PrimaryButton } from '../../Button';
 import { ConnectionClues } from '../clues/ClueHolders';
 import { SingleQuestionConnection } from '../questionConnections/SingleQuestionConnection';
-import { OverflowWrapper } from './OverflowWrapper';
+import { DemoQuestionWrapper } from './DemoQuestionWrapper';
 
 const demoClues: ComponentProps<typeof ConnectionClues>['clues'] = [
     { id: '1', data: { isRevealed: true, text: 'Olympia' }},
@@ -42,10 +42,10 @@ export const ConnectionDemo = () => {
     const clues = demoClues.slice(0, step.visibleClues);
     return (
         <>
-        <OverflowWrapper>
+        <DemoQuestionWrapper>
             <ConnectionClues clues={clues} />
-        </OverflowWrapper>
-        {step.answerIsVisible && <SingleQuestionConnection questionConnection={demoAnswer} />}
+            {step.answerIsVisible && <SingleQuestionConnection questionConnection={demoAnswer} />}
+        </DemoQuestionWrapper>
         <p>{step.description}</p>
         <div>
             <PrimaryButton disabled={stepIndex <= 0} onClick={() => setStepIndex(stepIndex - 1)}>Previous</PrimaryButton>

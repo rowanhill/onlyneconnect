@@ -3,6 +3,7 @@ import { PrimaryButton } from '../../Button';
 import { Four } from '../../models';
 import { WallCluesPresentation } from '../clues/WallClues';
 import { WallQuestionConnections } from '../questionConnections/WallQuestionConnections';
+import { DemoQuestionWrapper } from './DemoQuestionWrapper';
 
 const demoSteps = [
     { questionIsVisible: false },
@@ -96,18 +97,20 @@ export const WallDemo = () => {
     return (
         <>
         {step.questionIsVisible && 
-            <WallCluesPresentation
-                isEditable={false}
-                toggleClue={()=>{ return; }}
-                clue={clue}
-                progressData={{
-                    selectedTexts: step.selectedTexts || [],
-                    correctGroups: step.correctGroups,
-                    remainingLives: step.remainingLives,
-                }}
-            />
+            <DemoQuestionWrapper>
+                <WallCluesPresentation
+                    isEditable={false}
+                    toggleClue={()=>{ return; }}
+                    clue={clue}
+                    progressData={{
+                        selectedTexts: step.selectedTexts || [],
+                        correctGroups: step.correctGroups,
+                        remainingLives: step.remainingLives,
+                    }}
+                />
+                {step.connectionsAreRevelead && <WallQuestionConnections connections={connections} isRevealed={true} />}
+            </DemoQuestionWrapper>
         }
-        {step.connectionsAreRevelead && <WallQuestionConnections connections={connections} isRevealed={true} />}
         <p>{step.description}</p>
         <div>
             <PrimaryButton disabled={stepIndex <= 0} onClick={() => setStepIndex(stepIndex - 1)}>Previous</PrimaryButton>

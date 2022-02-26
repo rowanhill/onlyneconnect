@@ -2,7 +2,7 @@ import { ComponentProps, useState } from 'react';
 import { PrimaryButton } from '../../Button';
 import { MissingVowelsClues } from '../clues/ClueHolders';
 import { SingleQuestionConnection } from '../questionConnections/SingleQuestionConnection';
-import { OverflowWrapper } from './OverflowWrapper'
+import { DemoQuestionWrapper } from './DemoQuestionWrapper'
 
 const demoClue: ComponentProps<typeof MissingVowelsClues>['clue'] = {
     isRevealed: true,
@@ -32,15 +32,15 @@ export const MissingVowelsDemo = () => {
     const step = demoSteps[stepIndex];
     return (
         <>
-        <OverflowWrapper>
+        <DemoQuestionWrapper>
             {step.questionIsVisible && <MissingVowelsClues clue={demoClue} />}
             {step.answerIsVisible && <SingleQuestionConnection questionConnection={demoAnswer} />}
-            <p>{step.description}</p>
-            <div>
-                <PrimaryButton disabled={stepIndex <= 0} onClick={() => setStepIndex(stepIndex - 1)}>Previous</PrimaryButton>
-                <PrimaryButton disabled={stepIndex >= demoSteps.length - 1} onClick={() => setStepIndex(stepIndex + 1)}>Next</PrimaryButton>
-            </div>
-        </OverflowWrapper>
+        </DemoQuestionWrapper>
+        <p>{step.description}</p>
+        <div>
+            <PrimaryButton disabled={stepIndex <= 0} onClick={() => setStepIndex(stepIndex - 1)}>Previous</PrimaryButton>
+            <PrimaryButton disabled={stepIndex >= demoSteps.length - 1} onClick={() => setStepIndex(stepIndex + 1)}>Next</PrimaryButton>
+        </div>
         </>
     );
 };
