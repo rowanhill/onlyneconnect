@@ -59,7 +59,7 @@ export const resetQuiz = functions.https.onCall(async (data, context) => {
         const playerTeamsSnapshotChunks = await Promise.all(playerTeamsPromises);
 
         // Reset the quiz, questions and clues
-        transaction.update(quizDoc, { currentQuestionId: null, isComplete: false } as Partial<Quiz>);
+        transaction.update(quizDoc, { currentQuestionId: null, isComplete: false, ownerZoomId: null } as Partial<Quiz>);
         for (const question of questionsSnapshot.docs) {
             transaction.update(question.ref, {
                 isRevealed: false,
