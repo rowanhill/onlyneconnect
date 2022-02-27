@@ -219,9 +219,13 @@ export const revealAnswer = (
         // Close the current clue, if any, for answer submissions
         if (currentClueId) {
             const currentClueDoc = db.doc(`quizzes/${quizId}/clues/${currentClueId}`);
-            transaction.update(currentClueDoc, {
+            const clueUpdate: firebase.firestore.UpdateData = {
                 closedAt: serverTimestamp(),
-            });
+            };
+            if (secretsData.type === 'missing-vowels' && secretsData.solution) {
+                clueUpdate.solution = secretsData.solution;
+            }
+            transaction.update(currentClueDoc, clueUpdate);
         }
         
         // Copy the connection(s) (and last in sequence, if appropriate) from the secret to the question

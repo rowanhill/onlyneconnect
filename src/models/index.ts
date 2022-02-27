@@ -93,6 +93,7 @@ export interface WallSecrets {
 
 export interface MissingVowelsSecrets {
     type: 'missing-vowels';
+    solution?: Four<string>; // Missing from older versions of data
     connection: string;
 }
 
@@ -118,6 +119,7 @@ export interface CompoundTextClue {
     isRevealed: boolean;
     texts: Four<string>;
     answerLimit: null;
+    solution?: Four<string>;
     revealedAt?: firebase.firestore.Timestamp;
     closedAt?: firebase.firestore.Timestamp;
 }

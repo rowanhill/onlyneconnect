@@ -40,10 +40,11 @@ export const SequenceClues = ({ clues, questionExample, secretExample }: {
     );
 };
 
-export const MissingVowelsClues = ({ clue }: { clue: Pick<CompoundTextClue, 'isRevealed'|'texts'>; }) => {
+export const MissingVowelsClues = ({ clue }: { clue: Pick<CompoundTextClue, 'isRevealed'|'texts'|'solution'>; }) => {
+    const labels = clue.solution ?? clue.texts;
     return (
         <div className={styles.cluesHolder}>
-            {clue.texts.map((text, i) => 
+            {labels.map((text, i) => 
                 <VisibleClue key={i} isRevealed={clue.isRevealed} text={text} index={i} />
             )}
         </div>

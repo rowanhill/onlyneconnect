@@ -164,7 +164,12 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
             type: 'missing-vowels',
             answerLimit: 5,
             connection: '',
-            clue: { texts: ['', '', '', ''], answerLimit: null, type: 'compound-text' },
+            clue: {
+                texts: ['', '', '', ''],
+                solution: ['', '', '', ''],
+                answerLimit: null,
+                type: 'compound-text',
+            },
         });
     };
     const clearNewQuestion = () => {
@@ -312,7 +317,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
     };
     const defaultMissingVowelsSecretItem: CollectionQueryItem<MissingVowelsSecrets> = {
         id: 'loading',
-        data: { connection: 'Loading connection', type: 'missing-vowels' },
+        data: { connection: 'Loading connection', type: 'missing-vowels', solution: ['', '', '', ''] },
     };
     const questionSpecs: QuestionSpec[] = quiz.questionIds
         .filter((id) => {
@@ -419,6 +424,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
                     id: question.clueId,
                     answerLimit: clueItem.data.answerLimit,
                     texts: clueItem.data.texts,
+                    solution: questionSecretsItem.data.solution || ['', '', '', ''],
                     type: 'compound-text',
                 };
                 result = {
@@ -729,12 +735,20 @@ const CompoundTextClueForm = ({ clue, onChange }: { clue: CompoundClueSpec; onCh
                 texts: clue.texts.map((oldText, i) => i === textIndex ? e.target.value : oldText) as Four<string>,
             });
         };
+    const changeSolutionText = (textIndex: number) =>
+        (e: ChangeEvent<HTMLInputElement>) => {
+            onChange({
+                ...clue,
+                solution: clue.solution.map((oldText, i) => i === textIndex ? e.target.value : oldText) as Four<string>,
+            });
+        };;
     return (
         <>
         {clue.texts.map((text, i) =>
             <p key={i} className={styles.row}>
-                <label className={styles.cluePropLabel}>Clue {i + 1} text</label>
+                <label className={styles.cluePropLabel}>Clue {i + 1} text / solution</label>
                 <input type="text" value={text} onChange={changeText(i)} />
+                <input type="text" value={clue.solution[i]} onChange={changeSolutionText(i)} />
             </p>
         )}
         </>

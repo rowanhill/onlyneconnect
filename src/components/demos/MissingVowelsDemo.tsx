@@ -1,4 +1,5 @@
 import { ComponentProps } from 'react';
+import { Four } from '../../models';
 import { MissingVowelsClues } from '../clues/ClueHolders';
 import { SingleQuestionConnection } from '../questionConnections/SingleQuestionConnection';
 import { DemoQuestion } from './DemoQuestion'
@@ -12,6 +13,12 @@ const demoClue: ComponentProps<typeof MissingVowelsClues>['clue'] = {
         'F RT TT',
     ],
 };
+const demoSolution: Four<string> = [
+    'MERINGUE',
+    'OMLETTE',
+    'MOUSSE',
+    'FRITTATA',
+];
 const demoAnswer = 'Dishes made using eggs';
 const demoSteps = [
     { questionIsVisible: false },
@@ -31,9 +38,12 @@ export const MissingVowelsDemo = () => {
         <DemoQuestion numSteps={demoSteps.length}>
             {(stepIndex) => {
                 const step = demoSteps[stepIndex];
+                const clue = step.answerIsVisible ?
+                    {...demoClue, solution: demoSolution} :
+                    demoClue;
                 return [
                     <>
-                    {step.questionIsVisible && <MissingVowelsClues clue={demoClue} />}
+                    {step.questionIsVisible && <MissingVowelsClues clue={clue} />}
                     {step.answerIsVisible && <SingleQuestionConnection questionConnection={demoAnswer} />}
                     </>,
                     step.description

@@ -64,7 +64,12 @@ describe('Controlling the quiz', () => {
             const question4: MissingVowelsQuestionSpec = {
                 type: 'missing-vowels',
                 answerLimit: null,
-                clue: { answerLimit: null, texts: ['Q4 C1', 'Q4 C2', 'Q4 C3', 'Q4 C4'], type: 'compound-text' },
+                clue: {
+                    answerLimit: null,
+                    texts: ['Q4 C1', 'Q4 C2', 'Q4 C3', 'Q4 C4'],
+                    solution: ['Q4 C1 S', 'Q4 C2 S', 'Q4 C3 S', 'Q4 C4 S'],
+                    type: 'compound-text',
+                },
                 connection: 'Q4 Conn',
             };
             cy.task<CreateMissingVowelsOrWallQuestionResult>('createMissingVowelsQuestion', {

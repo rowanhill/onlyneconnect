@@ -7,7 +7,7 @@ import { revealWallSolution, revealNextClue, revealNextQuestion, revealAnswer, c
 
 type RevealButtonType = 'error'|
     'solve-wall'|
-    'reveal-connection'|'reveal-connection-and-last-in-sequence'|'reveal-connections'|
+    'reveal-connection'|'reveal-connection-and-last-in-sequence'|'reveal-connections'|'reveal-connection-and-solutions'|
     'next-clue'|
     'next-question'|
     'end-quiz'|
@@ -145,7 +145,6 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
     } else if (connectionsUnrevealed) {
         switch (currentQuestionItem.data.type) {
             case 'connection':
-            case 'missing-vowels':
                 buttonToShow = 'reveal-connection';
                 break;
             case 'sequence':
@@ -153,6 +152,9 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
                 break;
             case 'wall':
                 buttonToShow = 'reveal-connections';
+                break;
+            case 'missing-vowels':
+                buttonToShow = 'reveal-connection-and-solutions';
                 break;
             default:
                 throwBadQuestionType(currentQuestionItem.data);
@@ -181,6 +183,7 @@ export const QuizControlReveal = ({ currentQuestionItem }: { currentQuestionItem
             {buttonToShow === 'reveal-connection' && <PrimaryButton disabled={disabled} onClick={handleRevealConnection}>Close question &amp; show connection</PrimaryButton>}
             {buttonToShow === 'reveal-connection-and-last-in-sequence' && <PrimaryButton disabled={disabled} onClick={handleRevealConnection}>Close question &amp; show connection &amp; last in sequence</PrimaryButton>}
             {buttonToShow === 'reveal-connections' && <PrimaryButton disabled={disabled} onClick={handleRevealConnection}>Close question &amp; show group connections</PrimaryButton>}
+            {buttonToShow === 'reveal-connection-and-solutions' && <PrimaryButton disabled={disabled} onClick={handleRevealConnection}>Close question &amp; show connection &amp; solutions</PrimaryButton>}
             {buttonToShow === 'next-clue' && <PrimaryButton disabled={disabled} onClick={handleGoToNextClue}>Next clue</PrimaryButton>}
             {buttonToShow === 'next-question' && <PrimaryButton disabled={disabled} onClick={handleGoToNextQuestion}>Next question</PrimaryButton>}
             {buttonToShow === 'end-quiz' && <PrimaryButton disabled={disabled} onClick={handleCloseQuiz}>End quiz</PrimaryButton>}

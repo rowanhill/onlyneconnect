@@ -11,6 +11,7 @@ export interface TextClueSpec {
 export interface CompoundClueSpec {
     id?: string;
     texts: Four<string>;
+    solution: Four<string>;
     answerLimit: null;
     type: 'compound-text';
 }
@@ -308,6 +309,7 @@ function deltaMissingVowels(spec: MissingVowelsQuestionSpec): DeltaMissingVowels
     const secrets: DeltaMissingVowelsResult['secrets'] = {
         type: spec.type,
         connection: spec.connection,
+        solution: spec.clue.solution
     };
     const clue: DeltaMissingVowelsResult['clue'] = {
         id: spec.clue.id!,

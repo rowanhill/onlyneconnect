@@ -19,7 +19,12 @@ describe('Playing a missing vowels question', () => {
             const question: MissingVowelsQuestionSpec = {
                 type: 'missing-vowels',
                 answerLimit: 5,
-                clue: { answerLimit: null, texts: ['Q1 C1', 'Q1 C2', 'Q1 C3', 'Q1 C4'], type: 'compound-text' },
+                clue: {
+                    answerLimit: null,
+                    texts: ['Q1 C1', 'Q1 C2', 'Q1 C3', 'Q1 C4'],
+                    solution: ['Q1 C1 S', 'Q1 C2 S', 'Q1 C3 S', 'Q1 C4 S'],
+                    type: 'compound-text',
+                },
                 connection: 'Q1 conn',
             };
             return cy.task<CreateMissingVowelsOrWallQuestionResult>('createMissingVowelsQuestion', {
@@ -89,11 +94,12 @@ describe('Playing a missing vowels question', () => {
             scoreboard().contains('Universally Challenged: 4');
         });
 
-        it('shows the connection when the question is over', () => {
+        it('shows the connection an solved clues when the question is over', () => {
             cy.task('revealNextClue', { quizId, nextClueId: clueId });
-            cy.task('revealAnswer', { quizId, questionId });
+            cy.task('revealAnswer', { quizId, questionId, currentClueId: clueId });
 
             cy.contains('Q1 conn').should('exist');
+            expectRevealedCluesToBe(['Q1 C1 S', 'Q1 C2 S', 'Q1 C3 S', 'Q1 C4 S']);
         });
     });
 
