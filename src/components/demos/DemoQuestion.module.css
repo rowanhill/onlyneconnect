@@ -2,3 +2,8 @@
     overflow: hidden;
     composes: largeHorizontalMargin from '../../layout.module.css';
 }
+
+.demoStepDescription {
+    font-style: italic;
+    color: var(--dark-grey);
+}

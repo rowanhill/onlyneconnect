@@ -14,7 +14,7 @@ export const DemoQuestion = (props: DemoQuestionProps) => {
         <div className={styles.demoQuestion}>
             {questionComponent}
         </div>
-        {description && <p>{description}</p>}
+        {description && <p className={styles.demoStepDescription}>{description}</p>}
         <div>
             <PrimaryButton disabled={stepIndex <= 0} onClick={() => setStepIndex(stepIndex - 1)}>Previous</PrimaryButton>
             <PrimaryButton disabled={stepIndex >= props.numSteps - 1} onClick={() => setStepIndex(stepIndex + 1)}>Next</PrimaryButton>
