@@ -1,9 +1,8 @@
-import { ComponentProps, useState } from 'react';
-import { PrimaryButton } from '../../Button';
+import { ComponentProps } from 'react';
 import { Four } from '../../models';
 import { WallCluesPresentation } from '../clues/WallClues';
 import { WallQuestionConnections } from '../questionConnections/WallQuestionConnections';
-import { DemoQuestionWrapper } from './DemoQuestionWrapper';
+import { DemoQuestion } from './DemoQuestion';
 
 const demoSteps = [
     { questionIsVisible: false },
@@ -89,33 +88,30 @@ const connections: Four<string> = [
 ];
 
 export const WallDemo = () => {
-    const [stepIndex, setStepIndex] = useState(0);
-    const step = demoSteps[stepIndex];
-    const clue = step.solutionIsRevealed ?
-        { ...demoClue, solution: demoSolution } :
-        demoClue;
     return (
-        <>
-        {step.questionIsVisible && 
-            <DemoQuestionWrapper>
-                <WallCluesPresentation
-                    isEditable={false}
-                    toggleClue={()=>{ return; }}
-                    clue={clue}
-                    progressData={{
-                        selectedTexts: step.selectedTexts || [],
-                        correctGroups: step.correctGroups,
-                        remainingLives: step.remainingLives,
-                    }}
-                />
-                {step.connectionsAreRevealed && <WallQuestionConnections connections={connections} isRevealed={true} />}
-            </DemoQuestionWrapper>
-        }
-        <p>{step.description}</p>
-        <div>
-            <PrimaryButton disabled={stepIndex <= 0} onClick={() => setStepIndex(stepIndex - 1)}>Previous</PrimaryButton>
-            <PrimaryButton disabled={stepIndex >= demoSteps.length - 1} onClick={() => setStepIndex(stepIndex + 1)}>Next</PrimaryButton>
-        </div>
-        </>
+        <DemoQuestion numSteps={demoSteps.length}>
+            {(stepIndex) => {
+                const step = demoSteps[stepIndex];
+                const clue = step.solutionIsRevealed ?
+                    { ...demoClue, solution: demoSolution } :
+                    demoClue;
+                return [
+                    step.questionIsVisible && <>
+                        <WallCluesPresentation
+                            isEditable={false}
+                            toggleClue={()=>{ return; }}
+                            clue={clue}
+                            progressData={{
+                                selectedTexts: step.selectedTexts || [],
+                                correctGroups: step.correctGroups,
+                                remainingLives: step.remainingLives,
+                            }}
+                        />
+                        {step.connectionsAreRevealed && <WallQuestionConnections connections={connections} isRevealed={true} />}
+                    </>,
+                    step.description
+                ];
+            }}
+        </DemoQuestion>
     );
 };

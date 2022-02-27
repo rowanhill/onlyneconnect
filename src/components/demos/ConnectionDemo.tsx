@@ -1,8 +1,7 @@
-import { ComponentProps, useState } from 'react';
-import { PrimaryButton } from '../../Button';
+import { ComponentProps } from 'react';
 import { ConnectionClues } from '../clues/ClueHolders';
 import { SingleQuestionConnection } from '../questionConnections/SingleQuestionConnection';
-import { DemoQuestionWrapper } from './DemoQuestionWrapper';
+import { DemoQuestion } from './DemoQuestion';
 
 const demoClues: ComponentProps<typeof ConnectionClues>['clues'] = [
     { id: '1', data: { isRevealed: true, text: 'Olympia' }},
@@ -37,20 +36,19 @@ const demoSteps = [
 ];
 
 export const ConnectionDemo = () => {
-    const [stepIndex, setStepIndex] = useState(0);
-    const step = demoSteps[stepIndex];
-    const clues = demoClues.slice(0, step.visibleClues);
     return (
-        <>
-        <DemoQuestionWrapper>
-            <ConnectionClues clues={clues} />
-            {step.answerIsVisible && <SingleQuestionConnection questionConnection={demoAnswer} />}
-        </DemoQuestionWrapper>
-        <p>{step.description}</p>
-        <div>
-            <PrimaryButton disabled={stepIndex <= 0} onClick={() => setStepIndex(stepIndex - 1)}>Previous</PrimaryButton>
-            <PrimaryButton disabled={stepIndex >= demoSteps.length - 1} onClick={() => setStepIndex(stepIndex + 1)}>Next</PrimaryButton>
-        </div>
-        </>
+        <DemoQuestion numSteps={demoSteps.length}>
+            {(stepIndex) => {
+                const step = demoSteps[stepIndex];
+                const clues = demoClues.slice(0, step.visibleClues);
+                return [
+                    <>
+                    {step.visibleClues > 0 && <ConnectionClues clues={clues} />}
+                    {step.answerIsVisible && <SingleQuestionConnection questionConnection={demoAnswer} />}
+                    </>,
+                    step.description
+                ];
+            }}
+        </DemoQuestion>
     );
 };

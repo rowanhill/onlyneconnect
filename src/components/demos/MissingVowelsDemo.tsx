@@ -1,8 +1,7 @@
-import { ComponentProps, useState } from 'react';
-import { PrimaryButton } from '../../Button';
+import { ComponentProps } from 'react';
 import { MissingVowelsClues } from '../clues/ClueHolders';
 import { SingleQuestionConnection } from '../questionConnections/SingleQuestionConnection';
-import { DemoQuestionWrapper } from './DemoQuestionWrapper'
+import { DemoQuestion } from './DemoQuestion'
 
 const demoClue: ComponentProps<typeof MissingVowelsClues>['clue'] = {
     isRevealed: true,
@@ -28,19 +27,18 @@ const demoSteps = [
 ];
 
 export const MissingVowelsDemo = () => {
-    const [stepIndex, setStepIndex] = useState(0);
-    const step = demoSteps[stepIndex];
     return (
-        <>
-        <DemoQuestionWrapper>
-            {step.questionIsVisible && <MissingVowelsClues clue={demoClue} />}
-            {step.answerIsVisible && <SingleQuestionConnection questionConnection={demoAnswer} />}
-        </DemoQuestionWrapper>
-        <p>{step.description}</p>
-        <div>
-            <PrimaryButton disabled={stepIndex <= 0} onClick={() => setStepIndex(stepIndex - 1)}>Previous</PrimaryButton>
-            <PrimaryButton disabled={stepIndex >= demoSteps.length - 1} onClick={() => setStepIndex(stepIndex + 1)}>Next</PrimaryButton>
-        </div>
-        </>
+        <DemoQuestion numSteps={demoSteps.length}>
+            {(stepIndex) => {
+                const step = demoSteps[stepIndex];
+                return [
+                    <>
+                    {step.questionIsVisible && <MissingVowelsClues clue={demoClue} />}
+                    {step.answerIsVisible && <SingleQuestionConnection questionConnection={demoAnswer} />}
+                    </>,
+                    step.description
+                ];
+            }}
+        </DemoQuestion>
     );
 };
