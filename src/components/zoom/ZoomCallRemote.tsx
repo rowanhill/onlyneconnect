@@ -10,6 +10,7 @@ import { ZoomClient } from './zoomTypes';
 import styles from './ZoomCallRemote.module.css';
 import { ReactComponent as PlayIcon } from './play.svg';
 import { useRelinquishHostToOwner } from './hooks/useRelinquishHostToOwner';
+import { usePlayerBroadcast } from './hooks/usePlayerBroadcast';
 
 export const ZoomCallRemote = () => {
     const zoomClient = useInitialisedZoomClient();
@@ -25,7 +26,8 @@ const ZoomCallRemoteInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =
     const { quiz } = useQuizContext();
     const [shouldBeInCall, setShouldBeInCall] = useState(false);
     const videoCanvasRef = useRef<HTMLCanvasElement|null>(null);
-    const videoHasStarted = useRenderVideoOfHost(shouldBeInCall && quiz.ownerZoomId !== null, zoomClient, videoCanvasRef);
+    const mediaStream = usePlayerBroadcast(shouldBeInCall && quiz.ownerZoomId !== null, zoomClient);
+    const videoHasStarted = useRenderVideoOfHost(mediaStream, zoomClient, videoCanvasRef);
     const { showTimeoutModal, postponeTimeoutThirtyMinutes } = useDisconnectAfterTimeout(
         shouldBeInCall && quiz.ownerZoomId !== null,
         zoomClient,

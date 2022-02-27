@@ -8,6 +8,7 @@ import { videoDimensions } from './videoConfig';
 import { ZoomCallTimeoutModal } from './ZoomCallTimeoutModal';
 import { ZoomClient } from './zoomTypes';
 import styles from './ZoomCallLocal.module.css';
+import { useRenderVideoOfHost } from './hooks/useRenderVideoOfHost';
 
 export const ZoomCallLocal = () => {
     const zoomClient = useInitialisedZoomClient();
@@ -37,9 +38,11 @@ const ZoomCallLocalUninitialised = () => {
 const ZoomCallLocalInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) => {
     const [broadcastState, setBroadcastState] = useState<'off'|'previewing'|'connecting'|'on'>('off');
     const videoRef = useRef<HTMLVideoElement|null>(null);
+    const videoCanvasRef = useRef<HTMLCanvasElement|null>(null);
     const localAv = useLocalAudioVideo(broadcastState === 'previewing', videoRef);
     const localAvLive = !!localAv.localAudioTrack && !!localAv.localVideoTrack
-    const hostBroadcast = useHostBroadcast(zoomClient, videoRef);
+    const { joinCall, endCall, mediaStream } = useHostBroadcast(zoomClient);
+    useRenderVideoOfHost(mediaStream, zoomClient, videoCanvasRef);
 
     const startPreview = () => {
         setBroadcastState('previewing');
@@ -50,11 +53,11 @@ const ZoomCallLocalInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =>
     const startBroadcast = () => {
         setBroadcastState('connecting');
         const didStartSession = { flag: false };
-        hostBroadcast.joinCall(didStartSession)
+        joinCall(didStartSession)
             .finally(() => setBroadcastState(didStartSession.flag ? 'on' : 'off'));
     };
     const stopBroadcast = () => {
-        hostBroadcast.endCall()
+        endCall()
             .then(() => setBroadcastState('off'));
     };
 
@@ -66,12 +69,18 @@ const ZoomCallLocalInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =>
 
     return (
         <>
-        <video
+        {!mediaStream && <video
             ref={videoRef}
             {...videoDimensions}
             className={styles.selfVideo}
             style={{ visibility: broadcastState === 'off' ? 'hidden' : 'initial' }}
-        />
+        />}
+        {mediaStream && <canvas
+            ref={videoCanvasRef}
+            {...videoDimensions}
+            className={styles.selfVideo}
+            style={{ visibility: broadcastState === 'off' ? 'hidden' : 'initial' }}
+        />}
         <div>
             {broadcastState === 'off' && <PrimaryButton onClick={startPreview}>Preview video</PrimaryButton>}
             {broadcastState === 'previewing' && <DangerButton onClick={stopPreview} disabled={!localAvLive}>Stop preview</DangerButton>}

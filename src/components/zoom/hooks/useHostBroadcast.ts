@@ -1,11 +1,12 @@
 import { useQuizContext } from '../../../contexts/quizPage';
-import { ZoomClient } from '../zoomTypes';
-import { RefObject, useCallback, useEffect, useRef } from 'react';
+import { MediaStream, ZoomClient } from '../zoomTypes';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { joinZoomSession } from '../zoomSession';
 import { updateZoomSessionStatus } from '../../../models/quiz';
 
-export const useHostBroadcast = (zoomClient: ZoomClient, videoRef: RefObject<HTMLVideoElement|null|undefined>) => {
+export const useHostBroadcast = (zoomClient: ZoomClient) => {
     const { quiz, quizId } = useQuizContext();
+    const [mediaStream, setMediaStream] = useState<MediaStream>();
 
     // Keep a ref to what zoom id is recorded in the DB, for use by callbacks
     const ownerZoomIdInDbRef = useRef(quiz.ownerZoomId);
@@ -19,14 +20,17 @@ export const useHostBroadcast = (zoomClient: ZoomClient, videoRef: RefObject<HTM
         didStartSession.flag = true;
     
         // Start the audio & video
-        await Promise.all([stream.startAudio(), stream.startVideo({ videoElement: videoRef.current! })]);
+        await Promise.all([stream.startAudio(), stream.startVideo()]);
         stream.unmuteAudio();
+        setMediaStream(stream);
 
         // Async mark the quiz's zoom session as being live
         updateZoomSessionStatus(quizId, zoomClient.getCurrentUserInfo().userId);
     }
 
     const endCall = useCallback(async () => {
+        setMediaStream(undefined);
+
         // Mark the quiz's zoom session as being closed and wait for confirmation before proceeding
         // By waiting we reduce the window in which a player can request a zoom token and accidentally
         // become host.
@@ -48,5 +52,5 @@ export const useHostBroadcast = (zoomClient: ZoomClient, videoRef: RefObject<HTM
         };
     }, [endCall]);
 
-    return { joinCall, endCall };
+    return { joinCall, endCall, mediaStream };
 };

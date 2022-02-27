@@ -1,16 +1,14 @@
 import { VideoQuality } from '@zoom/videosdk';
 import { RefObject, useEffect } from 'react';
-import { ZoomClient } from '../zoomTypes';
+import { MediaStream, ZoomClient } from '../zoomTypes';
 import { useParticipants } from './useParticipants';
-import { usePlayerBroadcast } from './usePlayerBroadcast';
 import { useVideoDecodeAvailable } from './useVideoDecodeAvailable';
 
 export const useRenderVideoOfHost = (
-    joinCall: boolean,
+    mediaStream: MediaStream|undefined,
     zoomClient: ZoomClient,
     videoCanvasRef: RefObject<HTMLCanvasElement|undefined>,
 ) => {
-    const mediaStream = usePlayerBroadcast(joinCall, zoomClient);
     const isVideoDecodeAvailable = useVideoDecodeAvailable(zoomClient);
     const participants = useParticipants(zoomClient);
     const participant = participants.find(p => p.isHost === true);
@@ -19,12 +17,12 @@ export const useRenderVideoOfHost = (
         let videoIsRendering = false;
 
         // Start the video if possible
-        if (mediaStream && videoCanvasRef.current && isVideoDecodeAvailable && participant && participant.bVideoOn && joinCall) {
+        if (mediaStream && videoCanvasRef.current && isVideoDecodeAvailable && participant && participant.bVideoOn) {
             mediaStream.renderVideo(
                 videoCanvasRef.current,
                 participant.userId,
+                640,
                 360,
-                270,
                 0,
                 0,
                 VideoQuality.Video_360P,
@@ -43,7 +41,7 @@ export const useRenderVideoOfHost = (
                     });
             }
         };
-    }, [mediaStream, videoCanvasRef, isVideoDecodeAvailable, participant, joinCall]);
+    }, [mediaStream, videoCanvasRef, isVideoDecodeAvailable, participant]);
 
     return !!mediaStream;
 };
