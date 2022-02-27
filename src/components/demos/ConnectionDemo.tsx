@@ -14,7 +14,7 @@ const demoSteps = [
     { visibleClues: 0 },
     {
         visibleClues: 1,
-        description: "The first clue is revealed when the question starts. You can make one guess; if it's right, you get 5 points",
+        description: "The first clue is revealed when the question starts. You can make one guess; if it's right, you get 5 points.",
     },
     {
         visibleClues: 2,
