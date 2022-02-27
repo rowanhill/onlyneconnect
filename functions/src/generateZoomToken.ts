@@ -3,7 +3,9 @@ import * as admin from 'firebase-admin';
 import { KJUR } from 'jsrsasign';
 import { Quiz, UserPermissions } from './types';
 
-export const generateZoomToken = functions.https.onCall(async (data, context) => {
+export const generateZoomToken = functions
+    .runWith({ secrets: ['ZOOM_VIDEO_SDK_KEY', 'ZOOM_VIDEO_SDK_SECRET'] })
+    .https.onCall(async (data, context) => {
     // Check inputs are of expected form
     const topic = data.topic;
     if (typeof topic !== 'string') {
@@ -15,10 +17,10 @@ export const generateZoomToken = functions.https.onCall(async (data, context) =>
     }
 
     // Check the Zoom Video SDK credentials have been set in Firebase function config
-    const zoomSdkKey = functions.config().zoom?.videoSdkKey;
-    const zoomSdkSecret = functions.config().zoom?.videoSdkSecret;
+    const zoomSdkKey = process.env.ZOOM_VIDEO_SDK_KEY;
+    const zoomSdkSecret = process.env.ZOOM_VIDEO_SDK_SECRET;
     if (typeof zoomSdkKey !== 'string' || typeof zoomSdkSecret !== 'string') {
-        throw new functions.https.HttpsError('internal', 'Zoom SDK credentials are not configured. Configure them using `firebase functions:config:set zoom.videoSdkKey="THE API KEY" zoom.videoSdkSecret="THE API SECRET"` then redeploy.')
+        throw new functions.https.HttpsError('internal', 'Zoom SDK credentials are not configured. Configure them using `firebase functions:secrets:set ZOOM_VIDEO_SDK_KEY` and/or `firebase functions:secrets:set ZOOM_VIDEO_SDK_SECRET` then redeploy.')
     }
 
     const quizDoc = admin.firestore().doc(`quizzes/${quizId}`);

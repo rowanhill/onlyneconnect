@@ -33,3 +33,6 @@ saved-data
 serviceAccount.json
 
 cypress.env.json
+
+# Firebase function secrets
+.secret.local
