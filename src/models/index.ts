@@ -93,7 +93,7 @@ export interface WallSecrets {
 
 export interface MissingVowelsSecrets {
     type: 'missing-vowels';
-    solution?: Four<string>; // Missing from older versions of data
+    solution: Four<string>;
     connection: string;
 }
 

@@ -424,7 +424,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
                     id: question.clueId,
                     answerLimit: clueItem.data.answerLimit,
                     texts: clueItem.data.texts,
-                    solution: questionSecretsItem.data.solution || ['', '', '', ''],
+                    solution: questionSecretsItem.data.solution,
                     type: 'compound-text',
                 };
                 result = {

@@ -222,7 +222,7 @@ export const revealAnswer = (
             const clueUpdate: firebase.firestore.UpdateData = {
                 closedAt: serverTimestamp(),
             };
-            if (secretsData.type === 'missing-vowels' && secretsData.solution) {
+            if (secretsData.type === 'missing-vowels') {
                 clueUpdate.solution = secretsData.solution;
             }
             transaction.update(currentClueDoc, clueUpdate);
