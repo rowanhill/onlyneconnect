@@ -34,6 +34,24 @@ describe('/quizSecrets security rules', () => {
         await assertSucceeds(batch.commit());
     });
 
+    it('can be created with a null passcode', async () => {
+        const batch = testDb.batch();
+        const quiz = testDb.collection('quizzes').doc();
+        batch.set(quiz, { ownerId: testUid });
+        const secret = testDb.collection('quizSecrets').doc(quiz.id);
+        batch.set(secret, { passcode: null });
+        await assertSucceeds(batch.commit());
+    });
+
+    it('can be created without a passcode', async () => {
+        const batch = testDb.batch();
+        const quiz = testDb.collection('quizzes').doc();
+        batch.set(quiz, { ownerId: testUid });
+        const secret = testDb.collection('quizSecrets').doc(quiz.id);
+        batch.set(secret, { });
+        await assertFails(batch.commit());
+    });
+
     it('cannot be created when someone else is the quiz owner', async () => {
         const batch = testDb.batch();
         const quiz = testDb.collection('quizzes').doc();

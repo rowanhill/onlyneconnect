@@ -51,7 +51,7 @@ service cloud.firestore {
     }
 
     match /quizSecrets/{quiz} {
-      allow create: if quizOwnerAfter(quiz);
+      allow create: if quizOwnerAfter(quiz) && ('passcode' in request.resource.data);
       allow read, update, delete: if quizOwner(quiz);
     }
 
@@ -113,7 +113,9 @@ service cloud.firestore {
       // You need the QUIZ passcode to create a team for this quiz
       allow create: if request.auth != null &&
         teamCaptain(request.resource.data.quizId, team, request.auth.uid) &&
-        request.resource.data.quizPasscode == get(/databases/$(database)/documents/quizSecrets/$(request.resource.data.quizId)).data.passcode;
+        'passcode' in request.resource.data && 
+        // Passcodes must be same string, or most both be null (/ not provided in request)
+        request.resource.data.get('quizPasscode', null) == get(/databases/$(database)/documents/quizSecrets/$(request.resource.data.quizId)).data.passcode;
 
       // You need to be the captain to update a team
       allow update: if request.auth != null && teamCaptain(resource.data.quizId, team, request.auth.uid);
@@ -142,8 +144,9 @@ service cloud.firestore {
       // Creating adds you to a team. You need the TEAM passcode to do this.
       allow create, update: if request.auth != null &&
         request.auth.uid == player &&
+        // Passcodes must be same string, or most both be null (/ not provided in request)
         // Need to use getAfter because playerTeam and team may be created in the same transaction
-        request.resource.data.teamPasscode == getAfter(/databases/$(database)/documents/teamSecrets/$(request.resource.data.teamId)).data.passcode;
+        request.resource.data.get('teamPasscode', null) == getAfter(/databases/$(database)/documents/teamSecrets/$(request.resource.data.teamId)).data.passcode;
 
       // You can remove your own player
       allow delete: if request.auth != null && request.auth.uid == player;

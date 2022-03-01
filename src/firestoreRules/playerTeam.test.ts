@@ -32,6 +32,11 @@ describe('/playerTeams security ruleset', () => {
         await assertSucceeds(testDb.doc(`playerTeams/${testUid}`).set({ teamId, teamPasscode }));
     });
 
+    it('allows creation for self if no team passcode is provided and team secret passcode is null', async () => {
+        await adminDb.doc(`teamSecrets/${teamId}`).update({ passcode: null });
+        await assertSucceeds(testDb.doc(`playerTeams/${testUid}`).set({ teamId }));
+    });
+
     it('denies creation for self if team passcode does not match', async () => {
         await assertFails(testDb.doc(`playerTeams/${testUid}`).set({ teamId, teamPasscode: 'wrong code' }));
     });

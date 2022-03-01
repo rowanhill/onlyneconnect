@@ -22,6 +22,7 @@ describe('/teams and /teamSecrets security ruleset', () => {
 
     let quizId: string;
     const quizPasscode = 'open sesame';
+    const passcode = 'teamPasscode';
     beforeEach(async () => {
         const quiz = await adminDb.collection('quizzes').add({ ownerId: ownerUid });
         quizId = quiz.id;
@@ -34,7 +35,7 @@ describe('/teams and /teamSecrets security ruleset', () => {
             const team = testDb.collection('teams').doc();
             batch.set(team, { quizId, captainId: testUid, points: 0 });
             const secret = testDb.collection('teamSecrets').doc(team.id);
-            batch.set(secret, { quizId, quizPasscode });
+            batch.set(secret, { quizId, quizPasscode, passcode });
             await assertSucceeds(batch.commit());
         });
 
@@ -43,7 +44,7 @@ describe('/teams and /teamSecrets security ruleset', () => {
             const team = testDb.collection('teams').doc();
             batch.set(team, { quizId, captainId: otherUid, points: 0 });
             const secret = testDb.collection('teamSecrets').doc(team.id);
-            batch.set(secret, { quizId, quizPasscode });
+            batch.set(secret, { quizId, quizPasscode, passcode });
             await assertFails(batch.commit());
         });
 
@@ -52,7 +53,7 @@ describe('/teams and /teamSecrets security ruleset', () => {
             const team = testDb.collection('teams').doc();
             batch.set(team, { quizId, captainId: testUid, points: 100 });
             const secret = testDb.collection('teamSecrets').doc(team.id);
-            batch.set(secret, { quizId, quizPasscode });
+            batch.set(secret, { quizId, quizPasscode, passcode });
             await assertFails(batch.commit());
         });
 
@@ -73,8 +74,37 @@ describe('/teams and /teamSecrets security ruleset', () => {
         it('is denied when a secret is created with the wrong quiz passcode', async () => {
             const batch = testDb.batch();
             const secret = testDb.collection('teamSecrets').doc();
-            batch.set(secret, { quizId, quizPasscode: 'incorrect code' });
+            batch.set(secret, { quizId, quizPasscode: 'incorrect code', passcode });
             await assertFails(batch.commit());
+        });
+
+        it('is denied when no team passcode is set', async () => {
+            const batch = testDb.batch();
+            const team = testDb.collection('teams').doc();
+            batch.set(team, { quizId, captainId: testUid, points: 0 });
+            const secret = testDb.collection('teamSecrets').doc(team.id);
+            batch.set(secret, { quizId, quizPasscode });
+            await assertFails(batch.commit());
+        });
+
+        it('is allowed without specifying a passcode when the quiz has a null passcode', async () => {
+            await adminDb.doc(`quizSecrets/${quizId}`).update({ passcode: null });
+            const batch = testDb.batch();
+            const team = testDb.collection('teams').doc();
+            batch.set(team, { quizId, captainId: testUid, points: 0 });
+            const secret = testDb.collection('teamSecrets').doc(team.id);
+            batch.set(secret, { quizId, passcode });
+            await assertSucceeds(batch.commit());
+        });
+
+        it('is allowed when setting a null team passcode', async () => {
+            await adminDb.doc(`quizSecrets/${quizId}`).update({ passcode: null });
+            const batch = testDb.batch();
+            const team = testDb.collection('teams').doc();
+            batch.set(team, { quizId, captainId: testUid, points: 0 });
+            const secret = testDb.collection('teamSecrets').doc(team.id);
+            batch.set(secret, { quizId, passcode: null });
+            await assertSucceeds(batch.commit());
         });
     });
 

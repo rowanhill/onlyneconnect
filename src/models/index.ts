@@ -10,7 +10,7 @@ export interface Team {
 
 export interface PlayerTeam {
     teamId: string;
-    teamPasscode: string;
+    teamPasscode: string|null;
 }
 
 export interface Quiz {
@@ -24,7 +24,7 @@ export interface Quiz {
 }
 
 export interface QuizSecrets {
-    passcode: string;
+    passcode: string|null;
 }
 
 export type Four<T> = [T, T, T, T];
