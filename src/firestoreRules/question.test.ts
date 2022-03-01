@@ -3,6 +3,7 @@
  */
 
 import firebase from 'firebase';
+import firebaseAdmin from 'firebase-admin';
 import { initializeTestApp, initializeAdminApp, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 
 const testUid = 'uid-of-test-user';
@@ -10,7 +11,7 @@ const otherUid = 'uid-of-other-user';
 
 describe('/quiz/{quiz}/questions security ruleset', () => {
     let testDb: firebase.firestore.Firestore;
-    let adminDb: firebase.firestore.Firestore;
+    let adminDb: firebaseAdmin.firestore.Firestore;
     beforeAll(() => {
         testDb = initializeTestApp({
             projectId: process.env.REACT_APP_PID,

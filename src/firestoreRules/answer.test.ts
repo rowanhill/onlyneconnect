@@ -12,7 +12,7 @@ const ownerUid = 'uid-of-quiz-owner';
 
 describe('/quiz/{quiz}/answers security ruleset', () => {
     let testDb: firebase.firestore.Firestore;
-    let adminDb: firebase.firestore.Firestore;
+    let adminDb: firebaseAdmin.firestore.Firestore;
     beforeAll(() => {
         testDb = initializeTestApp({
             projectId: process.env.REACT_APP_PID,
@@ -104,7 +104,7 @@ describe('/quiz/{quiz}/answers security ruleset', () => {
         });
 
         describe('with an existing answer', () => {
-            let answer: firebase.firestore.DocumentReference;
+            let answer: firebaseAdmin.firestore.DocumentReference;
             beforeEach(async () => {
                 answer = await adminDb.collection(`/quizzes/${quizId}/answers`).add({
                     questionId,
@@ -145,8 +145,8 @@ describe('/quiz/{quiz}/answers security ruleset', () => {
         });
 
         describe('with are existing answers', () => {
-            let answer: firebase.firestore.DocumentReference;
-            let otherAnswer: firebase.firestore.DocumentReference;
+            let answer: firebaseAdmin.firestore.DocumentReference;
+            let otherAnswer: firebaseAdmin.firestore.DocumentReference;
             beforeEach(async () => {
                 answer = await adminDb.collection(`/quizzes/${quizId}/answers`).add({
                     questionId,
@@ -187,7 +187,7 @@ describe('/quiz/{quiz}/answers security ruleset', () => {
     });
 
     describe('for quiz owner', () => {
-        let answer: firebase.firestore.DocumentReference;
+        let answer: firebaseAdmin.firestore.DocumentReference;
         beforeEach(async () => {
             await adminDb.doc(`quizzes/${quizId}`).update({ ownerId: testUid });
 
