@@ -2,6 +2,13 @@
     composes: wideHorizontalPadding mediumVerticalPadding from './layout.module.css'
 }
 
+.pageHeader {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: var(--small);
+}
+
 .title {
-    margin-top: 0;
+    margin: 0;
+    flex-grow: 1;
 }

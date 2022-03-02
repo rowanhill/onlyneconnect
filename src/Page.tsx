@@ -6,13 +6,13 @@ export const Page: FunctionComponent<{ className?: string; title?: string|ReactE
     const showLogo = props.showLogo ?? true;
     const title = typeof props.title === 'string' ?
         <h1 className={styles.title}>{props.title}</h1> :
-        props.title;
+        <div className={styles.title}>{props.title}</div>;
     return (
         <div className={styles.page + (props.className ? ` ${props.className}` : '')}>
             {showLogo &&
-            <div>
-                <LogoHeaderHomeLink />
+            <div className={styles.pageHeader}>
                 {title}
+                <LogoHeaderHomeLink />
             </div>}
             {!showLogo && title}
             {props.children}
