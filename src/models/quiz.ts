@@ -1,17 +1,17 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
-import { Clue, CompoundTextClue, ConnectionQuestion, ConnectionSecrets, FourByFourTextClue, MissingVowelsQuestion, MissingVowelsSecrets, QuestionSecrets, Quiz, SequenceQuestion, SequenceSecrets, TextClue, throwBadQuestionType, WallQuestion, WallSecrets } from '.';
+import { Clue, CompoundTextClue, ConnectionQuestion, ConnectionSecrets, FourByFourTextClue, MissingVowelsQuestion, MissingVowelsSecrets, QuestionSecrets, Quiz, QuizSecrets, SequenceQuestion, SequenceSecrets, TextClue, throwBadQuestionType, WallQuestion, WallSecrets } from '.';
 import { ConnectionQuestionSpec, SequenceQuestionSpec, WallQuestionSpec, MissingVowelsQuestionSpec, newFromSpec } from './questionSpec';
 
 export const createQuiz = (
     quizName: string,
-    passcode: string,
+    passcode: string | null,
     ownerId: string,
     db: firebase.firestore.Firestore = firebase.app().firestore(),
 ) => {
     const batch = db.batch();
     const secretsDoc = db.collection('quizSecrets').doc();
-    batch.set(secretsDoc, { passcode });
+    batch.set(secretsDoc, { passcode } as Partial<QuizSecrets>);
     const quizDoc = db.doc(`quizzes/${secretsDoc.id}`);
     batch.set<Quiz>(quizDoc as any, {
         name: quizName,
@@ -21,6 +21,7 @@ export const createQuiz = (
         isComplete: false,
         isZoomEnabled: false,
         ownerZoomId: null,
+        requireQuizPasscode: passcode !== null,
     });
     return batch.commit().then(() => secretsDoc.id);
 };

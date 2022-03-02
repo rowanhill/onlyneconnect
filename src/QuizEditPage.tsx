@@ -100,13 +100,16 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
                 .catch((error) => console.error('Error updating quiz secrets:', error));
             promises.push(promise);
         }
-        if (name !== quiz.name || useZoom !== quiz.isZoomEnabled) {
+        if (name !== quiz.name || useZoom !== quiz.isZoomEnabled || ((passcode === null) === (secrets.passcode === null))) {
             const updateData: Partial<Quiz> = {};
             if (name !== quiz.name) {
                 updateData.name = name;
             }
             if (useZoom !== quiz.isZoomEnabled) {
                 updateData.isZoomEnabled = useZoom;
+            }
+            if ((passcode === null) === (secrets.passcode === null)) {
+                updateData.requireQuizPasscode = passcode !== null;
             }
             const promise = firebase.firestore().doc(`quizzes/${quizId}`)
                 .update(updateData)
@@ -446,24 +449,29 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
         <>
         <p>Invite team captains to your quiz with this link: <CopyableText value={joinQuizUrl.href} /></p>
         <p><Link to={`/quiz/${quizId}`}>Click here</Link> to play.</p>
-            <Card>
+            <Card title="Quiz basics">
                 <div>
-                    <h4 className={formStyles.fieldTitle}><label>Quiz title</label></h4>
-                    <input type="text" value={name} onChange={createChangeHandler(setName)} />
+                    <h4 className={formStyles.fieldTitle}><label>Quiz name</label></h4>
+                    <input type="text" value={name} onChange={createChangeHandler(setName)} data-cy="quiz-name" />
                     <p className={formStyles.fieldDescription}>The quiz name is the title your quiz will have. All players will be able to see this name.</p>
                 </div>
                 <div>
-                    <h4 className={formStyles.fieldTitle}><label>Quiz passcode</label></h4>
-                    <input type="text" value={passcode} onChange={createChangeHandler(setPasscode)} />
-                    <p className={formStyles.fieldDescription}>The passcode is a secret phrase people must enter to create a team.</p>
+                    <h4 className={formStyles.fieldTitle}><label>Use a passcode?</label></h4>
+                    <input type="checkbox" onChange={(e) => setPasscode(e.target.checked ? '' : null)} checked={passcode !== null} data-cy="use-passcode" />
+                    <p className={formStyles.fieldDescription}>Without a passcode, anyone with the quiz URL will be able to create teams.</p>
                 </div>
+                {passcode !== null && <div>
+                    <h4 className={formStyles.fieldTitle}><label>Quiz passcode</label></h4>
+                    <input type="text" value={passcode} onChange={createChangeHandler(setPasscode)} data-cy="passcode" />
+                    <p className={formStyles.fieldDescription}>The passcode is a secret phrase people must enter to create a team.</p>
+                </div>}
                 {userPermissions?.canCreateZoomSessions && <div>
                     <h4 className={formStyles.fieldTitle}><label>Use Zoom</label></h4>
-                    <input type="checkbox" checked={useZoom} onChange={createCheckboxHandler(setUseZoom)} />
+                    <input type="checkbox" checked={useZoom} onChange={createCheckboxHandler(setUseZoom)} data-cy="use-zoom" />
                     <p className={formStyles.fieldDescription}>If ticked, an embedded Zoom session will be created when playing the quiz.</p>
                 </div>}
                 <p>
-                    <FlashMessageButton performAction={submit} labelTexts={{ normal: 'Save', success: 'Saved!', error: 'Error!' }} />
+                    <FlashMessageButton performAction={submit} labelTexts={{ normal: 'Save', success: 'Saved!', error: 'Error!' }} data-cy="submit-basics" />
                 </p>
             </Card>
             <div>

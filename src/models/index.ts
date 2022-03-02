@@ -6,6 +6,13 @@ export interface Team {
     quizId: string;
     points: number;
     captainId: string;
+    requireTeamPasscode?: boolean;
+}
+
+export interface TeamSecrets {
+    quizId: string;
+    quizPasscode: string | null;
+    passcode: string | null;
 }
 
 export interface PlayerTeam {
@@ -21,6 +28,7 @@ export interface Quiz {
     isComplete: boolean;
     isZoomEnabled: boolean;
     ownerZoomId: number|null;
+    requireQuizPasscode?: boolean;
 }
 
 export interface QuizSecrets {

@@ -1,11 +1,12 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
+import { Team, TeamSecrets } from '.';
 
 export const createTeam = (
     quizId: string,
-    quizPasscode: string,
+    quizPasscode: string|null,
     teamName: string,
-    teamPasscode: string,
+    teamPasscode: string|null,
     captainId: string,
     db: firebase.firestore.Firestore = firebase.app().firestore(),
 ) => {
@@ -16,7 +17,7 @@ export const createTeam = (
         quizId,
         quizPasscode: quizPasscode,
         passcode: teamPasscode,
-    });
+    } as TeamSecrets);
     // Create the public record of the team
     const newTeamRef = db.collection('teams').doc(newTeamSecretRef.id);
     batch.set(newTeamRef, {
@@ -24,7 +25,8 @@ export const createTeam = (
         captainId,
         name: teamName,
         points: 0,
-    });
+        requireTeamPasscode: teamPasscode !== null,
+    } as Team);
     // Add the captain as a player on the team
     const playerTeamRef = db.collection('playerTeams').doc(captainId);
     batch.set(playerTeamRef, {
@@ -37,7 +39,7 @@ export const createTeam = (
 export const joinPlayerToTeam = (
     playerId: string,
     teamId: string,
-    teamPasscode: string,
+    teamPasscode: string | null,
     db: firebase.firestore.Firestore = firebase.app().firestore(),
 ) => {
     return db.doc(`/playerTeams/${playerId}`).set({

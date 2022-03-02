@@ -46,8 +46,7 @@ export const JoinTeamPage = ({ teamId }: JoinTeamPageProps) => {
                     <p>Careful! You're already a member of a different team. You can only be a member of one team at once,
                         so if you join this team you'll be leaving your current team.</p>
                 }
-                <p>To join this team, enter the team's passcode. You can get this from your captain.</p>
-                <JoinTeamForm teamId={teamId} quizId={teamData.quizId} />
+                <JoinTeamForm teamId={teamId} team={teamData} quizId={teamData.quizId} />
             </Card>
             <Card title="Start your own team">
                 <p>If you'd rather start your own team (as captain), you can <Link to={`/quiz/${teamData.quizId}/create-team`}>click here</Link>.</p>
@@ -58,7 +57,8 @@ export const JoinTeamPage = ({ teamId }: JoinTeamPageProps) => {
     return <Page>{inner()}</Page>;
 };
 
-const JoinTeamForm = ({ teamId, quizId }: { teamId: string; quizId: string; }) => {
+const JoinTeamForm = ({ teamId, team, quizId }: { teamId: string; team: Team; quizId: string; }) => {
+    const teamPasscodeRequired = team.requireTeamPasscode === true || team.requireTeamPasscode === undefined;
     const [passcode, setPasscode] = useState('');
     const onPasscodeChange = createChangeHandler(setPasscode);
     const [disabled, setDisabled] = useState(false);
@@ -71,7 +71,7 @@ const JoinTeamForm = ({ teamId, quizId }: { teamId: string; quizId: string; }) =
         e.preventDefault();
         setDisabled(true);
 
-        joinPlayerToTeam(user!.uid, teamId, passcode)
+        joinPlayerToTeam(user!.uid, teamId, teamPasscodeRequired ? passcode : null)
         .then(() => {
             history.push(`/quiz/${quizId}`);
         })
@@ -82,16 +82,22 @@ const JoinTeamForm = ({ teamId, quizId }: { teamId: string; quizId: string; }) =
         });
     };
     
-    const submitDisabled = passcode.trim().length === 0;
+    const submitDisabled = teamPasscodeRequired && passcode.trim().length === 0;
 
     return (
         <form onSubmit={submit}>
             <fieldset disabled={disabled}>
-                <div>
-                    <h4 className={formStyles.fieldTitle}><label>Team passcode</label></h4>
-                    <input type="text" placeholder="Team passcode" value={passcode} onChange={onPasscodeChange} data-cy="passcode" />
-                    <p className={formStyles.fieldDescription}>You need the secret passcode for this team to join. If you're not sure what it is, ask your team captain.</p>
-                </div>
+                {teamPasscodeRequired && <>
+                    <p>To join this team, enter the team's passcode. You can get this from your captain.</p>
+                    <div>
+                        <h4 className={formStyles.fieldTitle}><label>Team passcode</label></h4>
+                        <input type="text" placeholder="Team passcode" value={passcode} onChange={onPasscodeChange} data-cy="passcode" />
+                        <p className={formStyles.fieldDescription}>You need the secret passcode for this team to join. If you're not sure what it is, ask your team captain.</p>
+                    </div>
+                </>}
+                {!teamPasscodeRequired &&
+                    <p>To join "{team.name}", just click the button below.</p>
+                }
                 <PrimaryButton disabled={submitDisabled} data-cy="submit">Join this team</PrimaryButton>
             </fieldset>
             {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}

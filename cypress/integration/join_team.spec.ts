@@ -18,17 +18,29 @@ describe('Join a team page', () => {
                 teamName: 'Universally Challenged',
                 teamPasscode: 'opensesame',
                 captainId: 'someotheruid',
+                requireTeamPasscode: true,
             });
         })
         .then(function (id) {
             teamId = id;
-            cy.visit('/team/'+teamId+'/join-team');
+            cy.visit(`/team/${teamId}/join-team`);
         });
     });
 
     it('allows users who know the team passcode to join up', () => {
         cy.contains('Universally Challenged');
         cy.get('[data-cy="passcode"]').type('opensesame');
+        cy.get('[data-cy="submit"]').click();
+
+        cy.url().should('match', new RegExp(`/quiz/${quizId}$`));
+    });
+
+    it('allows users to join up without a passcode if not passcode is required', () => {
+        cy.callFirestore('update', `teamSecrets/${teamId}`, { passcode: null });
+        cy.callFirestore('update', `teams/${teamId}`, { requireTeamPasscode: false });
+
+        cy.contains('Universally Challenged');
+        cy.get('[data-cy="passcode"]').should('not.exist');
         cy.get('[data-cy="submit"]').click();
 
         cy.url().should('match', new RegExp(`/quiz/${quizId}$`));

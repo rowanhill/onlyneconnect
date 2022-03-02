@@ -34,7 +34,7 @@ const CreateTeamPage = ({ quizId }: CreateTeamPageProps) => {
             <>
             <Card title="Start a new team">
                 <p>If you start your own team, you'll be the team captain. Other people can join your team, but only team captains can submit answers.</p>
-                <CreateTeamForm quizId={quizId} />
+                <CreateTeamForm quizId={quizId} quiz={quiz} />
             </Card>
             <TeamsList quizId={quizId} />
             </>
@@ -45,12 +45,13 @@ const CreateTeamPage = ({ quizId }: CreateTeamPageProps) => {
 
 export default CreateTeamPage;
 
-const CreateTeamForm = ({ quizId }: { quizId: string }) => {
-    const [quizPasscode, setQuizPasscode] = useState('');
+const CreateTeamForm = ({ quizId, quiz }: { quizId: string; quiz: Quiz; }) => {
+    const quizPasscodeRequired = quiz.requireQuizPasscode === true || quiz.requireQuizPasscode === undefined;
+    const [quizPasscode, setQuizPasscode] = useState(quizPasscodeRequired ? '' : null);
     const onQuizPasscodeChange = createChangeHandler(setQuizPasscode);
     const [teamName, setTeamName] = useState('');
     const onTeamNameChange = createChangeHandler(setTeamName);
-    const [teamPasscode, setTeamPasscode] = useState('');
+    const [teamPasscode, setTeamPasscode] = useState<string|null>('');
     const onTeamPasscodeChange = createChangeHandler(setTeamPasscode);
     const [disabled, setDisabled] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string|null>(null);
@@ -67,35 +68,40 @@ const CreateTeamForm = ({ quizId }: { quizId: string }) => {
             .then(() => {
                 history.push(`/quiz/${quizId}`);
             })
-            .catch((error) => {
+            .catch((error: any) => {
                 console.error("Could not create new team", error);
                 setErrorMessage('Something went wrong. The team wasn\'t created. Make sure you have the right passcode!');
                 setDisabled(false);
             });
     };
 
-    const submitDisabled = quizPasscode.trim().length === 0 ||
+    const submitDisabled = (quizPasscode !== null && quizPasscode.trim().length === 0) ||
         teamName.trim().length === 0 ||
-        teamPasscode.trim().length === 0;
+        (teamPasscode !== null && teamPasscode.trim().length === 0);
 
     return (
         <form onSubmit={submit}>
             <fieldset disabled={disabled}>
-                <div>
+                {quizPasscode !== null && <div>
                     <h4 className={formStyles.fieldTitle}><label>Quiz passcode</label></h4>
                     <input type="text" placeholder="Quiz passcode" value={quizPasscode} onChange={onQuizPasscodeChange} data-cy="quiz-passcode" />
                     <p className={formStyles.fieldDescription}>You need the secret passcode for this quiz to create a team. If you're not sure what it is, ask your quizmaster.</p>
-                </div>
+                </div>}
                 <div>
                     <h4 className={formStyles.fieldTitle}><label>Team name</label></h4>
                     <input type="text" placeholder="Team name" value={teamName} onChange={onTeamNameChange} data-cy="team-name" />
                     <p className={formStyles.fieldDescription}>Your team name will be visible to the quizmaster and all players.</p>
                 </div>
                 <div>
+                    <h4 className={formStyles.fieldTitle}><label>Use a team passcode?</label></h4>
+                    <input type="checkbox" onChange={(e) => setTeamPasscode(e.target.checked ? '' : null)} checked={teamPasscode !== null} data-cy="use-team-passcode" />
+                    <p className={formStyles.fieldDescription}>Without a passcode, anyone who can access the quiz will be able to join your team.</p>
+                </div>
+                {teamPasscode !== null && <div>
                     <h4 className={formStyles.fieldTitle}><label>Team passcode</label></h4>
                     <input type="text" placeholder="Team passcode" value={teamPasscode} onChange={onTeamPasscodeChange} data-cy="team-passcode" />
                     <p className={formStyles.fieldDescription}>Your team passcode can be any text. You'll need to give it to your teammates so they can join this team.</p>
-                </div>
+                </div>}
                 <PrimaryButton disabled={submitDisabled} data-cy="submit">Create a team</PrimaryButton>
             </fieldset>
             {errorMessage && <p className={styles.errorMessage}>{errorMessage}</p>}
