@@ -40,9 +40,14 @@ const ZoomCallLocalInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =>
     const [broadcastState, setBroadcastState] = useState<'off'|'previewing'|'connecting'|'on'>('off');
     const videoRef = useRef<HTMLVideoElement|null>(null);
     const videoCanvasRef = useRef<HTMLCanvasElement|null>(null);
-    const localAv = useLocalAudioVideo(broadcastState === 'previewing', videoRef);
-    const localAvLive = !!localAv.localAudioTrack && !!localAv.localVideoTrack
     const deviceLists = useDeviceLists();
+    const localAv = useLocalAudioVideo(
+        broadcastState === 'previewing',
+        videoRef,
+        deviceLists.cameras.selected?.deviceId,
+        deviceLists.mics.selected?.deviceId,
+    );
+    const localAvLive = !!localAv.localAudioTrack && !!localAv.localVideoTrack;
     const { joinCall, endCall, mediaStream } = useHostBroadcast(
         zoomClient,
         deviceLists.cameras.selected?.deviceId,
