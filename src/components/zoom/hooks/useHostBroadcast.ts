@@ -4,7 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { joinZoomSession } from '../zoomSession';
 import { updateZoomSessionStatus } from '../../../models/quiz';
 
-export const useHostBroadcast = (zoomClient: ZoomClient) => {
+export const useHostBroadcast = (
+    zoomClient: ZoomClient,
+    cameraId: string | undefined,
+    micId: string | undefined,
+    speakerId: string | undefined,
+) => {
     const { quiz, quizId } = useQuizContext();
     const [mediaStream, setMediaStream] = useState<MediaStream>();
 
@@ -14,13 +19,35 @@ export const useHostBroadcast = (zoomClient: ZoomClient) => {
         ownerZoomIdInDbRef.current = quiz.ownerZoomId;
     }, [quiz]);
 
+    // Switch the camera / mic / speaker on change once the media stream is live
+    useEffect(() => {
+        if (!mediaStream) {
+            return;
+        }
+        if (speakerId) {
+            mediaStream.switchSpeaker(speakerId);
+        }
+        if (micId) {
+            mediaStream.switchMicrophone(micId);
+        }
+        if (cameraId) {
+            mediaStream.switchCamera(cameraId);
+        }
+    }, [mediaStream, speakerId, micId, cameraId]);
+
     async function joinCall(didStartSession: { flag: boolean; }) {
         // Join the call - first user to join becomes host
         const stream = await joinZoomSession(zoomClient, quizId, quiz, id => `Quiz Host: ${id}`);
         didStartSession.flag = true;
     
         // Start the audio & video
-        await Promise.all([stream.startAudio(), stream.startVideo()]);
+        await Promise.all([stream.startAudio(), stream.startVideo({ cameraId })]);
+        if (speakerId) {
+            stream.switchSpeaker(speakerId);
+        }
+        if (micId) {
+            stream.switchMicrophone(micId);
+        }
         stream.unmuteAudio();
         setMediaStream(stream);
 
