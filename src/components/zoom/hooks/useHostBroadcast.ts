@@ -41,7 +41,7 @@ export const useHostBroadcast = (
         didStartSession.flag = true;
     
         // Start the audio & video
-        await Promise.all([stream.startAudio(), stream.startVideo({ cameraId })]);
+        await Promise.all([stream.startAudio(), stream.startVideo({ cameraId, captureWidth: 320, captureHeight: 180 })]);
         if (speakerId) {
             stream.switchSpeaker(speakerId);
         }
