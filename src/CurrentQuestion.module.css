@@ -1,3 +1,15 @@
 .questionPanel {
     flex-grow: 1;
 }
+
+.questionNotLive {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.questionInfoMessage {
+    font-size: 3vw;
+    margin-top: -2vw;
+    text-align: center;
+}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Card } from './Card';
 import { useCluesContext, usePlayerTeamContext, useQuestionsContext, useQuestionSecretsContext, useQuizContext, useWallInProgressContext } from './contexts/quizPage';
 import { CollectionQueryItem } from './hooks/useCollectionResult';
@@ -15,28 +15,37 @@ export const CurrentQuestion = ({ currentQuestionItem }: { currentQuestionItem?:
     const { quiz } = useQuizContext();
     const { data: secrets } = useQuestionSecretsContext();
     
-    function inner() {
-        if (currentQuestionItem === undefined) {
-            return <>Waiting for quiz to start...</>;
-        }
-        if (questionsError) {
-            return <strong>There was an error loading the question! Please try again.</strong>;
-        }
-        if (quiz.isComplete) {
-            return <>That's the end of the quiz. Thanks for playing!</>;
-        }
+    let inner: ReactNode;
+    let title: string|undefined = undefined;
+    const cardClassNames = [styles.questionPanel];
+    if (currentQuestionItem === undefined) {
+        cardClassNames.push(styles.questionNotLive);
+        inner = <span className={styles.questionInfoMessage}>Waiting for quiz to start...</span>;
+    } else if (questionsError) {
+        cardClassNames.push(styles.questionNotLive);
+        inner = <span className={styles.questionInfoMessage}><strong>There was an error loading the question! Please try again.</strong></span>;
+    } else if (quiz.isComplete) {
+        cardClassNames.push(styles.questionNotLive);
+        inner = <span className={styles.questionInfoMessage}>That's the end of the quiz. Thanks for playing!</span>;
+    } else {
         const currentQuestionNumber = quiz.questionIds.findIndex((questionId) => questionId === currentQuestionItem.id) + 1;
         const currentSecret = secrets && secrets.find((s) => s.id === currentQuestionItem.id);
-        return (
+        title = `Question ${currentQuestionNumber}`;
+        inner = (
             <>
-                <h3>Question {currentQuestionNumber}</h3>
                 <QuestionInstructions currentQuestionItem={currentQuestionItem} />
                 <QuestionClues currentQuestionItem={currentQuestionItem} currentSecret={currentSecret} />
                 <QuestionConnection currentQuestionItem={currentQuestionItem} currentSecret={currentSecret} />
             </>
         );
     }
-    return <Card className={styles.questionPanel} data-cy="clue-holder"><GenericErrorBoundary>{inner()}</GenericErrorBoundary></Card>;
+    return (
+        <Card className={cardClassNames.join(' ')} title={title} data-cy="clue-holder">
+            <GenericErrorBoundary>
+                {inner}
+            </GenericErrorBoundary>
+        </Card>
+    );
 };
 
 const QuestionInstructions = ({ currentQuestionItem }: { currentQuestionItem: CollectionQueryItem<Question>; }) => {
