@@ -100,7 +100,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
                 .catch((error) => console.error('Error updating quiz secrets:', error));
             promises.push(promise);
         }
-        if (name !== quiz.name || useZoom !== quiz.isZoomEnabled || ((passcode === null) === (secrets.passcode === null))) {
+        if (name !== quiz.name || useZoom !== quiz.isZoomEnabled || ((passcode === null) !== (secrets.passcode === null))) {
             const updateData: Partial<Quiz> = {};
             if (name !== quiz.name) {
                 updateData.name = name;
@@ -108,7 +108,7 @@ const QuizEditPageLoaded = ({ quizId, quiz, secrets, questions, clues, questionS
             if (useZoom !== quiz.isZoomEnabled) {
                 updateData.isZoomEnabled = useZoom;
             }
-            if ((passcode === null) === (secrets.passcode === null)) {
+            if ((passcode === null) !== (secrets.passcode === null)) {
                 updateData.requireQuizPasscode = passcode !== null;
             }
             const promise = firebase.firestore().doc(`quizzes/${quizId}`)
