@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 
-export const useDeviceLists = () => {
+export const useDeviceLists = (constraints: MediaStreamConstraints) => {
+    const hasRequestedPermission = useRef(false);
+    const constraintsRef = useRef(constraints);
+    useEffect(() => { constraintsRef.current = constraints; }, [constraints]);
+
     const [selectedCamera, setSelectedCamera] = useState<MediaDeviceInfo|null>(null);
     const [cameraList, setCameraList] = useState<MediaDeviceInfo[]|null>(null);
     const cameraInitialised = useRef(false);
@@ -15,6 +19,10 @@ export const useDeviceLists = () => {
 
     useEffect(() => {
         const init = async () => {
+            if (!hasRequestedPermission.current) {
+                await navigator.mediaDevices.getUserMedia(constraintsRef.current);
+                hasRequestedPermission.current = true;
+            }
             const devices = await navigator.mediaDevices.enumerateDevices();
 
             const cameras = devices.filter((d) => d.kind === 'videoinput');
@@ -64,3 +72,5 @@ export const useDeviceLists = () => {
         },
     };
 };
+
+export type DeviceList = ReturnType<typeof useDeviceLists>['cameras'];

@@ -1,4 +1,4 @@
-import { ChangeEvent, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { DangerButton, PrimaryButton } from '../../Button';
 import { useDisconnectAfterTimeout } from './hooks/useDisconnectAfterTimeout';
 import { useHostBroadcast } from './hooks/useHostBroadcast';
@@ -10,6 +10,7 @@ import { ZoomClient } from './zoomTypes';
 import styles from './ZoomCallLocal.module.css';
 import { useRenderVideoOfHost } from './hooks/useRenderVideoOfHost';
 import { useDeviceLists } from './hooks/useDeviceLists';
+import { AvDeviceSelect } from './AvDeviceSelect';
 
 export const ZoomCallLocal = () => {
     const zoomClient = useInitialisedZoomClient();
@@ -40,7 +41,7 @@ const ZoomCallLocalInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =>
     const [broadcastState, setBroadcastState] = useState<'off'|'previewing'|'connecting'|'on'>('off');
     const videoRef = useRef<HTMLVideoElement|null>(null);
     const videoCanvasRef = useRef<HTMLCanvasElement|null>(null);
-    const deviceLists = useDeviceLists();
+    const deviceLists = useDeviceLists({ audio: true, video: true });
     const localAv = useLocalAudioVideo(
         broadcastState === 'previewing',
         videoRef,
@@ -95,9 +96,9 @@ const ZoomCallLocalInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =>
             style={{ visibility: broadcastState === 'off' ? 'hidden' : 'initial' }}
         />}
         {showDeviceLists && <>
-        <div><DeviceSelect deviceList={deviceLists.cameras} /></div>
-        <div><DeviceSelect deviceList={deviceLists.mics} /></div>
-        <div><DeviceSelect deviceList={deviceLists.speakers} /></div>
+        <div><AvDeviceSelect className={styles.deviceList} deviceList={deviceLists.cameras} /></div>
+        <div><AvDeviceSelect className={styles.deviceList} deviceList={deviceLists.mics} /></div>
+        <div><AvDeviceSelect className={styles.deviceList} deviceList={deviceLists.speakers} /></div>
         </>}
         <div>
             <PrimaryButton onClick={() => setShowDeviceLists(!showDeviceLists)}>⚙️</PrimaryButton>
@@ -109,22 +110,5 @@ const ZoomCallLocalInitialised = ({ zoomClient }: { zoomClient: ZoomClient }) =>
         </div>
         {showTimeoutModal && <ZoomCallTimeoutModal onStayConnected={postponeTimeoutThirtyMinutes} onDisconnect={stopBroadcast} />}
         </>
-    );
-};
-
-const DeviceSelect = ({ deviceList }: { deviceList: ReturnType<typeof useDeviceLists>['cameras']; }) => {
-    const handleDeviceChange = (e: ChangeEvent<HTMLSelectElement>) => {
-        const device = deviceList.list?.find((d) => d.deviceId === e.target.value);
-        if (device) {
-            deviceList.setSelected(device);
-        }
-    };
-    return (
-        <select className={styles.deviceList} value={deviceList.selected?.deviceId} onChange={handleDeviceChange}>
-            {deviceList.list === null && <option>Loading...</option>}
-            {deviceList.list && deviceList.list.map((device) =>
-                <option key={device.deviceId} value={device.deviceId}>{device.label}</option>)
-            }
-        </select>
     );
 };
