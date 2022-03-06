@@ -1,7 +1,14 @@
+.scoreboard {
+    display: flex;
+    flex-direction: column;
+    overflow-y: hidden;
+    min-height: 10em; /* Ensure the scoreboard is never unusably small */
+}
 .scoreboard ul {
     margin: 0;
     padding: 0;
     list-style-type: none;
+    overflow-y: scroll;
 }
 .scoreboard h2 {
     margin-bottom: 0.5em;
