@@ -24,12 +24,13 @@
     display: flex;
     flex-direction: column;
     margin-right: 2em;
+    min-width: 25em;
 }
 
 .rightPanel {
     display: flex;
     flex-direction: column;
-    min-width: 18em;
+    min-width: 25em;
     max-height: calc(100vh - 2 * var(--medium)); /* medium padding used by page */
     max-width: calc((100vh - 2 * var(--medium)) * 0.35); /* 35% of space left after page padding */
 }
